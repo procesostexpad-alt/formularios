@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>9.2. Gestión de Entrega de Equipos y Accesos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .readonly-field {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+    }
+    .section-header {
+      margin-top: 25px;
+      font-weight: bold;
+      font-size: 18px;
+      color: #444;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 4px;
+      margin-bottom: 15px;
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+<div class="container">
+
+  <h3 class="mb-4">Gestión de Entrega de Equipos y Accesos</h3>
+
+  <div id="contenido"></div>
+
+  <div class="mt-4 d-flex gap-2">
+    <button class="btn btn-success" onclick="guardar()">Guardar</button>
+    <button class="btn btn-danger" onclick="cancelar()">Cancelar</button>
+  </div>
+
+</div>
+
+<script>
+// ======================================================
+// Función calcular edad real
+// ======================================================
+function calcularEdad(fechaNac) {
+    if (!fechaNac) return "-";
+
+    const nacimiento = new Date(fechaNac);
+    const hoy = new Date();
+
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const m = hoy.getMonth() - nacimiento.getMonth();
+
+    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+        edad--;
+    }
+    return edad;
+}
+
+// ======================================================
+// Obtener parámetros enviados desde Sistemas
+// ======================================================
+const url = new URLSearchParams(window.location.search);
+const ced = url.get("ced");
+const numSol = url.get("sol");
+
+// ======================================================
+// Buscar solicitud y candidato en localStorage
+// ======================================================
+let solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+const solicitud = solicitudes.find(s => s.numero == numSol);
+
+if (!solicitud) {
+  alert("No se encontró la solicitud.");
+}
+
+const candidato = solicitud.candidatos.find(c => c.cedula === ced);
+
+if (!candidato) {
+  alert("No se encontró el candidato.");
+}
+
+// Si no tiene estado → iniciar como PENDIENTE
+if (!candidato.estadoEntrega) candidato.estadoEntrega = "PENDIENTE";
+
+// ======================================================
+// Armar accesos dinámicos
+// ======================================================
+function cargarDatos() {
+
+  const cont = document.getElementById("contenido");
+
+  let accesosPC_HTML = "";
+  if (solicitud.requiereComp === "si" && solicitud.accesosPC?.length > 0) {
+    solicitud.accesosPC.forEach(a => {
+      accesosPC_HTML += `
+        <div class="col-3 mt-2">
+          <input class="form-control readonly-field" value="${a}" readonly>
+        </div>`;
+    });
+  } else {
+    accesosPC_HTML = `<div class="col-12"><small>No se solicitaron accesos PC</small></div>`;
+  }
+
+  let accesosTel_HTML = "";
+  if (solicitud.requiereTel === "si" && solicitud.accesosTel?.length > 0) {
+    solicitud.accesosTel.forEach(a => {
+      accesosTel_HTML += `
+        <div class="col-3 mt-2">
+          <input class="form-control readonly-field" value="${a}" readonly>
+        </div>`;
+    });
+  } else {
+    accesosTel_HTML = `<div class="col-12"><small>No se solicitaron accesos telefónicos</small></div>`;
+  }
+
+
+  // ======================================================
+  // FORMULARIO COMPLETO
+  // ======================================================
+  cont.innerHTML = `
+
+  <!-- DATOS SOLICITUD -->
+  <div class="row">
+    <div class="col-6">
+      <label>N° Solicitud</label>
+      <input class="form-control readonly-field" value="${solicitud.numero}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Solicitante</label>
+      <input class="form-control readonly-field" value="${solicitud.solicitante}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-6">
+      <label>Fecha Solicitud</label>
+      <input class="form-control readonly-field" value="${solicitud.fechaSolicitud}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Área</label>
+      <input class="form-control readonly-field" value="${solicitud.area}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-12">
+      <label>Departamento</label>
+      <input class="form-control readonly-field" value="${solicitud.departamento}" readonly>
+    </div>
+  </div>
+
+
+
+  <!-- DATOS TRABAJADOR -->
+  <div class="section-header">Datos del Trabajador para la Entrega</div>
+
+  <div class="row">
+    <div class="col-6">
+      <label>Nombre Completo</label>
+      <input class="form-control readonly-field" value="${candidato.nombre}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Cédula</label>
+      <input class="form-control readonly-field" value="${candidato.cedula}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-6">
+      <label>Código Único</label>
+      <input class="form-control readonly-field" value="${candidato.codigoUnico || '-'}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Edad (real)</label>
+      <input class="form-control readonly-field" value="${calcularEdad(candidato.fechaNacimiento)}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-6">
+      <label>Cargo</label>
+      <input class="form-control readonly-field" value="${solicitud.cargoSolicitado}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Fecha de Ingreso</label>
+      <input class="form-control readonly-field" value="${candidato.fechaIngreso || '-'}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-6">
+      <label>Área</label>
+      <input class="form-control readonly-field" value="${solicitud.area}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Departamento</label>
+      <input class="form-control readonly-field" value="${solicitud.departamento}" readonly>
+    </div>
+  </div>
+
+
+
+
+  <!-- PERFIL REQUERIDO -->
+  <div class="section-header">Perfil Requerido</div>
+
+  <div class="row">
+    <div class="col-6">
+      <label>Edad Estimada</label>
+      <input class="form-control readonly-field" value="${solicitud.edad}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Sexo Sugerido</label>
+      <input class="form-control readonly-field" value="${solicitud.sexo}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-6">
+      <label>Nivel Académico</label>
+      <input class="form-control readonly-field" value="${solicitud.nivelAcademico}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Experiencia Mínima</label>
+      <input class="form-control readonly-field" value="${solicitud.experienciaMinima}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-6">
+      <label>Conocimientos Técnicos</label>
+      <input class="form-control readonly-field" value="${solicitud.conocimientosTecnicos}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Requerimientos Adicionales</label>
+      <input class="form-control readonly-field" value="${solicitud.requerimientosAdicionales}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-3">
+    <div class="col-6">
+      <label>Funciones</label>
+      <input class="form-control readonly-field" value="${solicitud.funcionesPerfil}" readonly>
+    </div>
+
+    <div class="col-6">
+      <label>Competencias</label>
+      <input class="form-control readonly-field" value="${solicitud.competencias}" readonly>
+    </div>
+  </div>
+
+
+
+
+  <!-- ACCESOS Y EQUIPOS -->
+  <div class="section-header">Accesos y/o Equipos Requeridos</div>
+
+  <div class="row">
+    <div class="col-6">
+      <label>Tipo de Cargo</label>
+      <input class="form-control readonly-field" value="${solicitud.tipoCargo}" readonly>
+    </div>
+  </div>
+
+
+  <div class="row mt-3">
+    <div class="col-6">
+      <label>¿Requiere Computador?</label>
+      <input class="form-control readonly-field" value="${solicitud.requiereComp}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-2">
+    <div class="col-12 fw-bold">Accesos PC</div>
+    ${accesosPC_HTML}
+  </div>
+
+
+  <div class="row mt-4">
+    <div class="col-6">
+      <label>¿Requiere Teléfono?</label>
+      <input class="form-control readonly-field" value="${solicitud.requiereTel}" readonly>
+    </div>
+  </div>
+
+  <div class="row mt-2">
+    <div class="col-12 fw-bold">Accesos Telefónicos</div>
+    ${accesosTel_HTML}
+  </div>
+
+
+  <!-- SOLICITUD ADICIONAL -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <label>Solicitud adicional a sistemas</label>
+      <input class="form-control readonly-field" value="${solicitud.adicional}" readonly>
+    </div>
+  </div>
+
+
+
+  <!-- ESTADO ENTREGA -->
+  <div class="section-header">Estado de Entrega</div>
+
+  <div class="row">
+    <div class="col-6">
+      <label>Estado</label>
+      <select id="estadoEntrega" class="form-select">
+        <option value="PENDIENTE" ${candidato.estadoEntrega === "PENDIENTE" ? "selected" : ""}>PENDIENTE</option>
+        <option value="ENTREGADO" ${candidato.estadoEntrega === "ENTREGADO" ? "selected" : ""}>ENTREGADO</option>
+        <option value="ENTREGA INCOMPLETA" ${candidato.estadoEntrega === "ENTREGA INCOMPLETA" ? "selected" : ""}>ENTREGA INCOMPLETA</option>
+      </select>
+    </div>
+  </div>
+
+  `;
+}
+
+cargarDatos();
+
+
+// ======================================================
+// GUARDAR ESTADO
+// ======================================================
+function guardar() {
+
+  const estado = document.getElementById("estadoEntrega").value;
+
+  // Guardar estado en el candidato
+  candidato.estadoEntrega = estado;
+
+  // Actualizar localStorage
+  localStorage.setItem("solicitudes", JSON.stringify(solicitudes));
+
+  // Mensajes por estado
+  if (estado === "ENTREGADO") {
+      alert("✔ Equipos y accesos ENTREGADOS. Notificado a Talento Humano y solicitante.");
+  } 
+  else if (estado === "ENTREGA INCOMPLETA") {
+      alert("⚠ Entrega INCOMPLETA. Notificado a Talento Humano y solicitante.");
+  }
+  else {
+      alert("⏳ Pendiente de entrega. Notificado a Talento Humano y solicitante.");
+  }
+
+  // 🔥 REDIRECCIÓN AUTOMÁTICA
+  window.location.href = "ver-entrega-equipos-accesos.html";
+}
+
+
+
+
+// ======================================================
+// CANCELAR
+// ======================================================
+function cancelar() {
+  history.back();
+}
+
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>
+

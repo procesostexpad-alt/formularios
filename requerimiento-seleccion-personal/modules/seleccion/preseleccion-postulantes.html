@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3.1. Preseleccion de Postulantes</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .readonly-field {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+    }
+    .table th, .table td {
+      text-align: center;
+      vertical-align: middle;
+    }
+    .btn-iniciar-preseleccion {
+      border: 0;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      background: linear-gradient(135deg, #14825f 0%, #0d6b51 100%);
+      box-shadow: 0 10px 20px rgba(20, 130, 95, 0.25);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      animation: pulseInicio 2.2s infinite;
+    }
+    .btn-iniciar-preseleccion:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 22px rgba(20, 130, 95, 0.35);
+      filter: brightness(1.04);
+    }
+    .btn-iniciar-preseleccion:active {
+      transform: translateY(0);
+    }
+    .btn-iniciar-preseleccion.is-loading {
+      opacity: 0.9;
+      pointer-events: none;
+      animation: none;
+    }
+    .mensaje-pop {
+      animation: mensajeEntrada 0.25s ease-out;
+    }
+    @keyframes pulseInicio {
+      0% { box-shadow: 0 10px 20px rgba(20, 130, 95, 0.25); }
+      50% { box-shadow: 0 14px 28px rgba(20, 130, 95, 0.38); }
+      100% { box-shadow: 0 10px 20px rgba(20, 130, 95, 0.25); }
+    }
+    @keyframes mensajeEntrada {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+  <div class="container">
+
+<div id="topHeaderPreseleccion" class="d-flex justify-content-between mb-3 align-items-center">
+
+  <!-- BOTON VOLVER -->
+  <button id="btnVolver" class="btn btn-secondary" onclick="window.history.back()">
+    &larr; Volver
+  </button>
+
+  <!-- TITULO CENTRADO -->
+  <h3 id="tituloVistaPreseleccion" class="m-0 flex-grow-1 text-center">Preseleccion de Postulantes</h3>
+
+
+  <!-- espacio vacio para mantener simetria -->
+  <div style="width:120px"></div>
+
+</div>
+
+
+    <!-- DATOS DE LA SOLICITUD -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Numero de Solicitud</label>
+        <input type="text" id="nSolicitud" class="form-control readonly-field" readonly>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Solicitante</label>
+        <input type="text" id="solicitante" class="form-control readonly-field" readonly>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Fecha Solicitud</label>
+        <input type="text" id="fechaSolicitud" class="form-control readonly-field" readonly>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Area</label>
+        <input type="text" id="area" class="form-control readonly-field" readonly>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Departamento</label>
+        <input type="text" id="departamento" class="form-control readonly-field" readonly>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <label class="form-label fw-bold">Cargo Solicitado</label>
+        <input type="text" id="cargoSolicitado" class="form-control readonly-field" readonly>
+      </div>
+    </div>
+
+    <hr>
+
+    <h5 class="mt-4">Candidatos Registrados</h5>
+
+    <!-- TABLA -->
+    <table class="table table-bordered table-hover align-middle mt-3">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Cedula</th>
+        <th>Nombre</th>
+        <th>Fecha Nacimiento</th>
+        <th>Correo</th>
+        <th>Telefono</th>
+        <th>Aspiracion Salarial</th>
+        <th>Informacion Adicional</th>
+        <th>CV</th>
+        <th>No Seleccionado</th>
+        <th>Preseleccion</th>
+      </tr>
+    </thead>
+
+      <tbody id="tablaCandidatos"></tbody>
+    </table>
+
+
+<div id="mensajePreseleccion" class="alert d-none mt-4 mb-3" role="alert"></div>
+
+<!-- BOTONES FINALES CENTRADOS -->
+<div class="mt-5 text-center">
+
+  <button id="btnIniciarPreseleccion" class="btn btn-lg me-3 btn-iniciar-preseleccion" onclick="iniciarPreseleccion()">
+    <span aria-hidden="true">&#9654;</span> Iniciar Preseleccion
+  </button>
+
+  <button id="btnFinalizar" class="btn btn-danger btn-lg" onclick="finalizarPreseleccion()">
+    Finalizar Preseleccion
+  </button>
+
+</div>
+
+  </div>
+
+<script>
+
+let solicitudIndex = null;
+let contador = 1;
+const MODO_EMBED =
+    new URLSearchParams(window.location.search).get("embed") === "1" ||
+    window.self !== window.top;
+
+function aplicarModoEmbed() {
+    if (!MODO_EMBED) return;
+    const btnVolver = document.getElementById("btnVolver");
+    if (btnVolver) btnVolver.style.display = "none";
+    const topHeader = document.getElementById("topHeaderPreseleccion");
+    if (topHeader) {
+        topHeader.classList.remove("d-flex");
+        topHeader.classList.add("d-none");
+        topHeader.setAttribute("hidden", "hidden");
+        topHeader.style.setProperty("display", "none", "important");
+    }
+
+    const tituloPrincipal = document.getElementById("tituloVistaPreseleccion");
+    if (tituloPrincipal) {
+        tituloPrincipal.style.setProperty("display", "none", "important");
+    }
+
+    // Respaldo: si por cualquier razon no se detecta el header por id, ocultar el h3 principal.
+    const h3Principal = document.querySelector(".container > h3");
+    if (h3Principal) h3Principal.style.setProperty("display", "none", "important");
+}
+
+function mostrarMensaje(texto, tipo = "success") {
+    const box = document.getElementById("mensajePreseleccion");
+    box.textContent = texto;
+    box.classList.remove("alert-success", "alert-warning", "alert-danger", "mensaje-pop");
+    box.classList.add(`alert-${tipo}`, "mensaje-pop");
+    box.classList.remove("d-none");
+
+    setTimeout(() => {
+        box.classList.add("d-none");
+    }, 4000);
+}
+
+
+// -------------------------------------------------------
+function registrarEtapa(solicitud, nuevaEtapa) {
+
+    if (!solicitud.historialEtapas) solicitud.historialEtapas = [];
+
+    const historico = solicitud.historialEtapas;
+
+    const fecha = new Date().toLocaleString("es-EC", { hour12: false });
+
+    const usuario = "Nicolas Crisanto";
+
+    // Evitar duplicados
+    if (historico.length > 0 && historico[historico.length - 1].etapa === nuevaEtapa) {
+        historico[historico.length - 1] = {
+            etapa: nuevaEtapa,
+            fecha: fecha,
+            usuario: usuario
+        };
+    } else {
+        historico.push({
+            etapa: nuevaEtapa,
+            fecha: fecha,
+            usuario: usuario
+        });
+    }
+}
+
+
+function actualizarHabilitacionChecks() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    const checkboxes = document.querySelectorAll(".chk-noSel, .chk-terna");
+
+    // Antes de iniciar -> bloquear checkboxes
+    if (!solicitud.etapaPreseleccion || solicitud.etapaPreseleccion === "no_iniciada") {
+        checkboxes.forEach(chk => chk.disabled = true);
+        return;
+    }
+
+    // Si ya finalizo -> bloquear checkboxes
+    if (solicitud.preseleccionFinalizada) {
+        checkboxes.forEach(chk => chk.disabled = true);
+        return;
+    }
+
+    // Si esta iniciada -> habilitar checkboxes
+    checkboxes.forEach(chk => chk.disabled = false);
+}
+
+
+// CARGAR DATOS DE LA SOLICITUD
+// -------------------------------------------------------
+function cargarDatosSolicitud() {
+
+    const params = new URLSearchParams(window.location.search);
+    solicitudIndex = params.get("sol");
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    if (!solicitud) {
+        alert("Error: No existe la solicitud.");
+        return;
+    }
+
+    document.getElementById("nSolicitud").value = solicitud.numero;
+    document.getElementById("solicitante").value = solicitud.solicitante;
+    document.getElementById("fechaSolicitud").value = solicitud.fechaSolicitud;
+    document.getElementById("area").value = solicitud.area;
+    document.getElementById("departamento").value = solicitud.departamento;
+    document.getElementById("cargoSolicitado").value = solicitud.cargoSolicitado;
+
+    // Si ya estaba finalizada, bloquear controles
+    if (solicitud.preseleccionFinalizada) {
+        bloquearPantalla();
+    }
+}
+
+
+// -------------------------------------------------------
+// CARGAR CANDIDATOS ACTIVOS
+// -------------------------------------------------------
+function cargarCandidatosSolicitud() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    if (!solicitud || !solicitud.candidatos) return;
+
+    const tabla = document.getElementById("tablaCandidatos");
+    tabla.innerHTML = "";
+    contador = 1;
+
+    const candidatosFiltrados = solicitud.candidatos.filter(c =>
+        c.estado === "pendiente" ||
+        c.estado === "postulado" ||
+        c.estado === "reproceso" ||
+        c.estado === "no_seleccionado" ||
+        c.estado === "terna"
+    );
+
+    candidatosFiltrados.forEach(c => {
+
+        const fechaFormateada = c.fechaNacimiento.split("-").reverse().join("-");
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${contador++}</td>
+            <td>${c.cedula}</td>
+            <td>${c.nombre}</td>
+            <td>${fechaFormateada}</td>
+            <td>${c.correo}</td>
+            <td>${c.telefono}</td>
+
+            <td>${c.aspiracion ? c.aspiracion + " USD" : "-"}</td>
+            <td>${c.infoAdicional ? c.infoAdicional : "-"}</td>
+
+            <td><a href="${c.cv}" target="_blank">${c.cvNombre}</a></td>
+
+            <td><input type="checkbox" class="chk-noSel" data-cedula="${c.cedula}" 
+                ${c.estado === "no_seleccionado" ? "checked" : ""}></td>
+
+            <td><input type="checkbox" class="chk-terna" data-cedula="${c.cedula}"
+                ${c.estado === "terna" ? "checked" : ""}></td>
+        `;
+
+
+        tabla.appendChild(row);
+
+        actualizarChecks(row);
+    });
+
+    // Si ya estaba finalizado -> bloquear
+    if (JSON.parse(localStorage.getItem("solicitudes"))[solicitudIndex].preseleccionFinalizada) {
+        bloquearPantalla();
+    }
+}
+
+
+// -------------------------------------------------------
+// CONTROL CHECKS
+// -------------------------------------------------------
+function actualizarChecks(row) {
+
+    const noSel = row.querySelector(".chk-noSel");
+    const terna = row.querySelector(".chk-terna");
+    const cedula = noSel?.dataset?.cedula;
+
+    if (!noSel || !terna || !cedula) return;
+
+    noSel.addEventListener("change", () => {
+        if (noSel.checked) terna.checked = false;
+        guardarEstadoCandidato(cedula, noSel, terna);
+    });
+
+    terna.addEventListener("change", () => {
+        if (terna.checked) noSel.checked = false;
+        guardarEstadoCandidato(cedula, noSel, terna);
+    });
+}
+
+
+// -------------------------------------------------------
+// GUARDAR AUTOMATICAMENTE CADA CAMBIO DE CANDIDATO
+// -------------------------------------------------------
+function guardarEstadoCandidato(cedula, chkNoSel, chkTerna) {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    if (!solicitud || !solicitud.candidatos) return;
+
+    const candidato = solicitud.candidatos.find(c => String(c.cedula) === String(cedula));
+    if (!candidato) return;
+
+    if (chkNoSel.checked) {
+        candidato.estado = "no_seleccionado";
+    } else if (chkTerna.checked) {
+        candidato.estado = "terna";
+    } else {
+        candidato.estado = "pendiente";
+    }
+
+    localStorage.setItem("solicitudes", JSON.stringify(lista));
+}
+
+
+
+
+// -------------------------------------------------------
+// FINALIZAR PRESELECCION
+// -------------------------------------------------------
+function finalizarPreseleccion() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    // 1) GUARDAR AUTOMATICAMENTE LO QUE ESTA EN PANTALLA ANTES DE VALIDAR
+    solicitud.candidatos.forEach(candidato => {
+
+        const chkNoSel = document.querySelector(`.chk-noSel[data-cedula="${candidato.cedula}"]`);
+        const chkTerna = document.querySelector(`.chk-terna[data-cedula="${candidato.cedula}"]`);
+
+        if (chkNoSel && chkTerna) {
+
+            if (chkNoSel.checked) {
+                candidato.estado = "no_seleccionado";
+            } 
+            else if (chkTerna.checked) {
+                candidato.estado = "terna";
+            } 
+            else {
+                candidato.estado = "pendiente"; // no marcado
+            }
+
+        }
+    });
+
+    // Guardar lo recien leido
+    localStorage.setItem("solicitudes", JSON.stringify(lista));
+
+    // 2) VALIDAR QUE EXISTA AL MENOS UN CHECK SELECCIONADO
+    const algunSeleccionado = solicitud.candidatos.some(c =>
+        c.estado === "no_seleccionado" || c.estado === "terna"
+    );
+
+    if (!algunSeleccionado) {
+        mostrarMensaje("Selecciona al menos un check (No seleccionado o Preseleccion) para poder finalizar.", "warning");
+        return;
+    }
+
+    // 3) VALIDAR QUE NINGUN CANDIDATO QUEDE EN "pendiente"
+    const algunPendiente = solicitud.candidatos.some(c => c.estado === "pendiente");
+
+    if (algunPendiente) {
+        mostrarMensaje("Completa los checks pendientes para poder finalizar la preseleccion.", "warning");
+        return;
+    }
+
+    // 4) CONFIRMACION
+    if (!confirm("Esta accion finalizara la preseleccion. Desea continuar?")) return;
+
+    // 5) FINALIZAR
+    solicitud.preseleccionFinalizada = true;
+    solicitud.estadoPreseleccion = "Preseleccion Finalizada";
+
+    solicitud.etapaPreseleccion = "finalizada";
+
+    registrarEtapa(solicitud, "preseleccion-finalizada");
+
+    localStorage.setItem("solicitudes", JSON.stringify(lista));
+
+    bloquearPantalla();
+    actualizarBotonesSegunEtapa();
+    actualizarHabilitacionChecks();
+
+    mostrarMensaje("Preseleccion finalizada correctamente.");
+}
+
+
+
+
+// -------------------------------------------------------
+// BLOQUEAR TODA LA PANTALLA (cuando ya esta finalizado)
+// -------------------------------------------------------
+function bloquearPantalla() {
+
+    document.querySelectorAll("input[type='checkbox']").forEach(chk => {
+        chk.disabled = true;
+    });
+
+    document.getElementById("btnFinalizar").style.display = "none";
+}
+
+
+function actualizarBotonesSegunEtapa() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    const btnIniciar = document.getElementById("btnIniciarPreseleccion");
+    const btnFinalizar = document.getElementById("btnFinalizar");
+
+    // Si esta finalizada, ocultar todo
+    if (solicitud.preseleccionFinalizada) {
+        btnIniciar.style.display = "none";
+        btnFinalizar.style.display = "none";
+        return;
+    }
+
+    // Si no inicia, mostrar solo el boton de inicio
+    if (!solicitud.etapaPreseleccion || solicitud.etapaPreseleccion === "no_iniciada") {
+        btnIniciar.style.display = "inline-block";
+        btnIniciar.disabled = false;
+        btnIniciar.classList.remove("is-loading");
+        btnIniciar.innerHTML = '<span aria-hidden="true">&#9654;</span> Iniciar Preseleccion';
+        btnFinalizar.style.display = "none";
+        return;
+    }
+
+    // Si ya inicio, mostrar solo finalizar
+    if (solicitud.etapaPreseleccion === "iniciada") {
+        btnIniciar.style.display = "none";
+        btnFinalizar.style.display = "inline-block";
+        return;
+    }
+}
+
+// -------------------------------------------------------
+window.onload = function () {
+    aplicarModoEmbed();
+    cargarDatosSolicitud();
+    cargarCandidatosSolicitud();
+    actualizarBotonesSegunEtapa();
+    actualizarHabilitacionChecks();  // <--- NUEVO
+};
+
+
+
+
+/* ========================================================
+   INICIAR PRESELECCION
+   ======================================================== */
+function iniciarPreseleccion() {
+
+    const btnIniciar = document.getElementById("btnIniciarPreseleccion");
+    if (btnIniciar) {
+        btnIniciar.disabled = true;
+        btnIniciar.classList.add("is-loading");
+        btnIniciar.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Iniciando...';
+    }
+
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    if (!solicitud.candidatos) solicitud.candidatos = [];
+
+
+    // Guardar estado original una sola vez
+    if (!solicitud.estadoOriginal) {
+        solicitud.estadoOriginal = solicitud.estado || solicitud.estadoPreseleccion || "pendiente";
+    }
+
+    // Guardar estados originales de candidatos
+    solicitud.candidatos.forEach(c => {
+        if (!c.estadoOriginal) c.estadoOriginal = c.estado;
+    });
+
+    // Registrar etapa en historial
+    registrarEtapa(solicitud, "preseleccion-iniciada");
+
+    // Marcar bandera
+    solicitud.etapaPreseleccion = "iniciada";
+
+    localStorage.setItem("solicitudes", JSON.stringify(lista));
+
+    // Mostrar mensaje
+    mostrarMensaje("Preseleccion iniciada correctamente. Ahora puedes trabajar los candidatos.");
+
+    // Actualizar botones si los tienes configurados
+    if (typeof actualizarBotonesSegunEtapa === "function") {
+        actualizarBotonesSegunEtapa();
+        actualizarHabilitacionChecks();
+
+    }
+}
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>       
+ 
+

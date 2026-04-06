@@ -1,0 +1,916 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timeline del Postulante</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a2130;
+      --muted: #59647a;
+      --line: #d8dfeb;
+      --card: #ffffff;
+      --hero-1: #f6fbff;
+      --hero-2: #ebf5ff;
+      --accent: #0d5f6f;
+      --accent-2: #1d8ca0;
+      --ok: #168f57;
+      --progress: #e08b17;
+      --fail: #d84f4f;
+      --pending: #8b96aa;
+      --shadow: 0 20px 42px rgba(28, 63, 99, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Trebuchet MS", Verdana, sans-serif;
+      background:
+        radial-gradient(circle at 8% 10%, rgba(12, 105, 136, 0.24), transparent 38%),
+        radial-gradient(circle at 92% 4%, rgba(224, 139, 23, 0.2), transparent 34%),
+        linear-gradient(155deg, #eef6ff 0%, #eff7f5 55%, #fdf4e8 100%);
+      background-attachment: fixed;
+    }
+
+    .page {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 18px 14px 36px;
+    }
+
+    .hero-card,
+    .timeline-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card {
+      padding: 16px;
+      margin-bottom: 16px;
+      background: linear-gradient(150deg, var(--hero-1), var(--hero-2));
+      animation: fadeUp 0.45s ease;
+    }
+
+    .back-btn {
+      border-radius: 10px;
+      font-weight: 700;
+      background: #435a70;
+      border-color: #435a70;
+      color: #fff;
+    }
+
+    .hero-title {
+      margin: 14px 0 4px;
+      text-align: center;
+      color: var(--accent);
+      font-size: 2rem;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .hero-subtitle {
+      margin: 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .summary-grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .summary-card {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 10px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.84);
+    }
+
+    .summary-card b {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 1.35rem;
+      line-height: 1.1;
+      color: #1c3240;
+    }
+
+    .summary-card span {
+      font-size: 0.78rem;
+      letter-spacing: 0.35px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .hero-progress {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .hero-progress-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      color: #354860;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .hero-progress-track {
+      margin-top: 8px;
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #e5edf5;
+      position: relative;
+    }
+
+    .hero-progress-fill {
+      height: 100%;
+      width: 0;
+      transition: width 0.55s ease;
+      background: linear-gradient(90deg, #0d6a95 0%, #1d8ca0 38%, #e08b17 100%);
+    }
+
+    .timeline-card {
+      padding: 14px;
+      animation: fadeUp 0.55s ease;
+    }
+
+    .timeline-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .timeline-track-wrap {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fbfdff, #f7fbff);
+      padding: 12px 10px;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    .timeline-track {
+      min-width: max-content;
+      display: flex;
+      gap: 34px;
+      padding: 8px 8px 10px;
+    }
+
+    .stage {
+      position: relative;
+      flex: 0 0 132px;
+      width: 132px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeUp 0.45s ease forwards;
+      animation-delay: var(--delay, 0ms);
+    }
+
+    .stage:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 40px;
+      left: calc(100% - 3px);
+      width: 40px;
+      height: 7px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #d7dde9, #cbd3e3);
+      transition: background 0.2s ease;
+    }
+
+    .stage.link-ok::after,
+    .stage.link-progress::after,
+    .stage.link-fail::after {
+      background: linear-gradient(90deg, var(--tone-a), var(--tone-b));
+    }
+
+    .stage-node {
+      width: 84px;
+      height: 84px;
+      margin: 0 auto;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(145deg, var(--tone-a), var(--tone-b));
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 10px 24px rgba(35, 66, 91, 0.22);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .stage-node:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 14px 28px rgba(35, 66, 91, 0.3);
+    }
+
+    .stage-index {
+      position: absolute;
+      right: -4px;
+      bottom: -3px;
+      width: 27px;
+      height: 27px;
+      border-radius: 999px;
+      border: 2px solid #fff;
+      background: rgba(18, 30, 44, 0.72);
+      color: #fff;
+      font-size: 0.76rem;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+    }
+
+    .stage-title {
+      margin: 8px 0 3px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #21364a;
+      line-height: 1.25;
+      min-height: 2.2em;
+    }
+
+    .stage-state {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.25px;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .stage.state-ok .stage-state { background: var(--ok); }
+    .stage.state-progress .stage-state { background: var(--progress); }
+    .stage.state-fail .stage-state { background: var(--fail); }
+    .stage.state-pending .stage-state { background: var(--pending); }
+
+    .stage.state-pending .stage-node {
+      background: linear-gradient(145deg, #bfc8d8, #96a1b5);
+      box-shadow: 0 8px 18px rgba(49, 67, 95, 0.18);
+    }
+
+    .stage.is-active .stage-node {
+      outline: 4px solid rgba(13, 106, 149, 0.25);
+      transform: translateY(-3px) scale(1.06);
+      animation: pulse 1.6s ease infinite;
+    }
+
+    .step-detail {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+      padding: 14px;
+      min-height: 185px;
+    }
+
+    .detail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .detail-title {
+      margin: 0;
+      font-size: 1.18rem;
+      color: #1e3347;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .detail-title-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(145deg, var(--tone-a), var(--tone-b));
+      color: #fff;
+      font-size: 1.1rem;
+    }
+
+    .detail-description {
+      margin: 8px 0 0;
+      color: #41566b;
+      font-size: 0.98rem;
+    }
+
+    .detail-meta {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .detail-meta-box {
+      border: 1px dashed #c7d4e5;
+      border-radius: 12px;
+      background: #f7fbff;
+      padding: 9px 10px;
+    }
+
+    .detail-meta-box span {
+      display: block;
+      margin-bottom: 2px;
+      color: #60758c;
+      font-size: 0.74rem;
+      letter-spacing: 0.28px;
+      text-transform: uppercase;
+    }
+
+    .detail-meta-box b {
+      color: #20384d;
+      font-size: 0.9rem;
+      font-weight: 800;
+      word-break: break-word;
+    }
+
+    .empty-box {
+      border: 1px dashed #b9c8db;
+      border-radius: 14px;
+      background: #f4f9ff;
+      padding: 16px;
+      color: #43566d;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(13, 106, 149, 0.34); }
+      70% { box-shadow: 0 0 0 11px rgba(13, 106, 149, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(13, 106, 149, 0); }
+    }
+
+    @media (max-width: 992px) {
+      .hero-title { font-size: 1.65rem; }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .timeline-track { gap: 28px; }
+      .stage { flex-basis: 124px; width: 124px; }
+      .stage:not(:last-child)::after { width: 34px; }
+    }
+
+    @media (max-width: 640px) {
+      .page { padding: 12px 10px 24px; }
+      .hero-card,
+      .timeline-card { border-radius: 16px; }
+      .hero-title { font-size: 1.45rem; }
+      .hero-subtitle { font-size: 0.92rem; }
+      .stage { flex-basis: 115px; width: 115px; }
+      .stage-node { width: 74px; height: 74px; font-size: 1.7rem; }
+      .stage:not(:last-child)::after { top: 35px; }
+      .detail-meta { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero-card">
+      <button class="btn back-btn" onclick="history.back()">&larr; Volver</button>
+      <h1 id="titulo" class="hero-title">Timeline del postulante</h1>
+      <p id="subtitulo" class="hero-subtitle">Vista dinamica de etapas del proceso</p>
+
+      <div class="summary-grid">
+        <article class="summary-card"><b id="sumOk">0</b><span>Completadas</span></article>
+        <article class="summary-card"><b id="sumProgress">0</b><span>En progreso</span></article>
+        <article class="summary-card"><b id="sumFail">0</b><span>Fallidas</span></article>
+        <article class="summary-card"><b id="sumPending">0</b><span>Pendientes</span></article>
+      </div>
+
+      <div class="hero-progress">
+        <div class="hero-progress-head">
+          <span>Avance general del proceso</span>
+          <span id="progressLabel">0%</span>
+        </div>
+        <div class="hero-progress-track">
+          <div class="hero-progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="timeline-card">
+      <div class="timeline-shell">
+        <div class="timeline-track-wrap">
+          <div id="timelineTrack" class="timeline-track"></div>
+        </div>
+        <div id="stepDetail" class="step-detail"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const numeroSolicitud = params.get("sol");
+    const cedula = params.get("ced");
+    const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+
+    const solicitud = solicitudes.find(s => s.numero == numeroSolicitud);
+    const candidato = solicitud?.candidatos?.find(c => c.cedula == cedula);
+
+    const pasos = [];
+    const eventos = [];
+    let activeStepIndex = 0;
+
+    const tonePalette = [
+      { a: "#2956d2", b: "#5f88f8" },
+      { a: "#5a36c9", b: "#8e5ef4" },
+      { a: "#8a2ec8", b: "#d44fd2" },
+      { a: "#ba2f88", b: "#ec5aa8" },
+      { a: "#df7f1f", b: "#efb348" },
+      { a: "#0f8e89", b: "#2db7a1" },
+      { a: "#1b6ba8", b: "#2f98d4" },
+      { a: "#d65a2f", b: "#f08e43" },
+      { a: "#2f7a55", b: "#52af78" }
+    ];
+
+    const stepIcons = ["🧾", "📢", "🧲", "🤝", "⏱️", "🎒", "💻", "🩺", "🧑‍💼"];
+
+    function escapeHtml(valor) {
+      return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function normalizarTexto(texto) {
+      return String(texto || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    }
+
+    function badgeLabel(estado) {
+      if (estado === "ok") return "Completado";
+      if (estado === "progress") return "En progreso";
+      if (estado === "fail") return "Fallido";
+      return "Pendiente";
+    }
+
+    function estadoClase(estado) {
+      if (["ok", "progress", "fail", "pending"].includes(estado)) return estado;
+      return "pending";
+    }
+
+    function formatoFecha(valor) {
+      if (!valor) return "Sin registro";
+      const texto = String(valor).trim();
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+        const [y, m, d] = texto.split("-");
+        return `${d}/${m}/${y} 00:00`;
+      }
+
+      return texto;
+    }
+
+    function prepararEventos() {
+      const origenSolicitud = Array.isArray(solicitud?.historialEtapas) ? solicitud.historialEtapas : [];
+      const origenCandidato = Array.isArray(candidato?.historialEtapas) ? candidato.historialEtapas : [];
+
+      [...origenSolicitud, ...origenCandidato].forEach((ev, idx) => {
+        eventos.push({
+          idx,
+          etapa: String(ev?.etapa || ""),
+          etapaNorm: normalizarTexto(ev?.etapa || ""),
+          fecha: ev?.fecha || null
+        });
+      });
+    }
+
+    function primeraFechaPorTerminos(terminos) {
+      const term = terminos.map(normalizarTexto);
+      const ev = eventos.find(e => term.some(t => e.etapaNorm.includes(t)));
+      return ev?.fecha || null;
+    }
+
+    function ultimaFechaPorTerminos(terminos) {
+      const term = terminos.map(normalizarTexto);
+      for (let i = eventos.length - 1; i >= 0; i -= 1) {
+        if (term.some(t => eventos[i].etapaNorm.includes(t))) return eventos[i].fecha || null;
+      }
+      return null;
+    }
+
+    function agregarPaso(id, titulo, descripcion, estado, inicio, fin) {
+      pasos.push({
+        id,
+        titulo,
+        descripcion,
+        estado: estadoClase(estado),
+        inicio: inicio || null,
+        fin: fin || null
+      });
+    }
+
+    function normalizarSecuencia() {
+      let bloquearSiguientes = false;
+
+      for (let i = 0; i < pasos.length; i += 1) {
+        const paso = pasos[i];
+
+        if (bloquearSiguientes) {
+          paso.estado = "pending";
+          paso.inicio = null;
+          paso.fin = null;
+          continue;
+        }
+
+        if (paso.estado === "ok") {
+          if (!paso.fin && paso.inicio) paso.fin = paso.inicio;
+          continue;
+        }
+
+        if (paso.estado === "progress") {
+          paso.fin = null;
+          bloquearSiguientes = true;
+          continue;
+        }
+
+        if (paso.estado === "fail") {
+          bloquearSiguientes = true;
+          continue;
+        }
+
+        if (paso.estado === "pending") {
+          paso.inicio = null;
+          paso.fin = null;
+          bloquearSiguientes = true;
+        }
+      }
+    }
+
+    function estadoAptitud() {
+      const candidatos = solicitud?.candidatos || [];
+      if (!candidatos.length) return "pending";
+
+      const evaluados = candidatos.filter(c =>
+        c.aptitudMedica === "APTO" || c.aptitudMedica === "NO APTO" || c.aptitudMedica === "APTO CON OBSERVACION"
+      ).length;
+
+      return evaluados === candidatos.length ? "ok" : "progress";
+    }
+
+    function estadoIngresoPersonal() {
+      const candidatos = solicitud?.candidatos || [];
+      if (!candidatos.length) return "pending";
+      const evaluados = candidatos.filter(c => c.ingreso === "INGRESO" || c.ingreso === "NO INGRESO").length;
+      return evaluados === candidatos.length ? "ok" : "progress";
+    }
+
+    function estadoPeriodoPrueba() {
+      const candidatos = solicitud?.candidatos || [];
+      if (!candidatos.length) return "pending";
+      const cerrados = candidatos.filter(c => c.periodoEstado === "CERRADO").length;
+      return cerrados === candidatos.length ? "ok" : "progress";
+    }
+
+    function estadoEntregaDotacion() {
+      const candidatos = solicitud?.candidatos || [];
+      if (!candidatos.length) return "pending";
+
+      if (candidatos.every(c => c.entregaCompleta === "ENTREGADO" || c.entregaCompleta === "NO APLICA")) {
+        return "ok";
+      }
+
+      if (candidatos.some(c => c.entregaBasica === "ENTREGADO" || c.entregaCompleta === "ENTREGADO INCOMPLETO")) {
+        return "progress";
+      }
+
+      return "pending";
+    }
+
+    function estadoEquiposAccesos() {
+      const candidatos = solicitud?.candidatos || [];
+      if (!candidatos.length) return "pending";
+
+      const requiereEquipos = solicitud?.requiereComp === "si" || solicitud?.requiereTel === "si";
+      if (!requiereEquipos) return "ok";
+
+      if (candidatos.every(c => c.estadoEntrega === "ENTREGADO")) {
+        return "ok";
+      }
+
+      if (candidatos.some(c => c.estadoEntrega === "ENTREGADO" || c.estadoEntrega === "ENTREGA INCOMPLETA")) {
+        return "progress";
+      }
+
+      return "pending";
+    }
+
+    function construirTimeline() {
+      prepararEventos();
+
+      let estadoAprob = "pending";
+      if (solicitud.estado === "Aprobado") estadoAprob = "ok";
+      if (solicitud.estado === "Rechazado") estadoAprob = "fail";
+      if (solicitud.estado === "Pendiente por aprobar") estadoAprob = "progress";
+
+      const inicioAprob = solicitud.fechaSolicitud || primeraFechaPorTerminos([
+        "ingresado-para-aprobar",
+        "solicitud-pendiente-por-aprobar",
+        "solicitud-aprobada",
+        "solicitud-rechazada"
+      ]);
+
+      const finAprob = ultimaFechaPorTerminos([
+        "solicitud-aprobada",
+        "solicitud-rechazada",
+        "solicitud_anulada"
+      ]);
+
+      agregarPaso(
+        "0",
+        "Gestion de aprobacion",
+        `Estado general: <strong>${escapeHtml(solicitud.estado || "Pendiente")}</strong>`,
+        estadoAprob,
+        inicioAprob,
+        (estadoAprob === "ok" || estadoAprob === "fail") ? finAprob : null
+      );
+
+      let estadoPostulacion = "pending";
+      if (solicitud.postulacionActiva) estadoPostulacion = "progress";
+      if (solicitud.postulacionCerrada) estadoPostulacion = "ok";
+      const estadoPostLabel = solicitud.postulacionActiva ? "Abierta" : (solicitud.postulacionCerrada ? "Cerrada" : "Pendiente");
+
+      const inicioPost = solicitud.fechaInicioPostulacion || primeraFechaPorTerminos(["postulacion-iniciada"]);
+      const finPost = ultimaFechaPorTerminos(["postulacion-finalizada"]);
+
+      agregarPaso(
+        "1",
+        "Postulacion",
+        `Estado de convocatoria: <strong>${estadoPostLabel}</strong>`,
+        estadoPostulacion,
+        inicioPost,
+        estadoPostulacion === "ok" ? (finPost || solicitud.fechaFinPostulacion) : null
+      );
+
+      let estadoPre = "pending";
+      if (solicitud.etapaPreseleccion === "iniciada") estadoPre = "progress";
+      if (solicitud.etapaPreseleccion === "finalizada") estadoPre = "ok";
+      const estadoPreLabel = solicitud.etapaPreseleccion === "finalizada"
+        ? "Finalizada"
+        : (solicitud.etapaPreseleccion === "iniciada" ? "En progreso" : "Pendiente");
+
+      agregarPaso(
+        "2",
+        "Preseleccion",
+        `Estado de filtro: <strong>${estadoPreLabel}</strong>`,
+        estadoPre,
+        primeraFechaPorTerminos(["preseleccion-iniciada"]),
+        estadoPre === "ok" ? ultimaFechaPorTerminos(["preseleccion-finalizada"]) : null
+      );
+
+      let estadoSel = "pending";
+      if (solicitud.etapaSeleccionOficial === "iniciada") estadoSel = "progress";
+      if (solicitud.etapaSeleccionOficial === "finalizada") estadoSel = "ok";
+      const estadoSelLabel = solicitud.etapaSeleccionOficial === "finalizada"
+        ? "Finalizada"
+        : (solicitud.etapaSeleccionOficial === "iniciada" ? "En progreso" : "Pendiente");
+
+      agregarPaso(
+        "3",
+        "Seleccion oficial",
+        `Decision de entrevista: <strong>${estadoSelLabel}</strong>`,
+        estadoSel,
+        primeraFechaPorTerminos(["seleccion-oficial-iniciada"]),
+        estadoSel === "ok" ? ultimaFechaPorTerminos(["seleccion-oficial-finalizada"]) : null
+      );
+
+      const estadoPP = estadoPeriodoPrueba();
+      agregarPaso(
+        "4",
+        "Periodo de prueba",
+        `Cierre del periodo: <strong>${estadoPP === "ok" ? "Completado" : estadoPP === "progress" ? "En progreso" : "Pendiente"}</strong>`,
+        estadoPP,
+        primeraFechaPorTerminos(["periodo de prueba iniciado"]),
+        estadoPP === "ok" ? ultimaFechaPorTerminos(["periodo de prueba finalizado"]) : null
+      );
+
+      const estadoEntrega = estadoEntregaDotacion();
+      agregarPaso(
+        "5",
+        "Entrega de dotacion",
+        `Entrega final: <strong>${estadoEntrega === "ok" ? "Completada" : estadoEntrega === "progress" ? "En progreso" : "Pendiente"}</strong>`,
+        estadoEntrega,
+        primeraFechaPorTerminos(["entrega dotacion", "dotacion", "entrega de dotacion"]),
+        estadoEntrega === "ok" ? ultimaFechaPorTerminos(["entrega dotacion", "dotacion", "entrega de dotacion"]) : null
+      );
+
+      const estadoEquipos = estadoEquiposAccesos();
+      agregarPaso(
+        "6",
+        "Equipos y accesos",
+        `Provision TI: <strong>${estadoEquipos === "ok" ? "Completada" : estadoEquipos === "progress" ? "En progreso" : "Pendiente"}</strong>`,
+        estadoEquipos,
+        primeraFechaPorTerminos(["equipos y accesos", "estado entrega", "entrega incompleta", "entregado"]),
+        estadoEquipos === "ok" ? ultimaFechaPorTerminos(["equipos y accesos", "estado entrega", "entrega incompleta", "entregado"]) : null
+      );
+
+      const estadoApt = estadoAptitud();
+      agregarPaso(
+        "7",
+        "Aptitud medica",
+        `Revision medica: <strong>${estadoApt === "ok" ? "Completada" : estadoApt === "progress" ? "En progreso" : "Pendiente"}</strong>`,
+        estadoApt,
+        primeraFechaPorTerminos(["aptitud-medica", "apto-con-observacion", "no apto"]),
+        estadoApt === "ok" ? ultimaFechaPorTerminos(["aptitud-medica", "apto-con-observacion", "no apto"]) : null
+      );
+
+      const estadoIng = estadoIngresoPersonal();
+      agregarPaso(
+        "8",
+        "Ingreso de personal",
+        `Resultado de ingreso: <strong>${estadoIng === "ok" ? "Completado" : estadoIng === "progress" ? "En progreso" : "Pendiente"}</strong>`,
+        estadoIng,
+        primeraFechaPorTerminos(["ingreso registrado", "ingreso no aceptado"]),
+        estadoIng === "ok" ? ultimaFechaPorTerminos(["ingreso registrado", "ingreso no aceptado"]) : null
+      );
+
+      normalizarSecuencia();
+    }
+
+    function getTone(index) {
+      return tonePalette[index % tonePalette.length];
+    }
+
+    function calcularIndiceInicial() {
+      const idxFail = pasos.findIndex(p => p.estado === "fail");
+      if (idxFail >= 0) return idxFail;
+
+      const idxProgress = pasos.findIndex(p => p.estado === "progress");
+      if (idxProgress >= 0) return idxProgress;
+
+      const idxPending = pasos.findIndex(p => p.estado === "pending");
+      if (idxPending >= 0) return Math.max(0, idxPending - 1);
+
+      return Math.max(0, pasos.length - 1);
+    }
+
+    function renderDetalle(index) {
+      const detalle = document.getElementById("stepDetail");
+      const paso = pasos[index];
+
+      if (!paso) {
+        detalle.innerHTML = `<div class="empty-box">No hay datos para mostrar en esta etapa.</div>`;
+        return;
+      }
+
+      const inicio = paso.estado === "pending" ? "Pendiente" : formatoFecha(paso.inicio);
+      const fin = (paso.estado === "ok" || paso.estado === "fail")
+        ? formatoFecha(paso.fin || paso.inicio)
+        : "Pendiente";
+
+      const tone = getTone(index);
+      const icon = stepIcons[index] || "📍";
+
+      detalle.innerHTML = `
+        <article class="detail-body" style="--tone-a:${tone.a}; --tone-b:${tone.b}">
+          <div class="detail-head">
+            <h3 class="detail-title">
+              <span class="detail-title-icon">${icon}</span>
+              ${escapeHtml(paso.titulo)}
+            </h3>
+            <span class="stage-state state-${paso.estado}">${badgeLabel(paso.estado)}</span>
+          </div>
+          <p class="detail-description">${paso.descripcion}</p>
+          <div class="detail-meta">
+            <div class="detail-meta-box">
+              <span>Inicio</span>
+              <b>${escapeHtml(inicio)}</b>
+            </div>
+            <div class="detail-meta-box">
+              <span>Fin</span>
+              <b>${escapeHtml(fin)}</b>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function activarPaso(index) {
+      activeStepIndex = index;
+      document.querySelectorAll(".stage").forEach((el, idx) => {
+        el.classList.toggle("is-active", idx === index);
+      });
+      renderDetalle(index);
+    }
+
+    function renderTrack() {
+      const track = document.getElementById("timelineTrack");
+
+      track.innerHTML = pasos.map((paso, index) => {
+        const tone = getTone(index);
+        const icon = stepIcons[index] || "📍";
+        const linkClass = paso.estado === "pending" ? "" : `link-${paso.estado}`;
+
+        return `
+          <article
+            class="stage state-${paso.estado} ${linkClass} ${index === activeStepIndex ? "is-active" : ""}"
+            style="--tone-a:${tone.a}; --tone-b:${tone.b}; --delay:${index * 80}ms"
+            data-index="${index}">
+            <button type="button" class="stage-node" title="Ver detalle de ${escapeHtml(paso.titulo)}">
+              <span>${icon}</span>
+              <span class="stage-index">${index + 1}</span>
+            </button>
+            <h4 class="stage-title">${escapeHtml(paso.titulo)}</h4>
+            <span class="stage-state">${badgeLabel(paso.estado)}</span>
+          </article>
+        `;
+      }).join("");
+
+      track.querySelectorAll(".stage-node").forEach(btn => {
+        btn.addEventListener("click", (ev) => {
+          const stage = ev.currentTarget.closest(".stage");
+          const idx = Number(stage?.dataset.index || 0);
+          activarPaso(idx);
+        });
+      });
+    }
+
+    function renderResumen() {
+      const total = pasos.length || 1;
+      const ok = pasos.filter(p => p.estado === "ok").length;
+      const progress = pasos.filter(p => p.estado === "progress").length;
+      const fail = pasos.filter(p => p.estado === "fail").length;
+      const pending = pasos.filter(p => p.estado === "pending").length;
+
+      document.getElementById("sumOk").textContent = ok;
+      document.getElementById("sumProgress").textContent = progress;
+      document.getElementById("sumFail").textContent = fail;
+      document.getElementById("sumPending").textContent = pending;
+
+      const porcentaje = Math.max(5, Math.min(100, Math.round(((ok + (progress * 0.55) + (fail * 0.25)) / total) * 100)));
+      document.getElementById("progressFill").style.width = `${porcentaje}%`;
+      document.getElementById("progressLabel").textContent = `${porcentaje}%`;
+    }
+
+    function renderTimeline() {
+      const track = document.getElementById("timelineTrack");
+      const detalle = document.getElementById("stepDetail");
+
+      if (!solicitud || !candidato) {
+        track.innerHTML = "";
+        detalle.innerHTML = `<div class="empty-box">No se encontro informacion del postulante para la solicitud indicada.</div>`;
+        document.getElementById("titulo").textContent = "Timeline del postulante";
+        document.getElementById("subtitulo").textContent = "Revisa los parametros de la URL y los datos guardados.";
+        return;
+      }
+
+      const nombre = escapeHtml(candidato.nombre || "Postulante");
+      const ced = escapeHtml(candidato.cedula || "Sin cedula");
+      const nro = escapeHtml(solicitud.numero || "-");
+
+      document.getElementById("titulo").textContent = nombre;
+      document.getElementById("subtitulo").innerHTML = `Solicitud #${nro} &middot; Cedula ${ced}`;
+
+      activeStepIndex = calcularIndiceInicial();
+      renderTrack();
+      renderDetalle(activeStepIndex);
+      renderResumen();
+    }
+
+    if (solicitud && candidato) {
+      construirTimeline();
+    }
+
+    renderTimeline();
+  </script>
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

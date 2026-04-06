@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>9.1. Entrega de Dotación</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  table th, table td { text-align: center; vertical-align: middle; }
+  .readonly { background: #ececec !important; }
+  .dias-ok { background: #198754 !important; color: white !important; font-weight:bold; }
+  .dias-alerta { background: #dc3545 !important; color: white !important; font-weight:bold; }
+</style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+<div class="container">
+  <h3 class="mb-4 text-center">Entrega de Dotación</h3>
+
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-secondary">
+      <tr>
+        <th>N° Solicitud</th>
+        <th>Fecha Solicitud</th>
+        <th>Solicitante</th>
+        <th>Área</th>
+        <th>Cargo</th>
+        <th>Nombre</th>
+        <th>Cédula</th>
+        <th>Código Trabajador</th>
+        <th>Fecha Ingreso</th>
+
+        <th>Estado PP</th>
+        <th>Entrega Básica</th>
+        <th>Aptitud del Cargo</th>
+        <th>Entrega Completa</th>
+
+        <th>Días PP</th>
+        <th>Guardar</th>
+        <th>👁</th>
+      </tr>
+    </thead>
+
+    <tbody id="tablaDotacion"></tbody>
+
+  </table>
+</div>
+
+
+<script>
+
+function normalizarTexto(valor) {
+    return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
+
+function esSi(valor) {
+    return normalizarTexto(valor) === "si";
+}
+
+function requiereDotacionEpp(sol) {
+    // Compatibilidad con posibles campos explicitos en datos nuevos.
+    const flagExplicito =
+        esSi(sol?.requiereDotacion) ||
+        esSi(sol?.requiereEpp) ||
+        esSi(sol?.requiereUniforme) ||
+        esSi(sol?.requiereDotacionEpp);
+
+    if (flagExplicito) return true;
+
+    // Regla por defecto para datos actuales.
+    const tipoCargo = normalizarTexto(sol?.tipoCargo);
+    return tipoCargo.includes("operativo");
+}
+
+// ====================================================================
+// CARGAR TABLA
+// ====================================================================
+function cargarDotacion() {
+
+    const tabla = document.getElementById("tablaDotacion");
+    tabla.innerHTML = "";
+
+    const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+
+    solicitudes.forEach((sol, solIndex) => {
+        if (!requiereDotacionEpp(sol)) return;
+
+        sol.candidatos
+            ?.filter(c => 
+                c.periodoEstado === "EN PRUEBA"
+            )
+            .forEach(c => {
+
+                const row = document.createElement("tr");
+
+                row.dataset.solIndex = solIndex;
+                row.dataset.cedula = c.cedula;
+
+                const aptitud = c.periodoAptitudFinal || "";
+                const estadoPP = c.periodoEstado;
+
+                let disableBasica = "";
+                let disableCompleta = "";
+
+                // Cargar valores previos
+                const bloqueoBasica = c.bloqueoBasica === true;
+                const bloqueoCompleta = c.bloqueoCompleta === true;
+
+                // ENTREGAR BÁSICA BLOQUEADA PERMANENTE
+                if (bloqueoBasica) disableBasica = "disabled";
+
+                // APTO = puede tener entrega completa; NO APTO no puede
+                if (aptitud === "NO APTO") {
+                    disableCompleta = "disabled";
+                }
+
+                // ENTREGAR COMPLETA BLOQUEADA PERMANENTE
+                if (bloqueoCompleta) disableCompleta = "disabled";
+
+                // OPCIONES DE ENTREGA COMPLETA DINÁMICAS
+                let opcionesEntregaCompleta = "";
+
+                if (aptitud === "NO APTO") {
+                    opcionesEntregaCompleta = `<option value="">No disponible</option>`;
+                }
+
+                else if (c.entregaBasica === "NO APLICA") {
+                    opcionesEntregaCompleta = `
+                        <option ${c.entregaCompleta === "NO APLICA" ? "selected" : ""}>NO APLICA</option>
+                    `;
+                }
+
+                else if (c.entregaBasica === "ENTREGADO") {
+                    opcionesEntregaCompleta = `
+                        <option ${c.entregaCompleta === "ENTREGADO" ? "selected" : ""}>ENTREGADO</option>
+                        <option ${c.entregaCompleta === "ENTREGADO INCOMPLETO" ? "selected" : ""}>ENTREGADO INCOMPLETO</option>
+                    `;
+                }
+
+                else {
+                    opcionesEntregaCompleta = `
+                        <option value="">Seleccione...</option>
+                        <option ${c.entregaCompleta === "ENTREGADO" ? "selected" : ""}>ENTREGADO</option>
+                        <option ${c.entregaCompleta === "ENTREGADO INCOMPLETO" ? "selected" : ""}>ENTREGADO INCOMPLETO</option>
+                        <option ${c.entregaCompleta === "NO APLICA" ? "selected" : ""}>NO APLICA</option>
+                    `;
+                }
+
+                // Construcción de fila
+                row.innerHTML = `
+                    <td class="readonly">${sol.numero}</td>
+                    <td class="readonly">${sol.fechaSolicitud}</td>
+                    <td class="readonly">${sol.solicitante}</td>
+                    <td class="readonly">${sol.area}</td>
+                    <td class="readonly">${sol.cargoSolicitado}</td>
+
+                    <td class="readonly">${c.nombre}</td>
+                    <td class="readonly">${c.cedula}</td>
+                    <td class="readonly">${c.codigoUnico || ""}</td>
+                    <td class="readonly">${c.fechaIngreso || ""}</td>
+
+                    <td class="readonly">${estadoPP}</td>
+
+                    <td>
+                      <select class="form-select entregaBasica" ${disableBasica}>
+                        <option value="">Seleccione...</option>
+                        <option ${c.entregaBasica === "ENTREGADO" ? "selected" : ""}>ENTREGADO</option>
+                        <option ${c.entregaBasica === "PENDIENTE" ? "selected" : ""}>PENDIENTE</option>
+                        <option ${c.entregaBasica === "NO APLICA" ? "selected" : ""}>NO APLICA</option>
+                      </select>
+                    </td>
+
+                    <td class="readonly">${aptitud}</td>
+
+                    <td>
+                      <select class="form-select entregaCompleta" ${disableCompleta}>
+                        ${opcionesEntregaCompleta}
+                      </select>
+                    </td>
+
+                    <td class="diasPP readonly"></td>
+
+                    <td>
+                      <button class="btn btn-success" onclick="guardarFila(this)">💾</button>
+                    </td>
+
+                    <td>
+                      <button class="btn btn-info" onclick="abrirInfoDotacion(${solIndex}, '${c.cedula}')">👁</button>
+                    </td>
+                `;
+
+                tabla.appendChild(row);
+
+                mostrarDias(row);
+            });
+    });
+}
+
+
+// ====================================================================
+// CALCULAR DÍAS
+// ====================================================================
+function mostrarDias(row) {
+
+    const solIndex = row.dataset.solIndex;
+    const cedula = row.dataset.cedula;
+
+    const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const sol = solicitudes[solIndex];
+    const candidato = sol.candidatos.find(c => c.cedula == cedula);
+
+    const diasCell = row.querySelector(".diasPP");
+
+    const fechaIngreso = candidato?.fechaIngreso || "";
+    const inicio = fechaIngreso ? new Date(`${fechaIngreso}T00:00:00`) : null;
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    let diff = 0;
+    if (inicio && !Number.isNaN(inicio.getTime())) {
+        diff = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24));
+        if (!Number.isFinite(diff) || diff < 0) diff = 0;
+    }
+
+    diasCell.innerText = diff + " días";
+
+    diasCell.classList.remove("dias-ok", "dias-alerta");
+
+    if (diff < 90) diasCell.classList.add("dias-ok");
+    else diasCell.classList.add("dias-alerta");
+}
+
+
+// ====================================================================
+// GUARDAR FILA (con reglas completas)
+// ====================================================================
+function guardarFila(btn) {
+
+    const row = btn.closest("tr");
+
+    const solIndex = row.dataset.solIndex;
+    const cedula = row.dataset.cedula;
+
+    const entregaBasica = row.querySelector(".entregaBasica").value;
+    const entregaCompleta = row.querySelector(".entregaCompleta").value;
+
+    const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const sol = solicitudes[solIndex];
+    const candidato = sol.candidatos.find(c => c.cedula == cedula);
+
+    const aptitud = candidato.periodoAptitudFinal;
+
+    // VALIDACIONES Y REGLAS
+
+    // BLOQUEO DE COMPLETA SI NO APTO
+    if (aptitud === "NO APTO") {
+        alert("El candidato NO ES APTO. No puede registrar entrega completa.");
+        return;
+    }
+
+    // ------------------------------
+    // ENTREGA BÁSICA
+    // ------------------------------
+
+    if (!row.querySelector(".entregaBasica").disabled) {
+        candidato.entregaBasica = entregaBasica;
+
+        if (entregaBasica === "ENTREGADO") {
+            candidato.bloqueoBasica = true;
+            alert("Entrega básica registrada. Notificación enviada a solicitante y Talento Humano.");
+        }
+
+        else if (entregaBasica === "NO APLICA") {
+            candidato.bloqueoBasica = true;
+            alert("Entrega básica marcada como NO APLICA. Notificado a solicitante y Talento Humano.");
+        }
+    }
+
+    // ------------------------------
+    // ENTREGA COMPLETA
+    // ------------------------------
+
+    if (!row.querySelector(".entregaCompleta").disabled) {
+
+        candidato.entregaCompleta = entregaCompleta;
+
+        if (entregaCompleta === "ENTREGADO") {
+            candidato.bloqueoCompleta = true;
+            alert("Entrega completa registrada. Notificación enviada a Solicitante y Talento Humano.");
+        }
+
+        else if (entregaCompleta === "ENTREGADO INCOMPLETO") {
+            candidato.bloqueoCompleta = true;
+            alert("Entrega incompleta registrada. Notificación enviada.");
+        }
+
+        else if (entregaCompleta === "NO APLICA") {
+            candidato.bloqueoCompleta = true;
+            alert("Entrega completa marcada como NO APLICA.");
+        }
+    }
+
+    localStorage.setItem("solicitudes", JSON.stringify(solicitudes));
+
+    alert("✔ Información guardada correctamente.");
+
+    cargarDotacion();
+}
+
+
+
+// ====================================================================
+// ABRIR INFO (ojito)
+// ====================================================================
+function abrirInfoDotacion(solIndex, cedula) {
+    window.location.href = `../gestion/solicitudes/ver-solicitud-ssoma.html?sol=${solIndex}&ced=${cedula}`;
+}
+
+document.addEventListener("DOMContentLoaded", cargarDotacion);
+
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>
+

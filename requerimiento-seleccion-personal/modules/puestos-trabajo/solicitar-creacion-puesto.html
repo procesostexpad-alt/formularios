@@ -1,0 +1,2747 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitar Creacion de Cargo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg-a: #ecf5f2;
+      --bg-b: #d3e7df;
+      --surface: #ffffff;
+      --line: #d4e0db;
+      --text: #1f2a2b;
+      --muted: #5f6f73;
+      --brand: #0f5f4e;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 100% 0%, rgba(15, 95, 78, 0.11), transparent 36%),
+        radial-gradient(circle at 0% 15%, rgba(31, 139, 113, 0.12), transparent 35%),
+        linear-gradient(180deg, var(--bg-a), var(--bg-b));
+    }
+
+    .page-wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 24px 14px 36px;
+    }
+
+    .page-head {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: 18px;
+      box-shadow: 0 16px 30px rgba(21, 52, 44, 0.08);
+      padding: 14px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .page-head h1 {
+      margin: 0;
+      color: var(--brand);
+      font-size: 1.38rem;
+      font-weight: 700;
+    }
+
+    .page-head p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .section-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: 0 10px 24px rgba(22, 57, 47, 0.07);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      color: var(--brand);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: #415154;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .form-control,
+    .form-select,
+    .input-group-text {
+      border-radius: 10px;
+      border: 1px solid #cbd8d3;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #86b7aa;
+      box-shadow: 0 0 0 0.2rem rgba(31, 139, 113, 0.18);
+    }
+
+    .actions {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: 0 10px 24px rgba(22, 57, 47, 0.07);
+      padding: 12px;
+      text-align: center;
+      position: sticky;
+      bottom: 12px;
+      z-index: 5;
+    }
+
+    .estado-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      border-radius: 999px;
+      padding: 0 12px;
+      border: 1px solid #c3e3d7;
+      background: #e6f4ee;
+      color: #155f4e;
+      font-size: 0.82rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .estado-chip.incompleto {
+      background: #fff0d6;
+      border-color: #e8c48a;
+      color: #8a4b00;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .cargo-code-group {
+      border: 1px solid #cbd8d3;
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 40px;
+      background: #ffffff;
+      box-shadow: none;
+    }
+
+    .cargo-code-group .input-group-text,
+    .cargo-code-group .form-control {
+      border: 0;
+      border-radius: 0;
+      min-height: 40px;
+      height: 40px;
+    }
+
+    .code-prefix {
+      background: #f3f7f5;
+      color: #17483e;
+      font-weight: 700;
+      min-width: 62px;
+      justify-content: center;
+      font-size: 0.95rem;
+      letter-spacing: 0;
+      border-right: 1px solid #cbd8d3 !important;
+    }
+
+    #codigoCargoRef {
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      font-size: 0.95rem;
+      color: #1f2a2b;
+      background: #ffffff;
+      padding-inline: 12px;
+    }
+
+    .cargo-code-help {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 0.78rem;
+      color: #56706a !important;
+    }
+
+    .multi-select-field {
+      min-height: 124px;
+      background: #ffffff;
+    }
+
+    .multi-select-field option {
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+
+    .justificacion-card textarea {
+      min-height: 132px;
+      resize: vertical;
+    }
+
+    .section-subtitle {
+      margin: 12px 0 8px;
+      color: #0f5f4e;
+      font-size: 0.96rem;
+      font-weight: 700;
+    }
+
+    .toolbar-inline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .table-manual {
+      margin-bottom: 0;
+      border: 1px solid #d5e4df;
+      border-radius: 12px;
+      overflow: hidden;
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    .table-manual thead th {
+      background: linear-gradient(180deg, #edf6f2 0%, #e6f1ec 100%);
+      color: #26433d;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.15px;
+      vertical-align: middle;
+      white-space: normal;
+      line-height: 1.2;
+      padding: 10px 10px;
+    }
+
+    .table-manual tbody td {
+      vertical-align: middle;
+      font-size: 0.87rem;
+      border-color: #deebe6;
+      background: #ffffff;
+      padding: 9px 10px;
+      word-break: break-word;
+    }
+
+    .table-manual thead th:last-child,
+    .table-manual tbody td:last-child {
+      width: 228px;
+      min-width: 228px;
+      max-width: 228px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .table-manual tbody tr:nth-child(even) td {
+      background: #f9fcfb;
+    }
+
+    .table-manual tbody tr:hover td {
+      background: #f1f8f5;
+    }
+
+    .empty-row {
+      color: #6f7f7a;
+      text-align: center;
+      font-style: italic;
+    }
+
+    .editor-row td {
+      background: #eef8f4 !important;
+      border-top: 2px solid #c4ded3;
+    }
+
+    .editor-row .form-control,
+    .editor-row .form-select {
+      min-height: 36px;
+      font-size: 0.84rem;
+      border-color: #b9d2c8;
+      background: #ffffff;
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+
+    .btn-add-row {
+      border-radius: 999px;
+      padding-inline: 14px;
+      font-weight: 600;
+    }
+
+    .btn-row-action {
+      width: 104px;
+      min-width: 104px;
+      max-width: 104px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 600;
+    }
+
+    @media (max-width: 900px) {
+      .page-head h1 { font-size: 1.2rem; }
+      .actions { position: static; }
+      .table-manual {
+        table-layout: auto;
+      }
+      .table-manual thead th:last-child,
+      .table-manual tbody td:last-child {
+        width: auto;
+        min-width: 190px;
+        max-width: none;
+      }
+      .editor-actions {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body>
+  <main class="page-wrap">
+    <div class="page-head">
+      <div>
+        <h1>Solicitar Creacion de Cargo</h1>
+        <p>Completa la solicitud con la informacion del nuevo cargo y envia para revision.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" onclick="volverListado()">Volver a solicitudes</button>
+      </div>
+    </div>
+
+    <section class="section-card">
+      <h2 class="section-title">Datos del Cargo</h2>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label>Codigo cargo</label>
+          <div class="input-group cargo-code-group">
+            <span class="input-group-text code-prefix">TP-</span>
+            <input id="codigoCargoRef" class="form-control" maxlength="5" placeholder="ABCDE">
+          </div>
+          <small class="text-muted cargo-code-help">Solo 5 letras (ultimos 5 caracteres).</small>
+        </div>
+
+        <div class="col-md-3">
+          <label>Nombre cargo</label>
+          <input id="nombreCargo" class="form-control">
+        </div>
+
+        <div class="col-md-3">
+          <label>Persona que solicita</label>
+          <input id="personaSolicita" class="form-control" placeholder="Nombre de quien solicita" readonly>
+        </div>
+
+        <div class="col-md-3">
+          <label>Area</label>
+          <select id="areaCargo" class="form-select" onchange="onAreaCargoChange()">
+            <option value="">Seleccionar</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label>Departamento</label>
+          <select id="departamentoCargo" class="form-select" disabled>
+            <option value="">Seleccionar area primero</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label>Tipo de cargo</label>
+          <select id="tipoCargo" class="form-select">
+            <option value="">Seleccionar</option>
+            <option value="administrativo">Administrativo</option>
+            <option value="operativo">Operativo</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label>Horario</label>
+          <select id="horario" class="form-select" onchange="horarioChange()">
+            <option value="">Seleccionar</option>
+            <option value="Administrativo">Administrativo</option>
+            <option value="Producciónr">Produccion rotativo</option>
+            <option value="Producciónf">Produccion fijo</option>
+            <option value="Almacenes">Almacenes</option>
+            <option value="otros">Otros</option>
+          </select>
+        </div>
+
+        <div id="horarioUnicoBox" class="col-md-6 hidden">
+          <label>Horario (Inicio - Fin)</label>
+          <input id="horarioCompleto" type="text" class="form-control" placeholder="07:00-16:00">
+        </div>
+
+        <div class="col-md-3">
+          <label>Edad sugerida</label>
+          <input id="edadSugerida" type="text" class="form-control" placeholder="18-29">
+        </div>
+
+        <div class="col-md-3">
+          <label>Sexo sugerido</label>
+          <select id="sexoSugerido" class="form-select">
+            <option value="">Seleccionar</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+            <option value="Irrelevante">Irrelevante</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label>Banda salarial</label>
+          <input id="bandaSalarial" type="text" class="form-control" placeholder="Ej: 1200 USD">
+        </div>
+
+        <div class="col-md-4">
+          <label>A quien reporta</label>
+          <select id="quienReportaCargo" class="form-select multi-select-field" multiple></select>
+          <small class="text-muted cargo-code-help">Puedes seleccionar varios cargos con clic.</small>
+        </div>
+
+        <div class="col-md-4">
+          <label>A quien supervisa</label>
+          <select id="quienSupervisaCargo" class="form-select multi-select-field" multiple></select>
+          <small class="text-muted cargo-code-help">Puedes seleccionar varios cargos con clic.</small>
+        </div>
+
+        <div class="col-md-4">
+          <label>Estado ficha</label><br>
+          <span id="estadoFicha" class="estado-chip">INCOMPLETO</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2 class="section-title">Definicion del Manual</h2>
+      <div class="row g-3">
+        <div class="col-md-12">
+          <label>Proposito de cargo</label>
+          <textarea id="objetivoCargo" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="col-md-12">
+          <label>Funciones y responsabilidades clave</label>
+          <textarea id="funcionesCargo" class="form-control" rows="4"></textarea>
+        </div>
+        <div class="col-md-12">
+          <label>Experiencia requerida</label>
+          <textarea id="experienciaRequeridaCargo" class="form-control" rows="3" placeholder="Ej: Minimo 2 anos en procesos industriales."></textarea>
+        </div>
+        <div class="col-md-12">
+          <h3 class="section-subtitle">Perfil de cargo</h3>
+          <div class="toolbar-inline">
+            <small class="text-muted">Define formacion academica requerida por el cargo.</small>
+            <button type="button" class="btn btn-outline-primary btn-sm btn-add-row" onclick="mostrarEditorPerfil()">+ Agregar perfil</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-manual">
+              <thead>
+                <tr>
+                  <th>Formacion academica</th>
+                  <th>Tipo</th>
+                  <th>Titulo</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaPerfilCargo"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <h3 class="section-subtitle">Competencias</h3>
+          <div class="toolbar-inline">
+            <small class="text-muted">Selecciona tipo, competencia y subcategoria.</small>
+            <button type="button" class="btn btn-outline-primary btn-sm btn-add-row" onclick="mostrarEditorCompetencia()">+ Agregar competencia</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-manual">
+              <thead>
+                <tr>
+                  <th>Tipo competencia</th>
+                  <th>Competencia</th>
+                  <th>Subcategoria</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaCompetenciasCargo"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <h3 class="section-subtitle">Capacitaciones</h3>
+          <div class="toolbar-inline">
+            <small class="text-muted">Registra capacitaciones que debe tener o desarrollar el postulante.</small>
+            <button type="button" class="btn btn-outline-primary btn-sm btn-add-row" onclick="mostrarEditorCapacitacion()">+ Agregar capacitacion</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-manual">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Capacitacion</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaCapacitacionesCargo"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <h3 class="section-subtitle">Equipos y Accesos</h3>
+          <div class="toolbar-inline">
+            <small class="text-muted">Registra accesos o equipos requeridos para el puesto.</small>
+            <button type="button" class="btn btn-outline-primary btn-sm btn-add-row" onclick="mostrarEditorEquiposAccesos()">+ Agregar recurso</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-manual">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Recurso</th>
+                  <th>Observacion</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaEquiposAccesos"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <h3 class="section-subtitle">EPPs y Uniformes</h3>
+          <div class="toolbar-inline">
+            <small class="text-muted">Define dotacion por tipo, cantidad y observaciones.</small>
+            <button type="button" class="btn btn-outline-primary btn-sm btn-add-row" onclick="mostrarEditorEppsUniformes()">+ Agregar dotacion</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-manual">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Elemento</th>
+                  <th>Cantidad</th>
+                  <th>Observacion</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaEppsUniformes"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <h3 class="section-subtitle">Indicadores KPIs</h3>
+          <div class="toolbar-inline">
+            <small class="text-muted">Define indicadores de gestion para el cargo.</small>
+            <button type="button" class="btn btn-outline-primary btn-sm btn-add-row" onclick="mostrarEditorKpis()">+ Agregar indicador</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-manual">
+              <thead>
+                <tr>
+                  <th>Indicador</th>
+                  <th>Formula</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaKpis"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="justificacionCreacionContainer" class="section-card justificacion-card">
+      <h2 class="section-title">Justificacion de Creacion de Cargo</h2>
+      <div class="row g-3">
+        <div class="col-12">
+          <label>Justificacion</label>
+          <textarea id="justificacionCreacionCargo" class="form-control" placeholder="Describe la necesidad y el motivo de crear este puesto."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn btn-success me-2" onclick="guardarManual()">Enviar solicitud</button>
+      <button class="btn btn-danger" onclick="volverListado()">Cancelar</button>
+    </div>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "solicitudesCreacionPuesto";
+    const USUARIO_DEFECTO = "Nicolas Crisanto";
+    const CAMPOS_FICHA = ["objetivo", "funciones", "perfil", "competencias", "indicadoresKpis"];
+
+    const COMPETENCIAS_DATA = {
+      Aptitudinales: ["Atencion al detalle", "Proactividad", "Adaptabilidad", "Organizacion"],
+      Comerciales: ["Negociacion", "Ventas", "Prospeccion"],
+      Comunicacionales: ["Comunicacion verbal", "Comunicacion escrita", "Escucha activa"],
+      Administrativas: ["Planificacion", "Gestion documental"],
+      Digital: ["Excel", "ERP", "Herramientas digitales"],
+      Educacional: ["Capacitacion", "Tutoria"],
+      Cognitivas: ["Analisis", "Resolucion de problemas", "Pensamiento critico"],
+      Emocionales: ["Manejo de estres", "Empatia"],
+      Liderazgo: ["Toma de decisiones", "Gestion de equipos"],
+      Relacionales: ["Trabajo en equipo", "Colaboracion"],
+      Valores: ["Compromiso", "Responsabilidad", "Integridad"],
+      "Prevencion de Riesgos": ["Seguridad industrial", "Uso de EPP"]
+    };
+
+    const COMPETENCIA_TIPO = {
+      Aptitudinales: "Blanda",
+      Comerciales: "Tecnica",
+      Comunicacionales: "Blanda",
+      Administrativas: "Tecnica",
+      Digital: "Tecnica",
+      Educacional: "Tecnica",
+      Cognitivas: "Blanda",
+      Emocionales: "Blanda",
+      Liderazgo: "Blanda",
+      Relacionales: "Blanda",
+      Valores: "Blanda",
+      "Prevencion de Riesgos": "Tecnica"
+    };
+
+    const RECURSOS_POR_TIPO = {
+      Acceso: [
+        "Control TP",
+        "AS2",
+        "EAS",
+        "Carpetas compartidas",
+        "Correo corporativo",
+        "ERP",
+        "VPN",
+        "Biometrico"
+      ],
+      Equipo: [
+        "Laptop",
+        "Computadora de escritorio",
+        "Mouse",
+        "Teclado",
+        "Monitor externo",
+        "Headset",
+        "Docking station",
+        "Impresora"
+      ]
+    };
+
+    const DOTACION_POR_TIPO = {
+      EPP: [
+        "Protectores auditivos",
+        "Mascarilla",
+        "Casco",
+        "Guantes",
+        "Lentes de seguridad",
+        "Chaleco reflectivo",
+        "Botas de seguridad"
+      ],
+      Uniforme: [
+        "Camiseta",
+        "Pantalon jean industrial",
+        "Zapatos industriales",
+        "Chaqueta",
+        "Overol"
+      ]
+    };
+
+    const CAPACITACION_TIPO_PREVIA = "Debe traer el postulante";
+    const AREAS_CATALOGO = [
+      "Operaciones",
+      "Comercial",
+      "Administrativo Financiero",
+      "Logistica y Distribucion"
+    ];
+
+    const DEPARTAMENTOS_POR_AREA = {
+      Operaciones: [
+        "Produccion",
+        "SSOMA",
+        "Procesos",
+        "Calidad",
+        "Mantenimiento",
+        "Logistica Interna",
+        "Planificacion"
+      ],
+      Comercial: [
+        "Fuerza de Ventas",
+        "Puntos de Venta",
+        "Gestion Comercial"
+      ],
+      "Administrativo Financiero": [
+        "Sistemas y TICs",
+        "Talento Humano",
+        "Compras",
+        "Credito y Cobranza",
+        "Finanzas"
+      ],
+      "Logistica y Distribucion": [
+        "Transporte",
+        "Logistica"
+      ]
+    };
+
+    const AREAS_ALIAS = {
+      operaciones: "Operaciones",
+      comercial: "Comercial",
+      gestion: "Administrativo Financiero",
+      evaluacion: "Administrativo Financiero",
+      administrativofinanciero: "Administrativo Financiero",
+      "administrativo financiero": "Administrativo Financiero",
+      logistica: "Logistica y Distribucion",
+      "logistica y distribucion": "Logistica y Distribucion"
+    };
+
+    const QUIEN_REPORTA_OPCIONES = [
+      "Gerencia General",
+      "Gerencia de Operaciones",
+      "Gerencia Comercial",
+      "Gerencia Administrativo Financiero",
+      "Jefatura de Operaciones",
+      "Jefatura de Produccion",
+      "Jefatura de SSOMA",
+      "Jefatura de Procesos",
+      "Jefatura de Calidad",
+      "Jefatura de Mantenimiento",
+      "Jefatura de Logistica",
+      "Jefatura de Talento Humano",
+      "Coordinador de Area"
+    ];
+
+    const QUIEN_SUPERVISA_OPCIONES = [
+      "Coordinador",
+      "Supervisor",
+      "Analista",
+      "Asistente",
+      "Auxiliar",
+      "Tecnico",
+      "Operario",
+      "Especialista",
+      "Practicante",
+      "Pasante"
+    ];
+
+    const CARGOS_EJEMPLO = [];
+
+    let codigoActivo = "";
+    let perfilCargoLista = [];
+    let competenciasCargoLista = [];
+    let capacitacionesCargoLista = [];
+    let equiposAccesosLista = [];
+    let eppsUniformesLista = [];
+    let kpisLista = [];
+    let perfilEditorActivo = false;
+    let perfilEditorIndex = -1;
+    let perfilEditorData = { formacionAcademica: "", tipo: "", titulo: "" };
+    let competenciaEditorActivo = false;
+    let competenciaEditorIndex = -1;
+    let competenciaEditorData = { tipo: "", competencia: "", subcategoria: "" };
+    let capacitacionEditorActivo = false;
+    let capacitacionEditorIndex = -1;
+    let capacitacionEditorData = { tipo: "", detalle: "" };
+    let recursoEditorActivo = false;
+    let recursoEditorIndex = -1;
+    let recursoEditorData = { tipo: "", recurso: "", observacion: "" };
+    let dotacionEditorActivo = false;
+    let dotacionEditorIndex = -1;
+    let dotacionEditorData = { tipo: "", elemento: "", cantidad: "1", observacion: "" };
+    let kpiEditorActivo = false;
+    let kpiEditorIndex = -1;
+    let kpiEditorData = { indicador: "", formula: "" };
+
+    function obtenerLista() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    }
+
+    function guardarLista(lista) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+    }
+
+    function normalizarTexto(valor) {
+      return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    }
+
+    function normalizarHorarioSeleccion(valor) {
+      const limpio = normalizarTexto(valor);
+      if (!limpio) return "";
+      if (limpio === "administrativo") return "Administrativo";
+      if (limpio === "produccionr") return "Producciónr";
+      if (limpio === "produccionf") return "Producciónf";
+      if (limpio === "almacenes") return "Almacenes";
+      if (limpio === "otros") return "otros";
+      return String(valor || "").trim();
+    }
+
+    function textoSeguro(valor) {
+      return String(valor || "").trim();
+    }
+
+    function usuarioSesionActual() {
+      const llaves = [
+        "usuarioActual",
+        "usuarioLogeado",
+        "usuario",
+        "nombreUsuario",
+        "sessionUsuario",
+        "authUser"
+      ];
+
+      for (const llave of llaves) {
+        const bruto = localStorage.getItem(llave);
+        if (!bruto) continue;
+
+        const texto = textoSeguro(bruto);
+        if (!texto) continue;
+
+        if (texto.startsWith("{")) {
+          try {
+            const obj = JSON.parse(texto);
+            const candidato = textoSeguro(
+              obj?.nombreCompleto ||
+              obj?.nombre ||
+              obj?.usuario ||
+              obj?.user ||
+              obj?.displayName
+            );
+            if (candidato) return candidato;
+          } catch (e) {
+            // Si no es JSON valido, se evalua como texto normal.
+          }
+        }
+
+        return texto;
+      }
+
+      return USUARIO_DEFECTO;
+    }
+
+    function soloLetras(valor) {
+      return String(valor || "")
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "");
+    }
+
+    function escapeHtml(valor) {
+      return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function referenciaCargo5(nombreCargo) {
+      const letras = normalizarTexto(nombreCargo)
+        .replace(/[^a-z]/g, "")
+        .toUpperCase();
+
+      return letras.slice(0, 5).padEnd(5, "X");
+    }
+
+    function codigoTpDesdeReferencia(ref5) {
+      return `TP-${soloLetras(ref5).slice(0, 5).padEnd(5, "X")}`;
+    }
+
+    function codigoTpValido(codigoCargo) {
+      return /^TP-[A-Z]{5}$/.test(String(codigoCargo || "").trim().toUpperCase());
+    }
+
+    function codigoTpSugerido(nombreCargo) {
+      return codigoTpDesdeReferencia(referenciaCargo5(nombreCargo));
+    }
+
+    function asegurarCodigoUnico(codigo, usados, semilla = "AAAAA") {
+      const inicial = codigoTpValido(codigo) ? String(codigo).trim().toUpperCase() : codigoTpDesdeReferencia(semilla);
+      if (!usados.has(inicial)) return inicial;
+
+      const base = inicial.slice(0, 6);
+      const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+      for (let i = 0; i < abc.length; i += 1) {
+        const candidato = base + abc[i];
+        if (!usados.has(candidato)) return candidato;
+      }
+
+      return inicial;
+    }
+
+    function valorCatalogado(lista, valor) {
+      const limpio = textoSeguro(valor);
+      if (!limpio) return "";
+      const normalizado = normalizarTexto(limpio);
+      return lista.find(item => normalizarTexto(item) === normalizado) || "";
+    }
+
+    function departamentosPorArea(area) {
+      const areaValida = valorCatalogado(AREAS_CATALOGO, area);
+      return Array.isArray(DEPARTAMENTOS_POR_AREA[areaValida]) ? DEPARTAMENTOS_POR_AREA[areaValida] : [];
+    }
+
+    function inferirAreaPorDepartamento(departamento) {
+      const dep = textoSeguro(departamento);
+      if (!dep) return "";
+      const depNorm = normalizarTexto(dep);
+      for (const area of AREAS_CATALOGO) {
+        const match = (DEPARTAMENTOS_POR_AREA[area] || []).find(item => normalizarTexto(item) === depNorm);
+        if (match) return area;
+      }
+      return "";
+    }
+
+    function normalizarAreaCatalogo(area, departamento = "") {
+      const areaLimpia = textoSeguro(area);
+      if (!areaLimpia) {
+        return inferirAreaPorDepartamento(departamento);
+      }
+      const areaNorm = normalizarTexto(areaLimpia);
+      const areaAlias = AREAS_ALIAS[areaNorm] || "";
+      if (areaAlias) return areaAlias;
+      const areaCatalogada = valorCatalogado(AREAS_CATALOGO, areaLimpia);
+      if (areaCatalogada) return areaCatalogada;
+      return inferirAreaPorDepartamento(departamento);
+    }
+
+    function normalizarDepartamentoCatalogo(area, departamento) {
+      const deps = departamentosPorArea(area);
+      return valorCatalogado(deps, departamento);
+    }
+
+    function renderSelectorAreas(areaSeleccionada = "") {
+      const selector = document.getElementById("areaCargo");
+      if (!selector) return;
+      const areaValida = valorCatalogado(AREAS_CATALOGO, areaSeleccionada);
+      selector.innerHTML = `
+        <option value="">Seleccionar</option>
+        ${AREAS_CATALOGO.map(area => `<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`).join("")}
+      `;
+      selector.value = areaValida || "";
+    }
+
+    function renderSelectorDepartamentos(areaSeleccionada, departamentoSeleccionado = "") {
+      const selector = document.getElementById("departamentoCargo");
+      if (!selector) return;
+      const deps = departamentosPorArea(areaSeleccionada);
+      const deptoValido = valorCatalogado(deps, departamentoSeleccionado);
+      selector.innerHTML = deps.length
+        ? `<option value="">Seleccionar</option>${deps.map(dep => `<option value="${escapeHtml(dep)}">${escapeHtml(dep)}</option>`).join("")}`
+        : '<option value="">Seleccionar area primero</option>';
+      selector.disabled = deps.length === 0;
+      selector.value = deptoValido || "";
+    }
+
+    function onAreaCargoChange() {
+      const area = textoSeguro(document.getElementById("areaCargo")?.value);
+      renderSelectorDepartamentos(area, "");
+      refrescarEstadoVisual();
+    }
+
+    function normalizarListaCatalogada(opciones, valor) {
+      const origen = Array.isArray(valor)
+        ? valor
+        : textoSeguro(valor)
+          .split(/\||,|;/)
+          .map(item => textoSeguro(item))
+          .filter(Boolean);
+
+      const unicos = new Set();
+      origen.forEach(item => {
+        const valorValido = valorCatalogado(opciones, item);
+        if (valorValido) unicos.add(valorValido);
+      });
+      return Array.from(unicos);
+    }
+
+    function serializarListaCatalogada(lista) {
+      return (Array.isArray(lista) ? lista : [])
+        .map(item => textoSeguro(item))
+        .filter(Boolean)
+        .join(" | ");
+    }
+
+    function renderSelectMultiple(id, opciones, seleccionados = []) {
+      const select = document.getElementById(id);
+      if (!select) return;
+      const seleccionSet = new Set(normalizarListaCatalogada(opciones, seleccionados));
+      select.innerHTML = opciones
+        .map(opcion => `<option value="${escapeHtml(opcion)}">${escapeHtml(opcion)}</option>`)
+        .join("");
+      Array.from(select.options).forEach(option => {
+        option.selected = seleccionSet.has(option.value);
+      });
+    }
+
+    function obtenerSeleccionMultiple(id) {
+      const select = document.getElementById(id);
+      if (!select) return [];
+      return Array.from(select.selectedOptions)
+        .map(option => textoSeguro(option.value))
+        .filter(Boolean);
+    }
+
+    function activarMultiSelectClickSimple(id) {
+      const select = document.getElementById(id);
+      if (!select || select.dataset.clickMultiInit === "1") return;
+      select.dataset.clickMultiInit = "1";
+      select.addEventListener("mousedown", (event) => {
+        const option = event.target;
+        if (!option || option.tagName !== "OPTION") return;
+        event.preventDefault();
+        option.selected = !option.selected;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    }
+
+    function normalizarFilaPerfil(item) {
+      return {
+        formacionAcademica: textoSeguro(item?.formacionAcademica),
+        tipo: textoSeguro(item?.tipo),
+        titulo: textoSeguro(item?.titulo)
+      };
+    }
+
+    function normalizarFilaCompetencia(item) {
+      return {
+        tipo: textoSeguro(item?.tipo),
+        competencia: textoSeguro(item?.competencia),
+        subcategoria: textoSeguro(item?.subcategoria)
+      };
+    }
+
+    function normalizarFilaCapacitacion(item) {
+      return {
+        tipo: normalizarTipoCapacitacion(item?.tipo),
+        detalle: textoSeguro(item?.detalle)
+      };
+    }
+
+    function normalizarTipoCapacitacion(valor) {
+      const tipo = textoSeguro(valor);
+      const tipoNorm = normalizarTexto(tipo);
+      if (tipoNorm === "requisito previo del postulante") return CAPACITACION_TIPO_PREVIA;
+      if (tipoNorm === normalizarTexto(CAPACITACION_TIPO_PREVIA)) return CAPACITACION_TIPO_PREVIA;
+      return tipo;
+    }
+
+    function normalizarFilaRecurso(item) {
+      return {
+        tipo: textoSeguro(item?.tipo),
+        recurso: textoSeguro(item?.recurso),
+        observacion: textoSeguro(item?.observacion)
+      };
+    }
+
+    function normalizarFilaDotacion(item) {
+      const cantidadRaw = String(item?.cantidad ?? "").trim();
+      const cantidadNum = Number.parseInt(cantidadRaw, 10);
+      return {
+        tipo: textoSeguro(item?.tipo),
+        elemento: textoSeguro(item?.elemento),
+        cantidad: Number.isInteger(cantidadNum) && cantidadNum > 0 ? cantidadNum : 0,
+        observacion: textoSeguro(item?.observacion)
+      };
+    }
+
+    function normalizarFilaKpi(item) {
+      return {
+        indicador: textoSeguro(item?.indicador),
+        formula: textoSeguro(item?.formula)
+      };
+    }
+
+    function perfilDetalleDesdeTexto(textoPerfil) {
+      const lineas = textoSeguro(textoPerfil)
+        .split(/\n|;/)
+        .map(item => textoSeguro(item))
+        .filter(Boolean);
+
+      return lineas.map(item => ({
+        formacionAcademica: "General",
+        tipo: "Deseable",
+        titulo: item
+      }));
+    }
+
+    function competenciasDetalleDesdeTexto(textoCompetencias) {
+      const lineas = textoSeguro(textoCompetencias)
+        .split(/\n|;/)
+        .map(item => textoSeguro(item))
+        .filter(Boolean);
+
+      return lineas.map(item => ({
+        tipo: "Blanda",
+        competencia: "General",
+        subcategoria: item
+      }));
+    }
+
+    function recursosDetalleDesdeTexto(textoRecursos) {
+      const lineas = textoSeguro(textoRecursos)
+        .split(/\n|;/)
+        .map(item => textoSeguro(item))
+        .filter(Boolean);
+
+      return lineas.map(item => ({
+        tipo: "Acceso",
+        recurso: item,
+        observacion: ""
+      }));
+    }
+
+    function dotacionDetalleDesdeTexto(textoDotacion) {
+      const lineas = textoSeguro(textoDotacion)
+        .split(/\n|;/)
+        .map(item => textoSeguro(item))
+        .filter(Boolean);
+
+      return lineas.map(item => ({
+        tipo: "EPP",
+        elemento: item,
+        cantidad: 1,
+        observacion: ""
+      }));
+    }
+
+    function kpisDetalleDesdeTexto(textoKpis) {
+      const lineas = textoSeguro(textoKpis)
+        .split(/\n|;/)
+        .map(item => textoSeguro(item))
+        .filter(Boolean);
+
+      return lineas.map(item => ({
+        indicador: item,
+        formula: ""
+      }));
+    }
+
+    function serializarPerfil(lista) {
+      return (Array.isArray(lista) ? lista : [])
+        .filter(item => item.formacionAcademica && item.tipo && item.titulo)
+        .map(item => `${item.formacionAcademica} (${item.tipo}): ${item.titulo}`)
+        .join(" | ");
+    }
+
+    function serializarCompetencias(lista) {
+      return (Array.isArray(lista) ? lista : [])
+        .filter(item => item.tipo && item.competencia && item.subcategoria)
+        .map(item => `${item.tipo}/${item.competencia}: ${item.subcategoria}`)
+        .join(" | ");
+    }
+
+    function serializarCapacitaciones(lista) {
+      return (Array.isArray(lista) ? lista : [])
+        .filter(item => item.tipo && item.detalle)
+        .map(item => `${item.tipo}: ${item.detalle}`)
+        .join(" | ");
+    }
+
+    function serializarRecursos(lista) {
+      return (Array.isArray(lista) ? lista : [])
+        .filter(item => item.tipo && item.recurso)
+        .map(item => `${item.tipo}/${item.recurso}: ${item.observacion || "-"}`)
+        .join(" | ");
+    }
+
+    function serializarDotaciones(lista) {
+      return (Array.isArray(lista) ? lista : [])
+        .filter(item => item.tipo && item.elemento)
+        .map(item => `${item.tipo}/${item.elemento} x${item.cantidad || 1}: ${item.observacion || "-"}`)
+        .join(" | ");
+    }
+
+    function serializarKpis(lista) {
+      return (Array.isArray(lista) ? lista : [])
+        .filter(item => item.indicador && item.formula)
+        .map(item => `${item.indicador}: ${item.formula}`)
+        .join(" | ");
+    }
+
+    function listaPerfilValida(lista) {
+      return Array.isArray(lista)
+        && lista.length > 0
+        && lista.every(item =>
+          textoSeguro(item?.formacionAcademica)
+          && textoSeguro(item?.tipo)
+          && textoSeguro(item?.titulo)
+        );
+    }
+
+    function listaCompetenciasValida(lista) {
+      return Array.isArray(lista)
+        && lista.length > 0
+        && lista.every(item =>
+          textoSeguro(item?.tipo)
+          && textoSeguro(item?.competencia)
+          && textoSeguro(item?.subcategoria)
+        );
+    }
+
+    function listaCapacitacionesValida(lista) {
+      return Array.isArray(lista)
+        && lista.length > 0
+        && lista.every(item =>
+          textoSeguro(item?.tipo)
+          && textoSeguro(item?.detalle)
+        );
+    }
+
+    function listaRecursosValida(lista) {
+      return Array.isArray(lista)
+        && lista.length > 0
+        && lista.every(item =>
+          textoSeguro(item?.tipo)
+          && textoSeguro(item?.recurso)
+          && textoSeguro(item?.observacion)
+        );
+    }
+
+    function listaDotacionValida(lista) {
+      return Array.isArray(lista)
+        && lista.length > 0
+        && lista.every(item => {
+          const cantidad = Number.parseInt(String(item?.cantidad ?? "").trim(), 10);
+          return (
+            textoSeguro(item?.tipo)
+            && textoSeguro(item?.elemento)
+            && Number.isInteger(cantidad)
+            && cantidad > 0
+            && textoSeguro(item?.observacion)
+          );
+        });
+    }
+
+    function listaKpisValida(lista) {
+      return Array.isArray(lista)
+        && lista.length > 0
+        && lista.every(item => textoSeguro(item?.indicador) && textoSeguro(item?.formula));
+    }
+
+    function normalizarCargo(cargo, usados) {
+      const fichaRaw = cargo?.ficha || {};
+
+      let perfilDetalle = Array.isArray(fichaRaw?.perfilDetalle)
+        ? fichaRaw.perfilDetalle.map(normalizarFilaPerfil).filter(item => item.formacionAcademica && item.tipo && item.titulo)
+        : [];
+
+      let competenciasDetalle = Array.isArray(fichaRaw?.competenciasDetalle)
+        ? fichaRaw.competenciasDetalle.map(normalizarFilaCompetencia).filter(item => item.tipo && item.competencia && item.subcategoria)
+        : [];
+
+      let capacitacionesDetalle = Array.isArray(fichaRaw?.capacitacionesDetalle)
+        ? fichaRaw.capacitacionesDetalle.map(normalizarFilaCapacitacion).filter(item => item.tipo && item.detalle)
+        : [];
+      let recursosDetalle = Array.isArray(fichaRaw?.equiposAccesosDetalle)
+        ? fichaRaw.equiposAccesosDetalle
+          .map(normalizarFilaRecurso)
+          .filter(item => item.tipo && item.recurso && item.observacion)
+        : [];
+      let dotacionDetalle = Array.isArray(fichaRaw?.eppsUniformesDetalle)
+        ? fichaRaw.eppsUniformesDetalle
+          .map(normalizarFilaDotacion)
+          .filter(item => item.tipo && item.elemento && Number.isInteger(item.cantidad) && item.cantidad > 0 && item.observacion)
+        : [];
+      let kpisDetalle = Array.isArray(fichaRaw?.indicadoresKpisDetalle)
+        ? fichaRaw.indicadoresKpisDetalle
+          .map(normalizarFilaKpi)
+          .filter(item => item.indicador && item.formula)
+        : [];
+
+      if (perfilDetalle.length === 0 && textoSeguro(fichaRaw?.perfil)) {
+        perfilDetalle = perfilDetalleDesdeTexto(fichaRaw.perfil);
+      }
+
+      if (competenciasDetalle.length === 0 && textoSeguro(fichaRaw?.competencias)) {
+        competenciasDetalle = competenciasDetalleDesdeTexto(fichaRaw.competencias);
+      }
+      if (recursosDetalle.length === 0 && textoSeguro(fichaRaw?.equiposAccesos)) {
+        recursosDetalle = recursosDetalleDesdeTexto(fichaRaw.equiposAccesos);
+      }
+      if (dotacionDetalle.length === 0 && textoSeguro(fichaRaw?.eppsUniformes)) {
+        dotacionDetalle = dotacionDetalleDesdeTexto(fichaRaw.eppsUniformes);
+      }
+      if (kpisDetalle.length === 0 && textoSeguro(fichaRaw?.indicadoresKpis)) {
+        kpisDetalle = kpisDetalleDesdeTexto(fichaRaw.indicadoresKpis);
+      }
+      const areaNormalizada = normalizarAreaCatalogo(cargo?.area, cargo?.departamento);
+      const departamentoNormalizado = normalizarDepartamentoCatalogo(areaNormalizada, cargo?.departamento);
+      const quienReportaListaNormalizada = normalizarListaCatalogada(
+        QUIEN_REPORTA_OPCIONES,
+        cargo?.quienReportaLista ?? cargo?.quienReporta
+      );
+      const quienSupervisaListaNormalizada = normalizarListaCatalogada(
+        QUIEN_SUPERVISA_OPCIONES,
+        cargo?.quienSupervisaLista ?? cargo?.quienSupervisa
+      );
+
+      const limpio = {
+        idSolicitud: textoSeguro(cargo?.idSolicitud),
+        estadoSolicitud: textoSeguro(cargo?.estadoSolicitud) || "Pendiente",
+        fechaSolicitud: textoSeguro(cargo?.fechaSolicitud),
+        actualizadoEn: textoSeguro(cargo?.actualizadoEn),
+        justificacionCreacionCargo: textoSeguro(cargo?.justificacionCreacionCargo),
+        personaSolicita: textoSeguro(cargo?.personaSolicita) || textoSeguro(cargo?.solicitante) || textoSeguro(cargo?.usuarioSolicitante) || usuarioSesionActual(),
+        codigoCargo: String(cargo?.codigoCargo || "").trim().toUpperCase(),
+        nombreCargo: String(cargo?.nombreCargo || "").trim(),
+        area: areaNormalizada,
+        departamento: departamentoNormalizado,
+        tipoCargo: String(cargo?.tipoCargo || "").trim(),
+        horario: normalizarHorarioSeleccion(cargo?.horario),
+        horarioCompleto: String(cargo?.horarioCompleto || "").trim(),
+        edadSugerida: String(cargo?.edadSugerida || "").trim(),
+        sexoSugerido: String(cargo?.sexoSugerido || "").trim(),
+        bandaSalarial: String(cargo?.bandaSalarial || "").trim(),
+        quienReporta: serializarListaCatalogada(quienReportaListaNormalizada),
+        quienReportaLista: quienReportaListaNormalizada,
+        quienSupervisa: serializarListaCatalogada(quienSupervisaListaNormalizada),
+        quienSupervisaLista: quienSupervisaListaNormalizada,
+        ficha: {
+          objetivo: textoSeguro(fichaRaw?.objetivo),
+          funciones: textoSeguro(fichaRaw?.funciones),
+          perfil: textoSeguro(fichaRaw?.perfil) || serializarPerfil(perfilDetalle),
+          competencias: textoSeguro(fichaRaw?.competencias) || serializarCompetencias(competenciasDetalle),
+          experienciaRequerida: textoSeguro(fichaRaw?.experienciaRequerida),
+          capacitaciones: textoSeguro(fichaRaw?.capacitaciones) || serializarCapacitaciones(capacitacionesDetalle),
+          equiposAccesos: textoSeguro(fichaRaw?.equiposAccesos) || serializarRecursos(recursosDetalle),
+          eppsUniformes: textoSeguro(fichaRaw?.eppsUniformes) || serializarDotaciones(dotacionDetalle),
+          indicadoresKpis: textoSeguro(fichaRaw?.indicadoresKpis) || serializarKpis(kpisDetalle),
+          perfilDetalle,
+          competenciasDetalle,
+          capacitacionesDetalle,
+          equiposAccesosDetalle: recursosDetalle,
+          eppsUniformesDetalle: dotacionDetalle,
+          indicadoresKpisDetalle: kpisDetalle
+        }
+      };
+
+      const codigoBase = codigoTpValido(limpio.codigoCargo)
+        ? limpio.codigoCargo
+        : codigoTpSugerido(limpio.nombreCargo);
+
+      limpio.codigoCargo = asegurarCodigoUnico(codigoBase, usados, referenciaCargo5(limpio.nombreCargo));
+      usados.add(limpio.codigoCargo);
+      if (!limpio.idSolicitud) limpio.idSolicitud = generarIdSolicitud();
+      if (!limpio.fechaSolicitud) limpio.fechaSolicitud = new Date().toISOString();
+
+      return limpio;
+    }
+
+    function asegurarData() {
+      const actual = obtenerLista();
+      const base = (Array.isArray(actual) && actual.length > 0)
+        ? actual.map(item => ({ ...item }))
+        : CARGOS_EJEMPLO.map(item => ({ ...item }));
+
+      const usados = new Set();
+      const normalizada = base.map(item => normalizarCargo(item, usados));
+      guardarLista(normalizada);
+      return normalizada;
+    }
+
+    function fichaCompletaCargo(cargo) {
+      if (!codigoTpValido(cargo?.codigoCargo)) return false;
+      if (!cargo?.nombreCargo || !cargo?.area || !cargo?.departamento) return false;
+      if (!cargo?.tipoCargo || !cargo?.horario || !cargo?.edadSugerida || !cargo?.sexoSugerido || !cargo?.bandaSalarial) return false;
+      if (!textoSeguro(cargo?.horarioCompleto)) return false;
+      const ficha = cargo?.ficha || {};
+      if (!listaPerfilValida(ficha.perfilDetalle)) return false;
+      if (!listaCompetenciasValida(ficha.competenciasDetalle)) return false;
+      if (!listaCapacitacionesValida(ficha.capacitacionesDetalle)) return false;
+      if (!listaRecursosValida(ficha.equiposAccesosDetalle)) return false;
+      if (!listaDotacionValida(ficha.eppsUniformesDetalle)) return false;
+      if (!listaKpisValida(ficha.indicadoresKpisDetalle)) return false;
+      if (!textoSeguro(ficha.experienciaRequerida)) return false;
+      if (!textoSeguro(ficha.equiposAccesos)) return false;
+      if (!textoSeguro(ficha.eppsUniformes)) return false;
+      if (!textoSeguro(ficha.indicadoresKpis)) return false;
+      return CAMPOS_FICHA.every(campo => textoSeguro(ficha[campo]) !== "");
+    }
+
+    function obtenerCodigoDesdeUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return String(params.get("id") || "").trim();
+    }
+
+    function generarIdSolicitud() {
+      const aleatorio = Math.floor(Math.random() * 100000).toString().padStart(5, "0");
+      return `SCP-${Date.now()}-${aleatorio}`;
+    }
+
+    function horarioChange() {
+      const horario = normalizarHorarioSeleccion(document.getElementById("horario").value);
+      const box = document.getElementById("horarioUnicoBox");
+      const input = document.getElementById("horarioCompleto");
+
+      input.readOnly = false;
+
+      if (!horario) {
+        box.classList.add("hidden");
+        input.value = "";
+        refrescarEstadoVisual();
+        return;
+      }
+
+      box.classList.remove("hidden");
+
+      if (horario === "Administrativo") {
+        input.value = "08:00-17:00";
+        input.readOnly = true;
+        refrescarEstadoVisual();
+        return;
+      }
+
+      if (horario === "Producciónr") {
+        input.value = "06:30-18:30 / 18:30-06:30";
+        input.readOnly = true;
+        refrescarEstadoVisual();
+        return;
+      }
+
+      if (horario === "Producciónf") {
+        input.value = "06:30-18:30";
+        input.readOnly = true;
+        refrescarEstadoVisual();
+        return;
+      }
+
+      if (horario === "Almacenes") {
+        input.value = "08:00-18:30";
+        input.readOnly = true;
+        refrescarEstadoVisual();
+        return;
+      }
+
+      input.placeholder = "Ej: 07:00-16:00";
+      refrescarEstadoVisual();
+    }
+
+    function attrSelected(actual, esperado) {
+      return actual === esperado ? " selected" : "";
+    }
+
+    function resetEditorPerfil() {
+      perfilEditorActivo = false;
+      perfilEditorIndex = -1;
+      perfilEditorData = { formacionAcademica: "", tipo: "", titulo: "" };
+    }
+
+    function resetEditorCompetencia() {
+      competenciaEditorActivo = false;
+      competenciaEditorIndex = -1;
+      competenciaEditorData = { tipo: "", competencia: "", subcategoria: "" };
+    }
+
+    function resetEditorCapacitacion() {
+      capacitacionEditorActivo = false;
+      capacitacionEditorIndex = -1;
+      capacitacionEditorData = { tipo: "", detalle: "" };
+    }
+
+    function resetEditorRecurso() {
+      recursoEditorActivo = false;
+      recursoEditorIndex = -1;
+      recursoEditorData = { tipo: "", recurso: "", observacion: "" };
+    }
+
+    function resetEditorDotacion() {
+      dotacionEditorActivo = false;
+      dotacionEditorIndex = -1;
+      dotacionEditorData = { tipo: "", elemento: "", cantidad: "1", observacion: "" };
+    }
+
+    function resetEditorKpi() {
+      kpiEditorActivo = false;
+      kpiEditorIndex = -1;
+      kpiEditorData = { indicador: "", formula: "" };
+    }
+
+    function renderEditorPerfilRow() {
+      return `
+        <tr class="editor-row">
+          <td>
+            <select id="perfilFormacion" class="form-select form-select-sm">
+              <option value="">Seleccionar</option>
+              <option value="Bachiller"${attrSelected(perfilEditorData.formacionAcademica, "Bachiller")}>Bachiller</option>
+              <option value="Tecnico"${attrSelected(perfilEditorData.formacionAcademica, "Tecnico")}>Tecnico</option>
+              <option value="Tecnologo"${attrSelected(perfilEditorData.formacionAcademica, "Tecnologo")}>Tecnologo</option>
+              <option value="Tercer nivel"${attrSelected(perfilEditorData.formacionAcademica, "Tercer nivel")}>Tercer nivel</option>
+              <option value="Cuarto nivel"${attrSelected(perfilEditorData.formacionAcademica, "Cuarto nivel")}>Cuarto nivel</option>
+              <option value="Otro"${attrSelected(perfilEditorData.formacionAcademica, "Otro")}>Otro</option>
+            </select>
+          </td>
+          <td>
+            <select id="perfilTipo" class="form-select form-select-sm">
+              <option value="">Seleccionar</option>
+              <option value="Obligatoria"${attrSelected(perfilEditorData.tipo, "Obligatoria")}>Obligatoria</option>
+              <option value="Deseable"${attrSelected(perfilEditorData.tipo, "Deseable")}>Deseable</option>
+            </select>
+          </td>
+          <td>
+            <input id="perfilTitulo" type="text" class="form-control form-control-sm" value="${escapeHtml(perfilEditorData.titulo)}" placeholder="Ej: Ingenieria Industrial">
+          </td>
+          <td>
+            <div class="editor-actions">
+              <button type="button" class="btn btn-success btn-sm btn-row-action" onclick="guardarFilaPerfil()">Guardar</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm btn-row-action" onclick="cancelarFilaPerfil()">Cancelar</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderTablaPerfil() {
+      const tabla = document.getElementById("tablaPerfilCargo");
+      tabla.innerHTML = "";
+
+      if (perfilCargoLista.length === 0 && !perfilEditorActivo) {
+        tabla.innerHTML = '<tr><td colspan="4" class="empty-row">Sin perfiles agregados.</td></tr>';
+        return;
+      }
+
+      perfilCargoLista.forEach((item, index) => {
+        if (perfilEditorActivo && perfilEditorIndex === index) {
+          tabla.insertAdjacentHTML("beforeend", renderEditorPerfilRow());
+          return;
+        }
+
+        tabla.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${escapeHtml(item.formacionAcademica)}</td>
+            <td>${escapeHtml(item.tipo)}</td>
+            <td>${escapeHtml(item.titulo)}</td>
+            <td>
+              <div class="editor-actions">
+                <button type="button" class="btn btn-outline-primary btn-sm btn-row-action" onclick="editarFilaPerfil(${index})">Editar</button>
+                <button type="button" class="btn btn-outline-danger btn-sm btn-row-action" onclick="eliminarFilaPerfil(${index})">Eliminar</button>
+              </div>
+            </td>
+          </tr>
+        `);
+      });
+
+      if (perfilEditorActivo && perfilEditorIndex === -1) {
+        tabla.insertAdjacentHTML("beforeend", renderEditorPerfilRow());
+      }
+    }
+
+    function mostrarEditorPerfil() {
+      perfilEditorActivo = true;
+      perfilEditorIndex = -1;
+      perfilEditorData = { formacionAcademica: "", tipo: "", titulo: "" };
+      renderTablaPerfil();
+      const input = document.getElementById("perfilFormacion");
+      if (input) input.focus();
+    }
+
+    function editarFilaPerfil(index) {
+      const item = perfilCargoLista[index];
+      if (!item) return;
+      perfilEditorActivo = true;
+      perfilEditorIndex = index;
+      perfilEditorData = {
+        formacionAcademica: item.formacionAcademica || "",
+        tipo: item.tipo || "",
+        titulo: item.titulo || ""
+      };
+      renderTablaPerfil();
+      const input = document.getElementById("perfilFormacion");
+      if (input) input.focus();
+    }
+
+    function cancelarFilaPerfil() {
+      resetEditorPerfil();
+      renderTablaPerfil();
+    }
+
+    function guardarFilaPerfil() {
+      const formacionAcademica = textoSeguro(document.getElementById("perfilFormacion")?.value);
+      const tipo = textoSeguro(document.getElementById("perfilTipo")?.value);
+      const titulo = textoSeguro(document.getElementById("perfilTitulo")?.value);
+
+      if (!formacionAcademica || !tipo || !titulo) {
+        alert("Completa formacion academica, tipo y titulo para guardar el perfil.");
+        return;
+      }
+
+      const payload = { formacionAcademica, tipo, titulo };
+      if (perfilEditorIndex >= 0) {
+        perfilCargoLista[perfilEditorIndex] = payload;
+      } else {
+        perfilCargoLista.push(payload);
+      }
+
+      resetEditorPerfil();
+      renderTablaPerfil();
+      refrescarEstadoVisual();
+    }
+
+    function eliminarFilaPerfil(index) {
+      const item = perfilCargoLista[index];
+      if (!item) return;
+      if (!confirm("Se eliminara este registro de perfil. Deseas continuar?")) return;
+      perfilCargoLista.splice(index, 1);
+      if (perfilEditorIndex === index) {
+        resetEditorPerfil();
+      } else if (perfilEditorIndex > index) {
+        perfilEditorIndex -= 1;
+      }
+      renderTablaPerfil();
+      refrescarEstadoVisual();
+    }
+
+    function categoriasPorTipoCompetencia(tipo) {
+      return Object.keys(COMPETENCIAS_DATA).filter(categoria => COMPETENCIA_TIPO[categoria] === tipo);
+    }
+
+    function renderEditorCompetenciaRow() {
+      const categorias = categoriasPorTipoCompetencia(competenciaEditorData.tipo);
+      const subcategorias = COMPETENCIAS_DATA[competenciaEditorData.competencia] || [];
+
+      const opcionesCategorias = categorias.map(categoria =>
+        `<option value="${escapeHtml(categoria)}"${attrSelected(competenciaEditorData.competencia, categoria)}>${escapeHtml(categoria)}</option>`
+      ).join("");
+
+      const opcionesSubcategorias = subcategorias.map(sub =>
+        `<option value="${escapeHtml(sub)}"${attrSelected(competenciaEditorData.subcategoria, sub)}>${escapeHtml(sub)}</option>`
+      ).join("");
+
+      return `
+        <tr class="editor-row">
+          <td>
+            <select id="competenciaTipo" class="form-select form-select-sm" onchange="onCompetenciaTipoEditorChange(this.value)">
+              <option value="">Seleccionar</option>
+              <option value="Blanda"${attrSelected(competenciaEditorData.tipo, "Blanda")}>Blanda</option>
+              <option value="Tecnica"${attrSelected(competenciaEditorData.tipo, "Tecnica")}>Tecnica</option>
+            </select>
+          </td>
+          <td>
+            <select id="competenciaCategoriaCargo" class="form-select form-select-sm" onchange="onCompetenciaCategoriaEditorChange(this.value)">
+              <option value="">Seleccione tipo</option>
+              ${opcionesCategorias}
+            </select>
+          </td>
+          <td>
+            <select id="competenciaSubcategoriaCargo" class="form-select form-select-sm" onchange="onCompetenciaSubcategoriaEditorChange(this.value)">
+              <option value="">Seleccione competencia</option>
+              ${opcionesSubcategorias}
+            </select>
+          </td>
+          <td>
+            <div class="editor-actions">
+              <button type="button" class="btn btn-success btn-sm btn-row-action" onclick="guardarFilaCompetencia()">Guardar</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm btn-row-action" onclick="cancelarFilaCompetencia()">Cancelar</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderTablaCompetencias() {
+      const tabla = document.getElementById("tablaCompetenciasCargo");
+      tabla.innerHTML = "";
+
+      if (competenciasCargoLista.length === 0 && !competenciaEditorActivo) {
+        tabla.innerHTML = '<tr><td colspan="4" class="empty-row">Sin competencias agregadas.</td></tr>';
+        return;
+      }
+
+      competenciasCargoLista.forEach((item, index) => {
+        if (competenciaEditorActivo && competenciaEditorIndex === index) {
+          tabla.insertAdjacentHTML("beforeend", renderEditorCompetenciaRow());
+          return;
+        }
+
+        tabla.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${escapeHtml(item.tipo)}</td>
+            <td>${escapeHtml(item.competencia)}</td>
+            <td>${escapeHtml(item.subcategoria)}</td>
+            <td>
+              <div class="editor-actions">
+                <button type="button" class="btn btn-outline-primary btn-sm btn-row-action" onclick="editarFilaCompetencia(${index})">Editar</button>
+                <button type="button" class="btn btn-outline-danger btn-sm btn-row-action" onclick="eliminarFilaCompetencia(${index})">Eliminar</button>
+              </div>
+            </td>
+          </tr>
+        `);
+      });
+
+      if (competenciaEditorActivo && competenciaEditorIndex === -1) {
+        tabla.insertAdjacentHTML("beforeend", renderEditorCompetenciaRow());
+      }
+    }
+
+    function mostrarEditorCompetencia() {
+      competenciaEditorActivo = true;
+      competenciaEditorIndex = -1;
+      competenciaEditorData = { tipo: "", competencia: "", subcategoria: "" };
+      renderTablaCompetencias();
+      const input = document.getElementById("competenciaTipo");
+      if (input) input.focus();
+    }
+
+    function editarFilaCompetencia(index) {
+      const item = competenciasCargoLista[index];
+      if (!item) return;
+      competenciaEditorActivo = true;
+      competenciaEditorIndex = index;
+      competenciaEditorData = {
+        tipo: item.tipo || "",
+        competencia: item.competencia || "",
+        subcategoria: item.subcategoria || ""
+      };
+      renderTablaCompetencias();
+      const input = document.getElementById("competenciaTipo");
+      if (input) input.focus();
+    }
+
+    function cancelarFilaCompetencia() {
+      resetEditorCompetencia();
+      renderTablaCompetencias();
+    }
+
+    function onCompetenciaTipoEditorChange(valor) {
+      competenciaEditorData.tipo = textoSeguro(valor);
+      competenciaEditorData.competencia = "";
+      competenciaEditorData.subcategoria = "";
+      renderTablaCompetencias();
+      const input = document.getElementById("competenciaCategoriaCargo");
+      if (input) input.focus();
+    }
+
+    function onCompetenciaCategoriaEditorChange(valor) {
+      competenciaEditorData.competencia = textoSeguro(valor);
+      competenciaEditorData.subcategoria = "";
+      renderTablaCompetencias();
+      const input = document.getElementById("competenciaSubcategoriaCargo");
+      if (input) input.focus();
+    }
+
+    function onCompetenciaSubcategoriaEditorChange(valor) {
+      competenciaEditorData.subcategoria = textoSeguro(valor);
+    }
+
+    function cargarCompetenciasPorTipoCargo() {
+      onCompetenciaTipoEditorChange(document.getElementById("competenciaTipo")?.value || "");
+    }
+
+    function cargarSubcategoriasCargo() {
+      onCompetenciaCategoriaEditorChange(document.getElementById("competenciaCategoriaCargo")?.value || "");
+    }
+
+    function guardarFilaCompetencia() {
+      const tipo = textoSeguro(document.getElementById("competenciaTipo")?.value);
+      const competencia = textoSeguro(document.getElementById("competenciaCategoriaCargo")?.value);
+      const subcategoria = textoSeguro(document.getElementById("competenciaSubcategoriaCargo")?.value);
+
+      if (!tipo || !competencia || !subcategoria) {
+        alert("Completa tipo, competencia y subcategoria para guardar.");
+        return;
+      }
+
+      const yaExiste = competenciasCargoLista.some((item, index) =>
+        index !== competenciaEditorIndex &&
+        item.tipo === tipo &&
+        item.competencia === competencia &&
+        item.subcategoria === subcategoria
+      );
+      if (yaExiste) {
+        alert("Esa competencia ya fue agregada.");
+        return;
+      }
+
+      const payload = { tipo, competencia, subcategoria };
+      if (competenciaEditorIndex >= 0) {
+        competenciasCargoLista[competenciaEditorIndex] = payload;
+      } else {
+        competenciasCargoLista.push(payload);
+      }
+
+      resetEditorCompetencia();
+      renderTablaCompetencias();
+      refrescarEstadoVisual();
+    }
+
+    function eliminarFilaCompetencia(index) {
+      const item = competenciasCargoLista[index];
+      if (!item) return;
+      if (!confirm("Se eliminara esta competencia. Deseas continuar?")) return;
+      competenciasCargoLista.splice(index, 1);
+      if (competenciaEditorIndex === index) {
+        resetEditorCompetencia();
+      } else if (competenciaEditorIndex > index) {
+        competenciaEditorIndex -= 1;
+      }
+      renderTablaCompetencias();
+      refrescarEstadoVisual();
+    }
+
+    function renderEditorCapacitacionRow() {
+      return `
+        <tr class="editor-row">
+          <td>
+            <select id="capacitacionTipo" class="form-select form-select-sm">
+              <option value="">Seleccionar</option>
+              <option value="A desarrollar en el puesto"${attrSelected(capacitacionEditorData.tipo, "A desarrollar en el puesto")}>A desarrollar en el puesto</option>
+              <option value="${CAPACITACION_TIPO_PREVIA}"${attrSelected(capacitacionEditorData.tipo, CAPACITACION_TIPO_PREVIA)}>${CAPACITACION_TIPO_PREVIA}</option>
+            </select>
+          </td>
+          <td>
+            <input id="capacitacionDetalle" type="text" class="form-control form-control-sm" value="${escapeHtml(capacitacionEditorData.detalle)}" placeholder="Ej: Manejo de ERP SAP">
+          </td>
+          <td>
+            <div class="editor-actions">
+              <button type="button" class="btn btn-success btn-sm btn-row-action" onclick="guardarFilaCapacitacion()">Guardar</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm btn-row-action" onclick="cancelarFilaCapacitacion()">Cancelar</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderTablaCapacitaciones() {
+      const tabla = document.getElementById("tablaCapacitacionesCargo");
+      tabla.innerHTML = "";
+
+      if (capacitacionesCargoLista.length === 0 && !capacitacionEditorActivo) {
+        tabla.innerHTML = '<tr><td colspan="3" class="empty-row">Sin capacitaciones agregadas.</td></tr>';
+        return;
+      }
+
+      capacitacionesCargoLista.forEach((item, index) => {
+        if (capacitacionEditorActivo && capacitacionEditorIndex === index) {
+          tabla.insertAdjacentHTML("beforeend", renderEditorCapacitacionRow());
+          return;
+        }
+
+        tabla.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${escapeHtml(item.tipo)}</td>
+            <td>${escapeHtml(item.detalle)}</td>
+            <td>
+              <div class="editor-actions">
+                <button type="button" class="btn btn-outline-primary btn-sm btn-row-action" onclick="editarFilaCapacitacion(${index})">Editar</button>
+                <button type="button" class="btn btn-outline-danger btn-sm btn-row-action" onclick="eliminarFilaCapacitacion(${index})">Eliminar</button>
+              </div>
+            </td>
+          </tr>
+        `);
+      });
+
+      if (capacitacionEditorActivo && capacitacionEditorIndex === -1) {
+        tabla.insertAdjacentHTML("beforeend", renderEditorCapacitacionRow());
+      }
+    }
+
+    function mostrarEditorCapacitacion() {
+      capacitacionEditorActivo = true;
+      capacitacionEditorIndex = -1;
+      capacitacionEditorData = { tipo: "", detalle: "" };
+      renderTablaCapacitaciones();
+      const input = document.getElementById("capacitacionTipo");
+      if (input) input.focus();
+    }
+
+    function editarFilaCapacitacion(index) {
+      const item = capacitacionesCargoLista[index];
+      if (!item) return;
+      capacitacionEditorActivo = true;
+      capacitacionEditorIndex = index;
+      capacitacionEditorData = { tipo: normalizarTipoCapacitacion(item.tipo), detalle: item.detalle || "" };
+      renderTablaCapacitaciones();
+      const input = document.getElementById("capacitacionTipo");
+      if (input) input.focus();
+    }
+
+    function cancelarFilaCapacitacion() {
+      resetEditorCapacitacion();
+      renderTablaCapacitaciones();
+    }
+
+    function guardarFilaCapacitacion() {
+      const tipo = normalizarTipoCapacitacion(document.getElementById("capacitacionTipo")?.value);
+      const detalle = textoSeguro(document.getElementById("capacitacionDetalle")?.value);
+
+      if (!tipo || !detalle) {
+        alert("Completa tipo y capacitacion para guardar.");
+        return;
+      }
+
+      const payload = { tipo, detalle };
+      if (capacitacionEditorIndex >= 0) {
+        capacitacionesCargoLista[capacitacionEditorIndex] = payload;
+      } else {
+        capacitacionesCargoLista.push(payload);
+      }
+
+      resetEditorCapacitacion();
+      renderTablaCapacitaciones();
+      refrescarEstadoVisual();
+    }
+
+    function eliminarFilaCapacitacion(index) {
+      const item = capacitacionesCargoLista[index];
+      if (!item) return;
+      if (!confirm("Se eliminara esta capacitacion. Deseas continuar?")) return;
+      capacitacionesCargoLista.splice(index, 1);
+      if (capacitacionEditorIndex === index) {
+        resetEditorCapacitacion();
+      } else if (capacitacionEditorIndex > index) {
+        capacitacionEditorIndex -= 1;
+      }
+      renderTablaCapacitaciones();
+      refrescarEstadoVisual();
+    }
+
+    function recursosPorTipo(tipo) {
+      return Array.isArray(RECURSOS_POR_TIPO[tipo]) ? RECURSOS_POR_TIPO[tipo] : [];
+    }
+
+    function dotacionPorTipo(tipo) {
+      return Array.isArray(DOTACION_POR_TIPO[tipo]) ? DOTACION_POR_TIPO[tipo] : [];
+    }
+
+    function renderEditorRecursoRow() {
+      const opcionesRecurso = recursosPorTipo(recursoEditorData.tipo)
+        .map(item => `<option value="${escapeHtml(item)}"${attrSelected(recursoEditorData.recurso, item)}>${escapeHtml(item)}</option>`)
+        .join("");
+
+      return `
+        <tr class="editor-row">
+          <td>
+            <select id="recursoTipo" class="form-select form-select-sm" onchange="onRecursoTipoEditorChange(this.value)">
+              <option value="">Seleccionar</option>
+              <option value="Acceso"${attrSelected(recursoEditorData.tipo, "Acceso")}>Acceso</option>
+              <option value="Equipo"${attrSelected(recursoEditorData.tipo, "Equipo")}>Equipo</option>
+            </select>
+          </td>
+          <td>
+            <select id="recursoNombre" class="form-select form-select-sm" onchange="onRecursoNombreEditorChange(this.value)">
+              <option value="">Seleccione tipo</option>
+              ${opcionesRecurso}
+            </select>
+          </td>
+          <td>
+            <input id="recursoObservacion" type="text" class="form-control form-control-sm" value="${escapeHtml(recursoEditorData.observacion)}" placeholder="Detalle adicional del recurso" oninput="onRecursoObservacionEditorChange(this.value)">
+          </td>
+          <td>
+            <div class="editor-actions">
+              <button type="button" class="btn btn-success btn-sm btn-row-action" onclick="guardarFilaRecurso()">Guardar</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm btn-row-action" onclick="cancelarFilaRecurso()">Cancelar</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderTablaEquiposAccesos() {
+      const tabla = document.getElementById("tablaEquiposAccesos");
+      tabla.innerHTML = "";
+
+      if (equiposAccesosLista.length === 0 && !recursoEditorActivo) {
+        tabla.innerHTML = '<tr><td colspan="4" class="empty-row">Sin recursos agregados.</td></tr>';
+        return;
+      }
+
+      equiposAccesosLista.forEach((item, index) => {
+        if (recursoEditorActivo && recursoEditorIndex === index) {
+          tabla.insertAdjacentHTML("beforeend", renderEditorRecursoRow());
+          return;
+        }
+
+        tabla.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${escapeHtml(item.tipo)}</td>
+            <td>${escapeHtml(item.recurso)}</td>
+            <td>${escapeHtml(item.observacion || "-")}</td>
+            <td>
+              <div class="editor-actions">
+                <button type="button" class="btn btn-outline-primary btn-sm btn-row-action" onclick="editarFilaRecurso(${index})">Editar</button>
+                <button type="button" class="btn btn-outline-danger btn-sm btn-row-action" onclick="eliminarFilaRecurso(${index})">Eliminar</button>
+              </div>
+            </td>
+          </tr>
+        `);
+      });
+
+      if (recursoEditorActivo && recursoEditorIndex === -1) {
+        tabla.insertAdjacentHTML("beforeend", renderEditorRecursoRow());
+      }
+    }
+
+    function mostrarEditorEquiposAccesos() {
+      recursoEditorActivo = true;
+      recursoEditorIndex = -1;
+      recursoEditorData = { tipo: "", recurso: "", observacion: "" };
+      renderTablaEquiposAccesos();
+      const input = document.getElementById("recursoTipo");
+      if (input) input.focus();
+    }
+
+    function editarFilaRecurso(index) {
+      const item = equiposAccesosLista[index];
+      if (!item) return;
+      recursoEditorActivo = true;
+      recursoEditorIndex = index;
+      recursoEditorData = {
+        tipo: item.tipo || "",
+        recurso: item.recurso || "",
+        observacion: item.observacion || ""
+      };
+      renderTablaEquiposAccesos();
+      const input = document.getElementById("recursoTipo");
+      if (input) input.focus();
+    }
+
+    function cancelarFilaRecurso() {
+      resetEditorRecurso();
+      renderTablaEquiposAccesos();
+    }
+
+    function onRecursoObservacionEditorChange(valor) {
+      recursoEditorData.observacion = textoSeguro(valor);
+    }
+
+    function onRecursoNombreEditorChange(valor) {
+      recursoEditorData.recurso = textoSeguro(valor);
+    }
+
+    function onRecursoTipoEditorChange(valor) {
+      const observacionActual = document.getElementById("recursoObservacion")?.value;
+      recursoEditorData.tipo = textoSeguro(valor);
+      recursoEditorData.recurso = "";
+      recursoEditorData.observacion = textoSeguro(observacionActual || recursoEditorData.observacion);
+      renderTablaEquiposAccesos();
+      const input = document.getElementById("recursoNombre");
+      if (input) input.focus();
+    }
+
+    function guardarFilaRecurso() {
+      const tipo = textoSeguro(document.getElementById("recursoTipo")?.value);
+      const recurso = textoSeguro(document.getElementById("recursoNombre")?.value);
+      const observacion = textoSeguro(document.getElementById("recursoObservacion")?.value);
+
+      if (!tipo || !recurso || !observacion) {
+        alert("Completa tipo, recurso y observacion para guardar.");
+        return;
+      }
+
+      const payload = { tipo, recurso, observacion };
+      if (recursoEditorIndex >= 0) {
+        equiposAccesosLista[recursoEditorIndex] = payload;
+      } else {
+        equiposAccesosLista.push(payload);
+      }
+
+      resetEditorRecurso();
+      renderTablaEquiposAccesos();
+      refrescarEstadoVisual();
+    }
+
+    function eliminarFilaRecurso(index) {
+      const item = equiposAccesosLista[index];
+      if (!item) return;
+      if (!confirm("Se eliminara este recurso. Deseas continuar?")) return;
+      equiposAccesosLista.splice(index, 1);
+      if (recursoEditorIndex === index) {
+        resetEditorRecurso();
+      } else if (recursoEditorIndex > index) {
+        recursoEditorIndex -= 1;
+      }
+      renderTablaEquiposAccesos();
+      refrescarEstadoVisual();
+    }
+
+    function renderEditorDotacionRow() {
+      const opcionesElemento = dotacionPorTipo(dotacionEditorData.tipo)
+        .map(item => `<option value="${escapeHtml(item)}"${attrSelected(dotacionEditorData.elemento, item)}>${escapeHtml(item)}</option>`)
+        .join("");
+
+      return `
+        <tr class="editor-row">
+          <td>
+            <select id="dotacionTipo" class="form-select form-select-sm" onchange="onDotacionTipoEditorChange(this.value)">
+              <option value="">Seleccionar</option>
+              <option value="EPP"${attrSelected(dotacionEditorData.tipo, "EPP")}>EPP</option>
+              <option value="Uniforme"${attrSelected(dotacionEditorData.tipo, "Uniforme")}>Uniforme</option>
+            </select>
+          </td>
+          <td>
+            <select id="dotacionElemento" class="form-select form-select-sm" onchange="onDotacionElementoEditorChange(this.value)">
+              <option value="">Seleccione tipo</option>
+              ${opcionesElemento}
+            </select>
+          </td>
+          <td>
+            <input id="dotacionCantidad" type="number" min="1" step="1" class="form-control form-control-sm" value="${escapeHtml(dotacionEditorData.cantidad)}" oninput="onDotacionCantidadEditorChange(this.value)">
+          </td>
+          <td>
+            <input id="dotacionObservacion" type="text" class="form-control form-control-sm" value="${escapeHtml(dotacionEditorData.observacion)}" placeholder="Detalle adicional" oninput="onDotacionObservacionEditorChange(this.value)">
+          </td>
+          <td>
+            <div class="editor-actions">
+              <button type="button" class="btn btn-success btn-sm btn-row-action" onclick="guardarFilaDotacion()">Guardar</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm btn-row-action" onclick="cancelarFilaDotacion()">Cancelar</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderTablaEppsUniformes() {
+      const tabla = document.getElementById("tablaEppsUniformes");
+      tabla.innerHTML = "";
+
+      if (eppsUniformesLista.length === 0 && !dotacionEditorActivo) {
+        tabla.innerHTML = '<tr><td colspan="5" class="empty-row">Sin dotacion agregada.</td></tr>';
+        return;
+      }
+
+      eppsUniformesLista.forEach((item, index) => {
+        if (dotacionEditorActivo && dotacionEditorIndex === index) {
+          tabla.insertAdjacentHTML("beforeend", renderEditorDotacionRow());
+          return;
+        }
+
+        tabla.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${escapeHtml(item.tipo)}</td>
+            <td>${escapeHtml(item.elemento)}</td>
+            <td>${escapeHtml(item.cantidad)}</td>
+            <td>${escapeHtml(item.observacion || "-")}</td>
+            <td>
+              <div class="editor-actions">
+                <button type="button" class="btn btn-outline-primary btn-sm btn-row-action" onclick="editarFilaDotacion(${index})">Editar</button>
+                <button type="button" class="btn btn-outline-danger btn-sm btn-row-action" onclick="eliminarFilaDotacion(${index})">Eliminar</button>
+              </div>
+            </td>
+          </tr>
+        `);
+      });
+
+      if (dotacionEditorActivo && dotacionEditorIndex === -1) {
+        tabla.insertAdjacentHTML("beforeend", renderEditorDotacionRow());
+      }
+    }
+
+    function mostrarEditorEppsUniformes() {
+      dotacionEditorActivo = true;
+      dotacionEditorIndex = -1;
+      dotacionEditorData = { tipo: "", elemento: "", cantidad: "1", observacion: "" };
+      renderTablaEppsUniformes();
+      const input = document.getElementById("dotacionTipo");
+      if (input) input.focus();
+    }
+
+    function editarFilaDotacion(index) {
+      const item = eppsUniformesLista[index];
+      if (!item) return;
+      dotacionEditorActivo = true;
+      dotacionEditorIndex = index;
+      dotacionEditorData = {
+        tipo: item.tipo || "",
+        elemento: item.elemento || "",
+        cantidad: String(item.cantidad || 1),
+        observacion: item.observacion || ""
+      };
+      renderTablaEppsUniformes();
+      const input = document.getElementById("dotacionTipo");
+      if (input) input.focus();
+    }
+
+    function cancelarFilaDotacion() {
+      resetEditorDotacion();
+      renderTablaEppsUniformes();
+    }
+
+    function onDotacionTipoEditorChange(valor) {
+      const observacionActual = document.getElementById("dotacionObservacion")?.value;
+      const cantidadActual = document.getElementById("dotacionCantidad")?.value;
+      dotacionEditorData.tipo = textoSeguro(valor);
+      dotacionEditorData.elemento = "";
+      dotacionEditorData.cantidad = textoSeguro(cantidadActual || dotacionEditorData.cantidad || "1");
+      dotacionEditorData.observacion = textoSeguro(observacionActual || dotacionEditorData.observacion);
+      renderTablaEppsUniformes();
+      const input = document.getElementById("dotacionElemento");
+      if (input) input.focus();
+    }
+
+    function onDotacionElementoEditorChange(valor) {
+      dotacionEditorData.elemento = textoSeguro(valor);
+    }
+
+    function onDotacionCantidadEditorChange(valor) {
+      dotacionEditorData.cantidad = String(valor || "");
+    }
+
+    function onDotacionObservacionEditorChange(valor) {
+      dotacionEditorData.observacion = textoSeguro(valor);
+    }
+
+    function guardarFilaDotacion() {
+      const tipo = textoSeguro(document.getElementById("dotacionTipo")?.value);
+      const elemento = textoSeguro(document.getElementById("dotacionElemento")?.value);
+      const cantidadRaw = String(document.getElementById("dotacionCantidad")?.value || "").trim();
+      const observacion = textoSeguro(document.getElementById("dotacionObservacion")?.value);
+      const cantidad = Number.parseInt(cantidadRaw, 10);
+
+      if (!tipo || !elemento || !observacion) {
+        alert("Completa tipo, elemento y observacion para guardar.");
+        return;
+      }
+      if (!Number.isInteger(cantidad) || cantidad <= 0) {
+        alert("La cantidad debe ser un numero entero mayor a 0.");
+        return;
+      }
+
+      const payload = { tipo, elemento, cantidad, observacion };
+      if (dotacionEditorIndex >= 0) {
+        eppsUniformesLista[dotacionEditorIndex] = payload;
+      } else {
+        eppsUniformesLista.push(payload);
+      }
+
+      resetEditorDotacion();
+      renderTablaEppsUniformes();
+      refrescarEstadoVisual();
+    }
+
+    function eliminarFilaDotacion(index) {
+      const item = eppsUniformesLista[index];
+      if (!item) return;
+      if (!confirm("Se eliminara este elemento de dotacion. Deseas continuar?")) return;
+      eppsUniformesLista.splice(index, 1);
+      if (dotacionEditorIndex === index) {
+        resetEditorDotacion();
+      } else if (dotacionEditorIndex > index) {
+        dotacionEditorIndex -= 1;
+      }
+      renderTablaEppsUniformes();
+      refrescarEstadoVisual();
+    }
+
+    function renderEditorKpiRow() {
+      return `
+        <tr class="editor-row">
+          <td>
+            <input id="kpiIndicador" type="text" class="form-control form-control-sm" value="${escapeHtml(kpiEditorData.indicador)}" placeholder="Ej: Eficiencia operativa">
+          </td>
+          <td>
+            <input id="kpiFormula" type="text" class="form-control form-control-sm" value="${escapeHtml(kpiEditorData.formula)}" placeholder="Ej: (Produccion real / Produccion planificada) * 100">
+          </td>
+          <td>
+            <div class="editor-actions">
+              <button type="button" class="btn btn-success btn-sm btn-row-action" onclick="guardarFilaKpi()">Guardar</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm btn-row-action" onclick="cancelarFilaKpi()">Cancelar</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderTablaKpis() {
+      const tabla = document.getElementById("tablaKpis");
+      tabla.innerHTML = "";
+
+      if (kpisLista.length === 0 && !kpiEditorActivo) {
+        tabla.innerHTML = '<tr><td colspan="3" class="empty-row">Sin indicadores agregados.</td></tr>';
+        return;
+      }
+
+      kpisLista.forEach((item, index) => {
+        if (kpiEditorActivo && kpiEditorIndex === index) {
+          tabla.insertAdjacentHTML("beforeend", renderEditorKpiRow());
+          return;
+        }
+
+        tabla.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${escapeHtml(item.indicador)}</td>
+            <td>${escapeHtml(item.formula)}</td>
+            <td>
+              <div class="editor-actions">
+                <button type="button" class="btn btn-outline-primary btn-sm btn-row-action" onclick="editarFilaKpi(${index})">Editar</button>
+                <button type="button" class="btn btn-outline-danger btn-sm btn-row-action" onclick="eliminarFilaKpi(${index})">Eliminar</button>
+              </div>
+            </td>
+          </tr>
+        `);
+      });
+
+      if (kpiEditorActivo && kpiEditorIndex === -1) {
+        tabla.insertAdjacentHTML("beforeend", renderEditorKpiRow());
+      }
+    }
+
+    function mostrarEditorKpis() {
+      kpiEditorActivo = true;
+      kpiEditorIndex = -1;
+      kpiEditorData = { indicador: "", formula: "" };
+      renderTablaKpis();
+      const input = document.getElementById("kpiIndicador");
+      if (input) input.focus();
+    }
+
+    function editarFilaKpi(index) {
+      const item = kpisLista[index];
+      if (!item) return;
+      kpiEditorActivo = true;
+      kpiEditorIndex = index;
+      kpiEditorData = {
+        indicador: item.indicador || "",
+        formula: item.formula || ""
+      };
+      renderTablaKpis();
+      const input = document.getElementById("kpiIndicador");
+      if (input) input.focus();
+    }
+
+    function cancelarFilaKpi() {
+      resetEditorKpi();
+      renderTablaKpis();
+    }
+
+    function guardarFilaKpi() {
+      const indicador = textoSeguro(document.getElementById("kpiIndicador")?.value);
+      const formula = textoSeguro(document.getElementById("kpiFormula")?.value);
+
+      if (!indicador || !formula) {
+        alert("Completa indicador y formula para guardar.");
+        return;
+      }
+
+      const payload = { indicador, formula };
+      if (kpiEditorIndex >= 0) {
+        kpisLista[kpiEditorIndex] = payload;
+      } else {
+        kpisLista.push(payload);
+      }
+
+      resetEditorKpi();
+      renderTablaKpis();
+      refrescarEstadoVisual();
+    }
+
+    function eliminarFilaKpi(index) {
+      const item = kpisLista[index];
+      if (!item) return;
+      if (!confirm("Se eliminara este indicador KPI. Deseas continuar?")) return;
+      kpisLista.splice(index, 1);
+      if (kpiEditorIndex === index) {
+        resetEditorKpi();
+      } else if (kpiEditorIndex > index) {
+        kpiEditorIndex -= 1;
+      }
+      renderTablaKpis();
+      refrescarEstadoVisual();
+    }
+
+    function obtenerCargoDesdeFormulario() {
+      const ref = soloLetras(document.getElementById("codigoCargoRef").value).slice(0, 5);
+      const perfilDetalle = perfilCargoLista.map(item => ({ ...item }));
+      const competenciasDetalle = competenciasCargoLista.map(item => ({ ...item }));
+      const capacitacionesDetalle = capacitacionesCargoLista.map(item => ({ ...item }));
+      const equiposAccesosDetalle = equiposAccesosLista.map(item => ({ ...item }));
+      const eppsUniformesDetalle = eppsUniformesLista.map(item => ({ ...item }));
+      const indicadoresKpisDetalle = kpisLista.map(item => ({ ...item }));
+      const perfilResumen = serializarPerfil(perfilDetalle);
+      const competenciasResumen = serializarCompetencias(competenciasDetalle);
+      const capacitacionesResumen = serializarCapacitaciones(capacitacionesDetalle);
+      const equiposAccesosResumen = serializarRecursos(equiposAccesosDetalle);
+      const eppsUniformesResumen = serializarDotaciones(eppsUniformesDetalle);
+      const indicadoresKpisResumen = serializarKpis(indicadoresKpisDetalle);
+      const quienReportaLista = obtenerSeleccionMultiple("quienReportaCargo");
+      const quienSupervisaLista = obtenerSeleccionMultiple("quienSupervisaCargo");
+
+      return {
+        codigoCargo: `TP-${ref}`,
+        nombreCargo: document.getElementById("nombreCargo").value.trim(),
+        personaSolicita: textoSeguro(document.getElementById("personaSolicita").value) || usuarioSesionActual(),
+        area: document.getElementById("areaCargo").value.trim(),
+        departamento: document.getElementById("departamentoCargo").value.trim(),
+        justificacionCreacionCargo: document.getElementById("justificacionCreacionCargo").value.trim(),
+        tipoCargo: document.getElementById("tipoCargo").value.trim(),
+        horario: normalizarHorarioSeleccion(document.getElementById("horario").value),
+        horarioCompleto: document.getElementById("horarioCompleto").value.trim(),
+        edadSugerida: document.getElementById("edadSugerida").value.trim(),
+        sexoSugerido: document.getElementById("sexoSugerido").value.trim(),
+        bandaSalarial: document.getElementById("bandaSalarial").value.trim(),
+        quienReporta: serializarListaCatalogada(quienReportaLista),
+        quienReportaLista,
+        quienSupervisa: serializarListaCatalogada(quienSupervisaLista),
+        quienSupervisaLista,
+        ficha: {
+          objetivo: document.getElementById("objetivoCargo").value.trim(),
+          funciones: document.getElementById("funcionesCargo").value.trim(),
+          perfil: perfilResumen,
+          competencias: competenciasResumen,
+          experienciaRequerida: document.getElementById("experienciaRequeridaCargo").value.trim(),
+          capacitaciones: capacitacionesResumen,
+          equiposAccesos: equiposAccesosResumen,
+          eppsUniformes: eppsUniformesResumen,
+          indicadoresKpis: indicadoresKpisResumen,
+          perfilDetalle,
+          competenciasDetalle,
+          capacitacionesDetalle,
+          equiposAccesosDetalle,
+          eppsUniformesDetalle,
+          indicadoresKpisDetalle
+        }
+      };
+    }
+
+    function refrescarEstadoVisual() {
+      const refInput = document.getElementById("codigoCargoRef");
+      refInput.value = soloLetras(refInput.value).slice(0, 5);
+
+      const cargo = obtenerCargoDesdeFormulario();
+      const estado = document.getElementById("estadoFicha");
+      const completo = fichaCompletaCargo(cargo);
+
+      estado.textContent = completo ? "COMPLETO" : "INCOMPLETO";
+      estado.classList.toggle("incompleto", !completo);
+    }
+
+    function actualizarVisibilidadJustificacion(estadoSolicitud) {
+      const contenedor = document.getElementById("justificacionCreacionContainer");
+      if (!contenedor) return;
+      const aprobada = normalizarTexto(estadoSolicitud) === "aprobada";
+      contenedor.classList.toggle("hidden", aprobada);
+    }
+
+    function cargarFormulario() {
+      codigoActivo = obtenerCodigoDesdeUrl();
+
+      const lista = asegurarData();
+      const cargo = codigoActivo
+        ? lista.find(item => String(item.idSolicitud || "").trim() === codigoActivo)
+        : null;
+
+      const ref = cargo
+        ? (codigoTpValido(cargo.codigoCargo)
+            ? cargo.codigoCargo.slice(3)
+            : referenciaCargo5(cargo.nombreCargo))
+        : "";
+      const areaForm = normalizarAreaCatalogo(cargo?.area, cargo?.departamento);
+      const departamentoForm = normalizarDepartamentoCatalogo(areaForm, cargo?.departamento);
+
+      document.getElementById("codigoCargoRef").value = ref;
+      document.getElementById("nombreCargo").value = cargo?.nombreCargo || "";
+      document.getElementById("personaSolicita").value = cargo?.personaSolicita || cargo?.solicitante || cargo?.usuarioSolicitante || usuarioSesionActual();
+      renderSelectorAreas(areaForm);
+      renderSelectorDepartamentos(areaForm, departamentoForm);
+      document.getElementById("tipoCargo").value = cargo?.tipoCargo || "";
+      document.getElementById("horario").value = normalizarHorarioSeleccion(cargo?.horario);
+      document.getElementById("horarioCompleto").value = cargo?.horarioCompleto || "";
+      document.getElementById("edadSugerida").value = cargo?.edadSugerida || "";
+      document.getElementById("sexoSugerido").value = cargo?.sexoSugerido || "";
+      document.getElementById("bandaSalarial").value = cargo?.bandaSalarial || "";
+      document.getElementById("justificacionCreacionCargo").value = cargo?.justificacionCreacionCargo || "";
+      actualizarVisibilidadJustificacion(cargo?.estadoSolicitud || "Pendiente");
+      renderSelectMultiple(
+        "quienReportaCargo",
+        QUIEN_REPORTA_OPCIONES,
+        normalizarListaCatalogada(QUIEN_REPORTA_OPCIONES, cargo?.quienReportaLista ?? cargo?.quienReporta)
+      );
+      renderSelectMultiple(
+        "quienSupervisaCargo",
+        QUIEN_SUPERVISA_OPCIONES,
+        normalizarListaCatalogada(QUIEN_SUPERVISA_OPCIONES, cargo?.quienSupervisaLista ?? cargo?.quienSupervisa)
+      );
+
+      const ficha = cargo?.ficha || {};
+      document.getElementById("objetivoCargo").value = ficha.objetivo || "";
+      document.getElementById("funcionesCargo").value = ficha.funciones || "";
+      document.getElementById("experienciaRequeridaCargo").value = ficha.experienciaRequerida || "";
+
+      perfilCargoLista = Array.isArray(ficha.perfilDetalle)
+        ? ficha.perfilDetalle.map(normalizarFilaPerfil).filter(item => item.formacionAcademica && item.tipo && item.titulo)
+        : [];
+      if (perfilCargoLista.length === 0 && textoSeguro(ficha.perfil)) {
+        perfilCargoLista = perfilDetalleDesdeTexto(ficha.perfil);
+      }
+
+      competenciasCargoLista = Array.isArray(ficha.competenciasDetalle)
+        ? ficha.competenciasDetalle.map(normalizarFilaCompetencia).filter(item => item.tipo && item.competencia && item.subcategoria)
+        : [];
+      if (competenciasCargoLista.length === 0 && textoSeguro(ficha.competencias)) {
+        competenciasCargoLista = competenciasDetalleDesdeTexto(ficha.competencias);
+      }
+
+      capacitacionesCargoLista = Array.isArray(ficha.capacitacionesDetalle)
+        ? ficha.capacitacionesDetalle.map(normalizarFilaCapacitacion).filter(item => item.tipo && item.detalle)
+        : [];
+      equiposAccesosLista = Array.isArray(ficha.equiposAccesosDetalle)
+        ? ficha.equiposAccesosDetalle
+          .map(normalizarFilaRecurso)
+          .filter(item => item.tipo && item.recurso && item.observacion)
+        : [];
+      if (equiposAccesosLista.length === 0 && textoSeguro(ficha.equiposAccesos)) {
+        equiposAccesosLista = recursosDetalleDesdeTexto(ficha.equiposAccesos);
+      }
+
+      eppsUniformesLista = Array.isArray(ficha.eppsUniformesDetalle)
+        ? ficha.eppsUniformesDetalle
+          .map(normalizarFilaDotacion)
+          .filter(item => item.tipo && item.elemento && Number.isInteger(item.cantidad) && item.cantidad > 0 && item.observacion)
+        : [];
+      if (eppsUniformesLista.length === 0 && textoSeguro(ficha.eppsUniformes)) {
+        eppsUniformesLista = dotacionDetalleDesdeTexto(ficha.eppsUniformes);
+      }
+      kpisLista = Array.isArray(ficha.indicadoresKpisDetalle)
+        ? ficha.indicadoresKpisDetalle
+          .map(normalizarFilaKpi)
+          .filter(item => item.indicador && item.formula)
+        : [];
+      if (kpisLista.length === 0 && textoSeguro(ficha.indicadoresKpis)) {
+        kpisLista = kpisDetalleDesdeTexto(ficha.indicadoresKpis);
+      }
+
+      resetEditorPerfil();
+      resetEditorCompetencia();
+      resetEditorCapacitacion();
+      resetEditorRecurso();
+      resetEditorDotacion();
+      resetEditorKpi();
+      renderTablaPerfil();
+      renderTablaCompetencias();
+      renderTablaCapacitaciones();
+      renderTablaEquiposAccesos();
+      renderTablaEppsUniformes();
+      renderTablaKpis();
+
+      horarioChange();
+      refrescarEstadoVisual();
+    }
+
+    function guardarManual() {
+      const lista = asegurarData();
+      const index = lista.findIndex(item => String(item.idSolicitud || "").trim() === codigoActivo);
+
+      const ref = soloLetras(document.getElementById("codigoCargoRef").value).slice(0, 5);
+      if (ref.length !== 5) {
+        alert("El codigo del cargo debe tener exactamente 5 letras en el sufijo (TP-XXXXX).");
+        document.getElementById("codigoCargoRef").focus();
+        return;
+      }
+
+      const codigoNuevo = `TP-${ref}`;
+      const codigoDuplicado = lista.some((item, idx) => idx !== index && String(item.codigoCargo || "").toUpperCase() === codigoNuevo);
+      if (codigoDuplicado) {
+        alert("Ya existe otro cargo con ese codigo. Cambia el sufijo de 5 letras.");
+        document.getElementById("codigoCargoRef").focus();
+        return;
+      }
+
+      const datos = obtenerCargoDesdeFormulario();
+      if (!textoSeguro(datos.nombreCargo)) {
+        alert("Completa el campo Nombre cargo.");
+        document.getElementById("nombreCargo").focus();
+        return;
+      }
+      if (!textoSeguro(datos.area)) {
+        alert("Completa el campo Area.");
+        document.getElementById("areaCargo").focus();
+        return;
+      }
+      if (!textoSeguro(datos.departamento)) {
+        alert("Completa el campo Departamento.");
+        document.getElementById("departamentoCargo").focus();
+        return;
+      }
+      if (!textoSeguro(datos.tipoCargo)) {
+        alert("Selecciona el Tipo de cargo.");
+        document.getElementById("tipoCargo").focus();
+        return;
+      }
+      if (!textoSeguro(datos.horario)) {
+        alert("Selecciona el Horario.");
+        document.getElementById("horario").focus();
+        return;
+      }
+      if (!textoSeguro(datos.horarioCompleto)) {
+        alert("Completa el campo Horario (Inicio - Fin).");
+        document.getElementById("horarioCompleto").focus();
+        return;
+      }
+      if (!textoSeguro(datos.edadSugerida)) {
+        alert("Completa el campo Edad sugerida.");
+        document.getElementById("edadSugerida").focus();
+        return;
+      }
+      if (!textoSeguro(datos.sexoSugerido)) {
+        alert("Selecciona el campo Sexo sugerido.");
+        document.getElementById("sexoSugerido").focus();
+        return;
+      }
+      if (!textoSeguro(datos.bandaSalarial)) {
+        alert("Completa el campo Banda salarial.");
+        document.getElementById("bandaSalarial").focus();
+        return;
+      }
+      if (!textoSeguro(datos.ficha.objetivo)) {
+        alert("Completa el campo Proposito de cargo.");
+        document.getElementById("objetivoCargo").focus();
+        return;
+      }
+      if (!textoSeguro(datos.ficha.funciones)) {
+        alert("Completa el campo Funciones y responsabilidades clave.");
+        document.getElementById("funcionesCargo").focus();
+        return;
+      }
+      if (perfilCargoLista.length === 0) {
+        alert("Agrega al menos un registro en Perfil de cargo.");
+        mostrarEditorPerfil();
+        return;
+      }
+      if (competenciasCargoLista.length === 0) {
+        alert("Agrega al menos una competencia de cargo.");
+        mostrarEditorCompetencia();
+        return;
+      }
+      if (!textoSeguro(datos.ficha.experienciaRequerida)) {
+        alert("Completa el campo de experiencia requerida.");
+        document.getElementById("experienciaRequeridaCargo").focus();
+        return;
+      }
+      if (capacitacionesCargoLista.length === 0) {
+        alert("Agrega al menos una capacitacion requerida.");
+        mostrarEditorCapacitacion();
+        return;
+      }
+      if (!listaPerfilValida(perfilCargoLista)) {
+        alert("Todos los campos de Perfil de cargo son obligatorios.");
+        mostrarEditorPerfil();
+        return;
+      }
+      if (!listaCompetenciasValida(competenciasCargoLista)) {
+        alert("Todos los campos de Competencias de cargo son obligatorios.");
+        mostrarEditorCompetencia();
+        return;
+      }
+      if (!listaCapacitacionesValida(capacitacionesCargoLista)) {
+        alert("Todos los campos de Capacitaciones son obligatorios.");
+        mostrarEditorCapacitacion();
+        return;
+      }
+      if (equiposAccesosLista.length === 0) {
+        alert("Agrega al menos un recurso en Equipos y Accesos.");
+        mostrarEditorEquiposAccesos();
+        return;
+      }
+      if (!listaRecursosValida(equiposAccesosLista)) {
+        alert("Todos los campos de Equipos y Accesos son obligatorios.");
+        mostrarEditorEquiposAccesos();
+        return;
+      }
+      if (eppsUniformesLista.length === 0) {
+        alert("Agrega al menos un registro en EPPs y Uniformes.");
+        mostrarEditorEppsUniformes();
+        return;
+      }
+      if (!listaDotacionValida(eppsUniformesLista)) {
+        alert("Todos los campos de EPPs y Uniformes son obligatorios.");
+        mostrarEditorEppsUniformes();
+        return;
+      }
+      if (kpisLista.length === 0) {
+        alert("Agrega al menos un indicador en Indicadores KPIs.");
+        mostrarEditorKpis();
+        return;
+      }
+      if (!listaKpisValida(kpisLista)) {
+        alert("Todos los campos de Indicadores KPIs son obligatorios.");
+        mostrarEditorKpis();
+        return;
+      }
+      if (perfilEditorActivo || competenciaEditorActivo || capacitacionEditorActivo || recursoEditorActivo || dotacionEditorActivo || kpiEditorActivo) {
+        alert("Tienes filas en edicion. Guarda o cancela cada fila antes de enviar la solicitud.");
+        return;
+      }
+
+      const payload = {
+        ...(index >= 0 ? lista[index] : {}),
+        ...datos,
+        idSolicitud: index >= 0 ? lista[index].idSolicitud : generarIdSolicitud(),
+        codigoCargo: codigoNuevo,
+        estadoSolicitud: index >= 0 ? (lista[index].estadoSolicitud || "Pendiente") : "Pendiente",
+        fechaSolicitud: index >= 0 ? (lista[index].fechaSolicitud || new Date().toISOString()) : new Date().toISOString(),
+        actualizadoEn: new Date().toISOString()
+      };
+
+      if (index >= 0) {
+        lista[index] = payload;
+      } else {
+        lista.push(payload);
+      }
+
+      guardarLista(lista);
+      alert("Solicitud de creacion de cargo guardada correctamente.");
+      volverListado();
+    }
+
+    function volverListado() {
+      window.location.href = "solicitud-creacion-puesto.html";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSelectorAreas("");
+      renderSelectorDepartamentos("", "");
+      renderSelectMultiple("quienReportaCargo", QUIEN_REPORTA_OPCIONES, []);
+      renderSelectMultiple("quienSupervisaCargo", QUIEN_SUPERVISA_OPCIONES, []);
+      activarMultiSelectClickSimple("quienReportaCargo");
+      activarMultiSelectClickSimple("quienSupervisaCargo");
+      cargarFormulario();
+
+      [
+        "codigoCargoRef",
+        "nombreCargo",
+        "personaSolicita",
+        "areaCargo",
+        "departamentoCargo",
+        "tipoCargo",
+        "horario",
+        "horarioCompleto",
+        "edadSugerida",
+        "sexoSugerido",
+        "bandaSalarial",
+        "justificacionCreacionCargo",
+        "quienReportaCargo",
+        "quienSupervisaCargo",
+        "objetivoCargo",
+        "funcionesCargo",
+        "experienciaRequeridaCargo"
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const evt = el.tagName === "SELECT" ? "change" : "input";
+        el.addEventListener(evt, refrescarEstadoVisual);
+      });
+
+      document.getElementById("codigoCargoRef").addEventListener("input", (e) => {
+        e.target.value = soloLetras(e.target.value).slice(0, 5);
+      });
+    });
+  </script>
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

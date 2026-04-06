@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>7. Revisión de Aptitud Médica</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  table th, table td {
+    text-align: center;
+    vertical-align: middle;
+  }
+  .verde { background-color: #d4f5d2 !important; }
+  .amarillo { background-color: #fff7c2 !important; }
+  .rojo { background-color: #ffd6d6 !important; }
+</style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+<div class="container">
+  <h3 class="mb-4">Revisión de Aptitud Médica</h3>
+
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-secondary">
+      <tr>
+        <th>N° Solicitud</th>
+        <th>Fecha de Solicitud</th>
+        <th>Solicitante</th>
+        <th>Área</th>
+        <th>Cargo</th>
+        <th>Nombre de Postulante</th>
+        <th>Cédula</th>
+        <th>Fecha Estimada de Ingreso</th>
+        <th>Estado Actual</th>
+        <th>Aptitud Médica</th>
+        <th>Guardar</th>
+      </tr>
+    </thead>
+
+    <tbody id="tablaAptitud"></tbody>
+
+  </table>
+</div>
+
+<script>
+
+// ⭐ Cargar candidatos oficializados desde localStorage
+function cargarAptitudes() {
+
+    const tabla = document.getElementById("tablaAptitud");
+    tabla.innerHTML = "";
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+
+    lista.forEach((sol, solIndex) => {
+
+        if (!sol.seleccionOficialFinalizada) return;
+
+const seleccionados = (sol.candidatos || []).filter(c =>
+    [ "aprobado_ingreso"]
+        .includes(c.estado)
+);
+
+        if (seleccionados.length === 0) return;
+
+        seleccionados.forEach(c => {
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${sol.numero}</td>
+                <td>${sol.fechaSolicitud}</td>
+                <td>${sol.solicitante}</td>
+                <td>${sol.area}</td>
+                <td>${sol.cargoSolicitado}</td>
+                <td>${c.nombre}</td>
+                <td>${c.cedula}</td>
+                <td>${sol.fechaIngreso || "N/A"}</td>
+
+                <td><strong>${c.estado.replace(/_/g, " ").toUpperCase()}</strong></td>
+
+                <td>
+                  <select class="form-select aptitud" onchange="colorearFila(this)">
+                    <option value="">Seleccione...</option>
+                    <option value="apto">APTO</option>
+                    <option value="apto_observacion">APTO CON OBSERVACIÓN</option>
+                    <option value="no_apto">NO APTO</option>
+                  </select>
+                </td>
+
+                <td>
+                  <button class="btn btn-success" onclick="guardarNotificacion(this, ${solIndex}, '${c.cedula}')">💾</button>
+                </td>
+            `;
+
+            tabla.appendChild(row);
+        });
+    });
+}
+
+
+// ⭐ Cambiar color al seleccionar
+function colorearFila(select) {
+  const row = select.closest("tr");
+
+  row.classList.remove("verde", "amarillo", "rojo");
+
+  if (select.value === "apto") row.classList.add("verde");
+  else if (select.value === "apto_observacion") row.classList.add("amarillo");
+  else if (select.value === "no_apto") row.classList.add("rojo");
+}
+
+
+// ⭐ Guardar Aptitud + mover de etapa
+function guardarNotificacion(btn, solIndex, cedula) {
+
+  const row = btn.closest("tr");
+  const select = row.querySelector(".aptitud");
+
+  if (!select.value) {
+    alert("⚠ Debe seleccionar una opción de Aptitud Médica.");
+    return;
+  }
+
+  let lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+  let solicitud = lista[solIndex];
+  if (!solicitud) return;
+
+  let candidato = solicitud.candidatos.find(c => c.cedula === cedula);
+  if (!candidato) return;
+
+  let mensaje = "";
+  let enviarAPeriodo = false;
+
+  // ⭐ APTO
+  if (select.value === "apto") {
+    candidato.estado = "apto";
+    candidato.aptitudMedica = "APTO";
+
+    mensaje =
+      `🟢 Postulante ${candidato.nombre} marcado como APTO.\n\n` +
+      "📧 Notificado a TH.\n📧 Notificado SSOMA.\n📧 Notificado al Postulante.";
+
+    enviarAPeriodo = true;
+  }
+
+  // ⭐ APTO CON OBSERVACIÓN
+  if (select.value === "apto_observacion") {
+    candidato.estado = "apto_observacion";
+    candidato.aptitudMedica = "APTO CON OBSERVACIÓN";
+
+    mensaje =
+      `🟡 Postulante ${candidato.nombre} marcado como APTO CON OBSERVACIÓN.\n\n` +
+      "📧 Notificado a TH.\n📧 Notificado SSOMA.\n📧 Notificado al Postulante.";
+
+    enviarAPeriodo = true;
+  }
+
+  // ⭐ NO APTO → vuelve a 2.2
+  if (select.value === "no_apto") {
+    candidato.estado = "postulado"; // vuelve a 2.2
+    candidato.aptitudMedica = "NO APTO";
+
+    mensaje =
+      `🔴 Postulante ${candidato.nombre} marcado como NO APTO.\n\n` +
+      "📧 Notificado al Postulante.\n📧 Notificado a TH.\n📧 Notificado SSOMA.";
+
+    enviarAPeriodo = false;
+  }
+
+  // Agregar al historial de etapas de la solicitud
+  const fechaLocalEcuador = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
+  const etapaActual = select.value === "apto" ? "Aptitud-Medica-Apto" : (select.value === "apto_observacion" ? "Apto-con-observación" : "No Apto");
+
+  // Registrar la etapa en el historial de la solicitud
+  if (!solicitud.historialEtapas) {
+    solicitud.historialEtapas = []; // Crear historial si no existe
+  }
+
+  solicitud.historialEtapas.push({
+    etapa: etapaActual,
+    fecha: fechaLocalEcuador,
+    usuario: "Nicolás Crisanto" // O cualquier variable que contenga el nombre del usuario
+  });
+
+  // **Guardar el historial de etapas a nivel de Candidato**
+  if (!candidato.historialEtapas) {
+    candidato.historialEtapas = []; // Crear historial si no existe
+  }
+
+  candidato.historialEtapas.push({
+    etapa: etapaActual,
+    fecha: fechaLocalEcuador,
+    usuario: "Nicolás Crisanto" // O cualquier variable que contenga el nombre del usuario
+  });
+
+  // Guardar la solicitud con el historial actualizado
+  localStorage.setItem("solicitudes", JSON.stringify(lista));
+
+  alert(mensaje);
+
+  // ❗ SIEMPRE remover visualmente
+  row.remove();
+
+  // ⭐ Si es APTO → enviar al módulo de 4. Ingreso Personal
+  if (enviarAPeriodo) {
+    agregarAIngresoPersonal(candidato);
+  }
+}
+
+
+
+
+// ⭐ Guardar candidato en módulo 4 (Ingreso Personal)
+function agregarAIngresoPersonal(candidato) {
+
+  let ingreso = JSON.parse(localStorage.getItem("ingresoPersonal") || "[]");
+
+  ingreso.push({
+    cedula: candidato.cedula,
+    nombre: candidato.nombre,
+    correo: candidato.correo,
+    telefono: candidato.telefono,
+    aptitudMedica: candidato.aptitudMedica,
+    estado: candidato.estado,
+    fechaIngreso: "",
+    contratoGenerado: false
+  });
+
+  localStorage.setItem("ingresoPersonal", JSON.stringify(ingreso));
+}
+
+
+// Inicializar
+cargarAptitudes();
+
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>  
+
+

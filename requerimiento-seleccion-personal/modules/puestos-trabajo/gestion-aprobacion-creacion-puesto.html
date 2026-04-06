@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion Aprobacion Creacion Cargo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .page-wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 20px 12px 30px;
+    }
+
+    .head-card {
+      border: 1px solid #d4e0db;
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 12px 26px rgba(22, 52, 44, 0.08);
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .head-card h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      color: #0f5f4e;
+      font-weight: 700;
+    }
+
+    .head-card p {
+      margin: 4px 0 0;
+      color: #5f7075;
+      font-size: 0.92rem;
+    }
+
+    .estado-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 116px;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      border: 1px solid #b7c8c2;
+      color: #34524a;
+      background: #eef4f2;
+    }
+
+    .estado-chip.pendiente {
+      border-color: #e6bf7a;
+      color: #744400;
+      background: #fff2dd;
+    }
+
+    .estado-chip.aprobada {
+      border-color: #9ccfb6;
+      color: #0f5f4e;
+      background: #d9f2e6;
+    }
+
+    .estado-chip.rechazada {
+      border-color: #df9ca8;
+      color: #8b1e32;
+      background: #ffe8ec;
+    }
+
+    .acciones {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-accion {
+      min-width: 92px;
+    }
+
+    .pdf-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 3000;
+      display: none;
+    }
+
+    .pdf-modal.is-open {
+      display: block;
+    }
+
+    .pdf-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 24, 24, 0.65);
+    }
+
+    .pdf-modal-dialog {
+      position: relative;
+      z-index: 1;
+      width: min(1200px, 96vw);
+      height: min(92vh, 860px);
+      margin: 3vh auto;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid #c9d5d1;
+      background: #fff;
+      box-shadow: 0 28px 52px rgba(10, 26, 25, 0.38);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pdf-modal-head {
+      padding: 10px 12px;
+      border-bottom: 1px solid #d7e1de;
+      background: #f2f7f5;
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .pdf-modal-title {
+      margin: 0;
+      font-size: 0.96rem;
+      color: #1b2a2a;
+    }
+
+    .pdf-modal-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pdf-modal-frame {
+      border: 0;
+      width: 100%;
+      height: 100%;
+      flex: 1;
+      background: #2b2f35;
+    }
+
+    @media (max-width: 900px) {
+      .pdf-modal-dialog {
+        width: 98vw;
+        height: 95vh;
+        margin: 2.5vh auto;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body>
+  <main class="page-wrap">
+    <section class="head-card">
+      <div>
+        <h1>Gestion Aprobacion de Creacion de Cargo</h1>
+        <p>Listado de solicitudes de creacion de cargo para revisar informacion y aprobar o rechazar.</p>
+      </div>
+      <a class="btn btn-outline-primary" href="solicitud-creacion-puesto.html">Ir a solicitudes</a>
+    </section>
+
+    <section class="container">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+          <thead class="table-secondary">
+            <tr>
+              <th>#</th>
+              <th>Fecha solicitud</th>
+              <th>Codigo cargo</th>
+              <th>Nombre cargo</th>
+              <th>Area</th>
+              <th>Departamento</th>
+              <th>Estado</th>
+              <th>Accion</th>
+            </tr>
+          </thead>
+          <tbody id="tablaAprobacionPuesto"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="pdfModal" class="pdf-modal" aria-hidden="true">
+    <div class="pdf-modal-backdrop" onclick="cerrarPdfModal()"></div>
+    <section class="pdf-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pdfModalTitle">
+      <header class="pdf-modal-head">
+        <p id="pdfModalTitle" class="pdf-modal-title">Vista previa PDF de solicitud de creacion de cargo</p>
+        <div class="pdf-modal-actions">
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="descargarPdfActual()">Descargar</button>
+          <button type="button" class="btn btn-outline-dark btn-sm" onclick="abrirPdfActual()">Abrir en pestana</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="cerrarPdfModal()">Cerrar</button>
+        </div>
+      </header>
+      <iframe id="pdfPreviewFrame" class="pdf-modal-frame" title="Vista previa PDF"></iframe>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script>
+    const STORAGE_SOLICITUD = "solicitudesCreacionPuesto";
+    const STORAGE_MANUAL = "manualFuncionesCargos";
+    const USUARIO_DEFECTO = "Nicolas Crisanto";
+
+    function textoSeguro(valor) {
+      return String(valor || "").trim();
+    }
+
+    function usuarioSesionActual() {
+      const llaves = [
+        "usuarioActual",
+        "usuarioLogeado",
+        "usuario",
+        "nombreUsuario",
+        "sessionUsuario",
+        "authUser"
+      ];
+
+      for (const llave of llaves) {
+        const bruto = localStorage.getItem(llave);
+        if (!bruto) continue;
+
+        const texto = textoSeguro(bruto);
+        if (!texto) continue;
+
+        if (texto.startsWith("{")) {
+          try {
+            const obj = JSON.parse(texto);
+            const candidato = textoSeguro(
+              obj?.nombreCompleto ||
+              obj?.nombre ||
+              obj?.usuario ||
+              obj?.user ||
+              obj?.displayName
+            );
+            if (candidato) return candidato;
+          } catch (e) {
+            // Si no es JSON valido, se evalua como texto normal.
+          }
+        }
+
+        return texto;
+      }
+
+      return USUARIO_DEFECTO;
+    }
+
+    function obtenerSolicitudes() {
+      return JSON.parse(localStorage.getItem(STORAGE_SOLICITUD) || "[]");
+    }
+
+    function guardarSolicitudes(lista) {
+      localStorage.setItem(STORAGE_SOLICITUD, JSON.stringify(lista));
+    }
+
+    function obtenerManuales() {
+      return JSON.parse(localStorage.getItem(STORAGE_MANUAL) || "[]");
+    }
+
+    function guardarManuales(lista) {
+      localStorage.setItem(STORAGE_MANUAL, JSON.stringify(lista));
+    }
+
+    function formatearFechaISO(fechaIso) {
+      const fecha = new Date(fechaIso || "");
+      if (Number.isNaN(fecha.getTime())) return "-";
+      const yyyy = fecha.getFullYear();
+      const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+      const dd = String(fecha.getDate()).padStart(2, "0");
+      const hh = String(fecha.getHours()).padStart(2, "0");
+      const mi = String(fecha.getMinutes()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }
+
+    function claseEstado(estado) {
+      const normal = textoSeguro(estado).toLowerCase();
+      if (normal === "aprobada") return "aprobada";
+      if (normal === "rechazada") return "rechazada";
+      return "pendiente";
+    }
+
+    function badgeEstado(estado) {
+      const texto = textoSeguro(estado) || "Pendiente";
+      const clase = claseEstado(texto);
+      return `<span class="estado-chip ${clase}">${texto}</span>`;
+    }
+
+    function normalizarRegistro(item) {
+      return {
+        ...item,
+        idSolicitud: textoSeguro(item?.idSolicitud) || `SCP-${Date.now()}-${Math.floor(Math.random() * 100000).toString().padStart(5, "0")}`,
+        fechaSolicitud: textoSeguro(item?.fechaSolicitud) || new Date().toISOString(),
+        estadoSolicitud: textoSeguro(item?.estadoSolicitud) || "Pendiente"
+      };
+    }
+
+    function asegurarData() {
+      const actual = obtenerSolicitudes();
+      const normal = (Array.isArray(actual) ? actual : []).map(normalizarRegistro);
+      guardarSolicitudes(normal);
+      return normal;
+    }
+
+    function convertirSolicitudAManual(sol) {
+      return {
+        codigoCargo: textoSeguro(sol?.codigoCargo),
+        nombreCargo: textoSeguro(sol?.nombreCargo),
+        area: textoSeguro(sol?.area),
+        departamento: textoSeguro(sol?.departamento),
+        tipoCargo: textoSeguro(sol?.tipoCargo),
+        horario: textoSeguro(sol?.horario),
+        horarioCompleto: textoSeguro(sol?.horarioCompleto),
+        edadSugerida: textoSeguro(sol?.edadSugerida),
+        sexoSugerido: textoSeguro(sol?.sexoSugerido),
+        bandaSalarial: textoSeguro(sol?.bandaSalarial),
+        quienReporta: textoSeguro(sol?.quienReporta),
+        quienReportaLista: Array.isArray(sol?.quienReportaLista) ? sol.quienReportaLista : [],
+        quienSupervisa: textoSeguro(sol?.quienSupervisa),
+        quienSupervisaLista: Array.isArray(sol?.quienSupervisaLista) ? sol.quienSupervisaLista : [],
+        justificacionCreacionCargo: textoSeguro(sol?.justificacionCreacionCargo),
+        ficha: sol?.ficha || {},
+        origenSolicitudPuestoId: textoSeguro(sol?.idSolicitud),
+        actualizadoEn: new Date().toISOString()
+      };
+    }
+
+    function aprobarSolicitud(idSolicitud) {
+      const lista = asegurarData();
+      const index = lista.findIndex(item => item.idSolicitud === idSolicitud);
+      if (index < 0) return;
+
+      const solicitud = lista[index];
+      if (textoSeguro(solicitud.estadoSolicitud).toLowerCase() === "aprobada") {
+        alert("Esta solicitud ya fue aprobada.");
+        return;
+      }
+
+      if (!confirm("Aprobar esta solicitud y enviarla al modulo de Manual de Funciones?")) return;
+
+      const manualesActuales = obtenerManuales();
+      const manuales = Array.isArray(manualesActuales) ? manualesActuales : [];
+      const registroManual = convertirSolicitudAManual(solicitud);
+      const indexOrigen = manuales.findIndex(item => textoSeguro(item?.origenSolicitudPuestoId) === idSolicitud);
+      const indexCodigo = manuales.findIndex(item => textoSeguro(item?.codigoCargo).toUpperCase() === textoSeguro(registroManual.codigoCargo).toUpperCase());
+
+      if (indexOrigen >= 0) {
+        manuales[indexOrigen] = { ...manuales[indexOrigen], ...registroManual };
+      } else if (indexCodigo >= 0) {
+        alert("Ya existe un cargo con ese codigo en Manual de Funciones. Cambia el codigo antes de aprobar.");
+        return;
+      } else {
+        manuales.push(registroManual);
+      }
+
+      guardarManuales(manuales);
+
+      lista[index] = {
+        ...solicitud,
+        estadoSolicitud: "Aprobada",
+        fechaAprobacion: new Date().toISOString(),
+        aprobadoPor: usuarioSesionActual(),
+        fechaRechazo: "",
+        rechazadoPor: "",
+        motivoRechazo: "",
+        actualizadoEn: new Date().toISOString()
+      };
+      guardarSolicitudes(lista);
+      renderTabla();
+      alert("Solicitud aprobada correctamente.");
+    }
+
+    function rechazarSolicitud(idSolicitud) {
+      const lista = asegurarData();
+      const index = lista.findIndex(item => item.idSolicitud === idSolicitud);
+      if (index < 0) return;
+
+      const solicitud = lista[index];
+      if (textoSeguro(solicitud.estadoSolicitud).toLowerCase() === "aprobada") {
+        alert("No se puede rechazar una solicitud ya aprobada.");
+        return;
+      }
+
+      const motivo = prompt("Motivo de rechazo (opcional):", textoSeguro(solicitud.motivoRechazo));
+      if (motivo === null) return;
+
+      lista[index] = {
+        ...solicitud,
+        estadoSolicitud: "Rechazada",
+        fechaRechazo: new Date().toISOString(),
+        rechazadoPor: usuarioSesionActual(),
+        fechaAprobacion: "",
+        aprobadoPor: "",
+        motivoRechazo: textoSeguro(motivo),
+        actualizadoEn: new Date().toISOString()
+      };
+
+      guardarSolicitudes(lista);
+      renderTabla();
+      alert("Solicitud rechazada.");
+    }
+
+    let pdfActualUrl = "";
+    let pdfActualNombre = "solicitud_creacion_cargo.pdf";
+
+    function textoPdf(valor) {
+      if (valor === null || valor === undefined) return "-";
+      const limpio = String(valor).replace(/\s+/g, " ").trim();
+      return limpio ? limpio : "-";
+    }
+
+    function obtenerConstructorJsPdf() {
+      if (window.jspdf && window.jspdf.jsPDF) {
+        return window.jspdf.jsPDF;
+      }
+      alert("No se pudo cargar la libreria de PDF. Recarga la pagina para intentarlo de nuevo.");
+      return null;
+    }
+
+    function nombreArchivoPdf(solicitud) {
+      const base = textoPdf(solicitud.codigoCargo || solicitud.idSolicitud).replace(/[^a-zA-Z0-9_-]/g, "_");
+      return "solicitud_cargo_" + (base || "sin_codigo") + ".pdf";
+    }
+
+    function cerrarPdfModal() {
+      const modal = document.getElementById("pdfModal");
+      const frame = document.getElementById("pdfPreviewFrame");
+
+      if (frame) frame.removeAttribute("src");
+
+      if (pdfActualUrl) {
+        URL.revokeObjectURL(pdfActualUrl);
+        pdfActualUrl = "";
+      }
+
+      if (modal) {
+        modal.classList.remove("is-open");
+        modal.setAttribute("aria-hidden", "true");
+      }
+
+      document.body.style.overflow = "";
+    }
+
+    function abrirPdfActual() {
+      if (!pdfActualUrl) {
+        alert("No hay un PDF generado para abrir.");
+        return;
+      }
+      window.open(pdfActualUrl, "_blank");
+    }
+
+    function descargarPdfActual() {
+      if (!pdfActualUrl) {
+        alert("No hay un PDF generado para descargar.");
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = pdfActualUrl;
+      link.download = pdfActualNombre || "solicitud_creacion_cargo.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function abrirPdfEnModal(doc, nombreArchivo) {
+      const modal = document.getElementById("pdfModal");
+      const frame = document.getElementById("pdfPreviewFrame");
+
+      if (!modal || !frame) {
+        alert("No se encontro el contenedor del visor PDF.");
+        return;
+      }
+
+      if (pdfActualUrl) {
+        URL.revokeObjectURL(pdfActualUrl);
+      }
+
+      pdfActualUrl = URL.createObjectURL(doc.output("blob"));
+      pdfActualNombre = nombreArchivo || "solicitud_creacion_cargo.pdf";
+      frame.src = pdfActualUrl + "#toolbar=1&navpanes=1&scrollbar=1&view=FitH";
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function crearPdfSolicitudCargo(sol) {
+      const JsPdf = obtenerConstructorJsPdf();
+      if (!JsPdf) return null;
+
+      const doc = new JsPdf({ unit: "mm", format: "a4", orientation: "portrait" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 12;
+      const labelW = 58;
+      const valueW = pageW - margin - margin - labelW;
+      let y = 14;
+
+      const ficha = sol.ficha || {};
+      const personaSolicita = textoSeguro(sol.personaSolicita) || textoSeguro(sol.solicitante) || textoSeguro(sol.usuarioSolicitante) || "Nicolas Crisanto";
+      const estadoNormalizado = textoSeguro(sol.estadoSolicitud).toLowerCase();
+      const esAprobada = estadoNormalizado === "aprobada";
+      const esRechazada = estadoNormalizado === "rechazada";
+
+      function asegurarEspacio(altoNecesario) {
+        if (y + altoNecesario > pageH - 12) {
+          doc.addPage();
+          y = 14;
+        }
+      }
+
+      function agregarTitulo() {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Resumen Solicitud de Creacion de Cargo", margin, y);
+        y += 6;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(70, 70, 70);
+        doc.text("Generado: " + formatearFechaISO(new Date().toISOString()), margin, y);
+        doc.setTextColor(20, 20, 20);
+        y += 5;
+      }
+
+      function agregarSeccion(titulo, filas) {
+        asegurarEspacio(10);
+        doc.setDrawColor(212, 221, 218);
+        doc.setFillColor(243, 248, 246);
+        doc.rect(margin, y, pageW - (margin * 2), 7, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(titulo, margin + 2, y + 4.7);
+        y += 8;
+
+        filas.forEach(fila => {
+          const etiqueta = textoPdf(fila[0]);
+          const valor = textoPdf(fila[1]);
+          const etiquetaLineas = doc.splitTextToSize(etiqueta, labelW - 4);
+          const valorLineas = doc.splitTextToSize(valor, valueW - 4);
+          const lineas = Math.max(etiquetaLineas.length, valorLineas.length);
+          const altoFila = Math.max(6, (lineas * 3.7) + 2);
+          asegurarEspacio(altoFila);
+
+          doc.setDrawColor(216, 224, 221);
+          doc.setFillColor(250, 252, 251);
+          doc.rect(margin, y, labelW, altoFila, "FD");
+          doc.rect(margin + labelW, y, valueW, altoFila, "S");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.text(etiquetaLineas, margin + 2, y + 4);
+
+          doc.setFont("helvetica", "normal");
+          doc.text(valorLineas, margin + labelW + 2, y + 4);
+
+          y += altoFila;
+        });
+
+        y += 4;
+      }
+
+      function agregarSeccionVertical(titulo, bloques) {
+        asegurarEspacio(10);
+        doc.setDrawColor(212, 221, 218);
+        doc.setFillColor(243, 248, 246);
+        doc.rect(margin, y, pageW - (margin * 2), 7, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(titulo, margin + 2, y + 4.7);
+        y += 8;
+
+        const boxW = pageW - (margin * 2);
+
+        (Array.isArray(bloques) ? bloques : []).forEach((bloque) => {
+          const subtitulo = textoPdf(Array.isArray(bloque) ? bloque[0] : "");
+          const valor = textoPdf(Array.isArray(bloque) ? bloque[1] : "");
+          const subtituloLineas = doc.splitTextToSize(subtitulo, boxW - 4);
+          const valorLineas = doc.splitTextToSize(valor, boxW - 4);
+          const altoSubtitulo = Math.max(4.5, subtituloLineas.length * 3.6);
+          const altoValor = Math.max(5.2, valorLineas.length * 3.7);
+          const altoBloque = altoSubtitulo + altoValor + 4.5;
+
+          asegurarEspacio(altoBloque);
+
+          doc.setDrawColor(216, 224, 221);
+          doc.setFillColor(250, 252, 251);
+          doc.rect(margin, y, boxW, altoBloque, "FD");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.text(subtituloLineas, margin + 2, y + 3.8);
+
+          const yLinea = y + altoSubtitulo + 0.5;
+          doc.setDrawColor(227, 233, 230);
+          doc.line(margin + 1.8, yLinea, margin + boxW - 1.8, yLinea);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8.8);
+          doc.text(valorLineas, margin + 2, yLinea + 3.8);
+
+          y += altoBloque + 2.2;
+        });
+
+        y += 2;
+      }
+
+      function normalizarFilasTabla(filas, totalColumnas) {
+        if (Array.isArray(filas) && filas.length > 0) {
+          return filas.map(fila => {
+            const base = Array.isArray(fila) ? fila.slice(0, totalColumnas) : [];
+            while (base.length < totalColumnas) base.push("-");
+            return base;
+          });
+        }
+        const filaVacia = Array.from({ length: totalColumnas }, (_, index) => (index === 0 ? "Sin registros" : "-"));
+        return [filaVacia];
+      }
+
+      function agregarTabla(titulo, columnas, filas, pesos) {
+        const totalCols = Array.isArray(columnas) ? columnas.length : 0;
+        if (!totalCols) return;
+
+        const areaW = pageW - (margin * 2);
+        const pesosBase = (Array.isArray(pesos) && pesos.length === totalCols)
+          ? pesos
+          : Array.from({ length: totalCols }, () => 1);
+        const sumaPesos = pesosBase.reduce((acc, item) => acc + Number(item || 0), 0) || totalCols;
+        const colW = pesosBase.map(p => areaW * (Number(p || 0) / sumaPesos));
+        const filasTabla = normalizarFilasTabla(filas, totalCols);
+        const alturaLinea = 3.7;
+        const padX = 1.6;
+        const padTop = 3.6;
+
+        function dibujarTituloTabla(textoTitulo) {
+          asegurarEspacio(10);
+          doc.setDrawColor(212, 221, 218);
+          doc.setFillColor(243, 248, 246);
+          doc.rect(margin, y, areaW, 7, "FD");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text(textoPdf(textoTitulo), margin + 2, y + 4.7);
+          y += 8;
+        }
+
+        function construirLineasFila(celdas) {
+          return celdas.map((celda, index) => doc.splitTextToSize(textoPdf(celda), colW[index] - (padX * 2)));
+        }
+
+        function calcularAltoFila(lineasCeldas) {
+          const maxLineas = lineasCeldas.reduce((acc, lineas) => Math.max(acc, lineas.length), 1);
+          return Math.max(6.2, (maxLineas * alturaLinea) + 2.1);
+        }
+
+        function dibujarFila(celdas, esHeader) {
+          const lineasCeldas = construirLineasFila(celdas);
+          const altoFila = calcularAltoFila(lineasCeldas);
+
+          if (y + altoFila > pageH - 12) {
+            doc.addPage();
+            y = 14;
+            dibujarTituloTabla(titulo + " (continuacion)");
+            dibujarFila(columnas, true);
+          }
+
+          let x = margin;
+          for (let i = 0; i < totalCols; i += 1) {
+            doc.setDrawColor(216, 224, 221);
+            if (esHeader) {
+              doc.setFillColor(236, 243, 240);
+              doc.rect(x, y, colW[i], altoFila, "FD");
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(8.7);
+            } else {
+              doc.rect(x, y, colW[i], altoFila, "S");
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(8.6);
+            }
+            doc.text(lineasCeldas[i], x + padX, y + padTop);
+            x += colW[i];
+          }
+
+          y += altoFila;
+        }
+
+        dibujarTituloTabla(titulo);
+        dibujarFila(columnas, true);
+        filasTabla.forEach(fila => dibujarFila(fila, false));
+        y += 4;
+      }
+
+      agregarTitulo();
+
+      const filasDatosGenerales = [
+        ["Fecha solicitud", formatearFechaISO(sol.fechaSolicitud)],
+        ["Persona que solicita", personaSolicita]
+      ];
+      if (esAprobada && textoSeguro(sol.fechaAprobacion)) {
+        filasDatosGenerales.push(["Fecha aprobacion", formatearFechaISO(sol.fechaAprobacion)]);
+      }
+      if (esRechazada && textoSeguro(sol.fechaRechazo)) {
+        filasDatosGenerales.push(["Fecha rechazo", formatearFechaISO(sol.fechaRechazo)]);
+      }
+      agregarSeccion("Datos Generales", filasDatosGenerales);
+
+      agregarSeccion("Datos del Cargo", [
+        ["Codigo cargo", sol.codigoCargo],
+        ["Nombre cargo", sol.nombreCargo],
+        ["Area", sol.area],
+        ["Departamento", sol.departamento],
+        ["Tipo cargo", sol.tipoCargo],
+        ["Horario", sol.horario],
+        ["Horario (inicio - fin)", sol.horarioCompleto],
+        ["Edad sugerida", sol.edadSugerida],
+        ["Sexo sugerido", sol.sexoSugerido],
+        ["Banda salarial", sol.bandaSalarial],
+        ["Quien reporta", sol.quienReporta],
+        ["Quien supervisa", sol.quienSupervisa]
+      ]);
+
+      agregarSeccionVertical("Definicion del Manual", [
+        ["Proposito de cargo", ficha.objetivo],
+        ["Funciones y responsabilidades clave", ficha.funciones],
+        ["Experiencia requerida", ficha.experienciaRequerida]
+      ]);
+
+      if (esRechazada && textoSeguro(sol.motivoRechazo)) {
+        agregarSeccion("Observacion de Rechazo", [
+          ["Motivo rechazo", sol.motivoRechazo]
+        ]);
+      }
+
+      agregarTabla(
+        "Tabla Perfil de Cargo",
+        ["Formacion academica", "Tipo", "Titulo"],
+        Array.isArray(ficha.perfilDetalle)
+          ? ficha.perfilDetalle.map(item => [item.formacionAcademica, item.tipo, item.titulo])
+          : [],
+        [2.2, 1.2, 2.6]
+      );
+
+      agregarTabla(
+        "Tabla Competencias",
+        ["Tipo", "Competencia", "Subcategoria"],
+        Array.isArray(ficha.competenciasDetalle)
+          ? ficha.competenciasDetalle.map(item => [item.tipo, item.competencia, item.subcategoria])
+          : [],
+        [1.2, 1.9, 1.9]
+      );
+
+      agregarTabla(
+        "Tabla Capacitaciones",
+        ["Tipo", "Capacitacion"],
+        Array.isArray(ficha.capacitacionesDetalle)
+          ? ficha.capacitacionesDetalle.map(item => [item.tipo, item.detalle])
+          : [],
+        [1.5, 4.5]
+      );
+
+      agregarTabla(
+        "Tabla Equipos y Accesos",
+        ["Tipo", "Recurso", "Observacion"],
+        Array.isArray(ficha.equiposAccesosDetalle)
+          ? ficha.equiposAccesosDetalle.map(item => [item.tipo, item.recurso, item.observacion])
+          : [],
+        [1.1, 1.8, 3.1]
+      );
+
+      agregarTabla(
+        "Tabla EPPs y Uniformes",
+        ["Tipo", "Elemento", "Cantidad", "Observacion"],
+        Array.isArray(ficha.eppsUniformesDetalle)
+          ? ficha.eppsUniformesDetalle.map(item => [item.tipo, item.elemento, item.cantidad, item.observacion])
+          : [],
+        [1.1, 1.7, 0.9, 2.3]
+      );
+
+      agregarTabla(
+        "Tabla Indicadores KPIs",
+        ["Indicador", "Formula"],
+        Array.isArray(ficha.indicadoresKpisDetalle)
+          ? ficha.indicadoresKpisDetalle.map(item => [item.indicador, item.formula])
+          : [],
+        [2.2, 3.8]
+      );
+
+      agregarSeccionVertical("Justificacion de Creacion de Cargo", [
+        ["Justificacion", sol.justificacionCreacionCargo]
+      ]);
+
+      return doc;
+    }
+
+    function verSolicitudPdf(idSolicitud) {
+      const lista = asegurarData();
+      const solicitud = lista.find(item => item.idSolicitud === idSolicitud);
+      if (!solicitud) {
+        alert("No se encontro la solicitud seleccionada.");
+        return;
+      }
+
+      const doc = crearPdfSolicitudCargo(solicitud);
+      if (!doc) return;
+
+      abrirPdfEnModal(doc, nombreArchivoPdf(solicitud));
+    }
+
+    function renderTabla() {
+      const tabla = document.getElementById("tablaAprobacionPuesto");
+      tabla.innerHTML = "";
+
+      const lista = asegurarData();
+      if (!lista.length) {
+        tabla.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay solicitudes de creacion de cargo registradas.</td></tr>';
+        return;
+      }
+
+      lista.forEach((item, index) => {
+        const estado = textoSeguro(item.estadoSolicitud).toLowerCase();
+        const bloqueado = estado === "aprobada";
+
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${formatearFechaISO(item.fechaSolicitud)}</td>
+          <td>${textoSeguro(item.codigoCargo) || "-"}</td>
+          <td>${textoSeguro(item.nombreCargo) || "-"}</td>
+          <td>${textoSeguro(item.area) || "-"}</td>
+          <td>${textoSeguro(item.departamento) || "-"}</td>
+          <td>${badgeEstado(item.estadoSolicitud)}</td>
+          <td>
+            <div class="acciones">
+              <button type="button" class="btn btn-outline-primary btn-sm btn-accion" data-ver="${item.idSolicitud}">PDF</button>
+              <button type="button" class="btn btn-success btn-sm btn-accion" data-aprobar="${item.idSolicitud}" ${bloqueado ? "disabled" : ""}>Aprobar</button>
+              <button type="button" class="btn btn-outline-danger btn-sm btn-accion" data-rechazar="${item.idSolicitud}" ${bloqueado ? "disabled" : ""}>Rechazar</button>
+            </div>
+          </td>
+        `;
+
+        fila.querySelector(`[data-ver="${item.idSolicitud}"]`).addEventListener("click", () => verSolicitudPdf(item.idSolicitud));
+        fila.querySelector(`[data-aprobar="${item.idSolicitud}"]`).addEventListener("click", () => aprobarSolicitud(item.idSolicitud));
+        fila.querySelector(`[data-rechazar="${item.idSolicitud}"]`).addEventListener("click", () => rechazarSolicitud(item.idSolicitud));
+        tabla.appendChild(fila);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderTabla();
+
+      window.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+          const modal = document.getElementById("pdfModal");
+          if (modal && modal.classList.contains("is-open")) {
+            cerrarPdfModal();
+          }
+        }
+      });
+
+      window.addEventListener("beforeunload", () => {
+        if (pdfActualUrl) {
+          URL.revokeObjectURL(pdfActualUrl);
+        }
+      });
+    });
+  </script>
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

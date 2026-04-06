@@ -1,0 +1,272 @@
+.app-menu-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 5000;
+  width: 46px;
+  height: 46px;
+  border: 1px solid #b8c9c2;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(18, 52, 45, 0.2);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-menu-toggle:hover {
+  transform: translateY(-1px);
+  border-color: #8baea1;
+  box-shadow: 0 14px 30px rgba(18, 52, 45, 0.25);
+}
+
+.app-menu-toggle span {
+  width: 19px;
+  height: 2.4px;
+  border-radius: 99px;
+  background: #165f4f;
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+
+.app-menu-toggle.is-open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.app-menu-toggle.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.app-menu-toggle.is-open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Sin icono X al abrir y ocultar el boton Menu mientras el lateral esta abierto */
+.app-menu-toggle.is-open {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-menu-toggle.is-open span:nth-child(1),
+.app-menu-toggle.is-open span:nth-child(2),
+.app-menu-toggle.is-open span:nth-child(3) {
+  transform: none;
+  opacity: 1;
+}
+
+.app-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4980;
+  background: rgba(10, 18, 18, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease;
+}
+
+.app-menu-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-menu-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 4990;
+  width: min(360px, 88vw);
+  height: 100vh;
+  background: #ffffff;
+  border-left: 1px solid #d9e5e0;
+  box-shadow: -16px 0 36px rgba(16, 40, 35, 0.18);
+  transform: translateX(102%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-menu-drawer.is-open {
+  transform: translateX(0);
+}
+
+.app-menu-head {
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid #dce7e3;
+  background: linear-gradient(180deg, #f4fbf8, #edf6f2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-menu-title {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #17483e;
+  font-weight: 700;
+}
+
+.app-menu-current {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #5a7170;
+}
+
+.app-menu-close {
+  border: 1px solid #b9ccc5;
+  background: #fff;
+  color: #264443;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.app-menu-body {
+  padding: 12px;
+  overflow: auto;
+}
+
+.app-menu-home {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-decoration: none;
+  color: #15483e;
+  border: 1px solid #a8c8bc;
+  border-radius: 12px;
+  background: #e9f5f0;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.app-menu-home small {
+  color: #5b7771;
+  font-weight: 600;
+}
+
+.app-menu-home.is-active {
+  background: #ddf1e9;
+  border-color: #87b6a6;
+}
+
+.app-menu-group {
+  margin: 0 0 10px;
+  border: 1px solid #d6e2dd;
+  border-radius: 12px;
+  background: #fbfdfc;
+  overflow: hidden;
+}
+
+.app-menu-group-toggle {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: #f4f9f7;
+  color: #244340;
+  padding: 10px 11px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.app-menu-group.is-open .app-menu-group-toggle {
+  border-bottom-color: #d9e7e2;
+}
+
+.app-menu-group-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #587471;
+}
+
+.app-menu-group-caret {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #446663;
+  border-bottom: 2px solid #446663;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.app-menu-group.is-open .app-menu-group-caret {
+  transform: rotate(-135deg);
+}
+
+.app-menu-group-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.22s ease;
+  padding: 0 8px;
+}
+
+.app-menu-group.is-open .app-menu-group-content {
+  padding: 8px;
+}
+
+.app-menu-link {
+  display: block;
+  text-decoration: none;
+  color: #213434;
+  border: 1px solid #d8e4df;
+  border-radius: 10px;
+  padding: 9px 10px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  line-height: 1.28;
+  background: #fff;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.app-menu-link:hover {
+  transform: translateY(-1px);
+  border-color: #a8c3ba;
+  box-shadow: 0 8px 20px rgba(18, 60, 50, 0.12);
+}
+
+.app-menu-link.is-active {
+  background: #eaf6f1;
+  border-color: #8eb9a9;
+  color: #0f4f42;
+  font-weight: 700;
+}
+
+.app-menu-link-direct {
+  margin-bottom: 10px;
+}
+
+body.app-menu-open {
+  overflow: hidden;
+}
+
+.app-menu-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .app-menu-toggle {
+    top: 10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+  }
+}

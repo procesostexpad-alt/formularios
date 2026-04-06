@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4.1. Seleccion Oficial de Postulantes</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .readonly-field {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+    }
+    .table th, .table td {
+      text-align: center;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+  <div class="container">
+
+<div id="topHeaderSeleccionOficial" class="d-flex justify-content-between mb-3 align-items-center">
+
+  <!-- BOTON VOLVER -->
+  <button id="btnVolverSeleccionOficial" class="btn btn-secondary" onclick="window.history.back()">
+    &larr; Volver
+  </button>
+
+  <!-- TITULO CENTRADO -->
+  <h3 id="tituloSeleccionOficial" class="m-0 flex-grow-1 text-center">Seleccion Oficial de Postulantes</h3>
+
+  <div style="width:120px"></div>
+</div>
+
+  <div id="mensajeSeleccionOficial" class="alert alert-success d-none mt-3" role="alert"></div>
+
+
+
+
+    <!-- DATOS DE LA SOLICITUD -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Numero de Solicitud</label>
+        <input type="text" id="nSolicitud" class="form-control readonly-field" readonly>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Solicitante</label>
+        <input type="text" id="solicitante" class="form-control readonly-field" readonly>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Fecha Solicitud</label>
+        <input type="text" id="fechaSolicitud" class="form-control readonly-field" readonly>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Area</label>
+        <input type="text" id="area" class="form-control readonly-field" readonly>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Departamento</label>
+        <input type="text" id="departamento" class="form-control readonly-field" readonly>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <label class="form-label fw-bold">Cargo Solicitado</label>
+        <input type="text" id="cargoSolicitado" class="form-control readonly-field" readonly>
+      </div>
+    </div>
+
+    <hr>
+
+    <h5 class="mt-4">Candidatos Registrados</h5>
+
+    <!-- TABLA -->
+    <table class="table table-bordered table-hover align-middle mt-3">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Cedula</th>
+        <th>Nombre</th>
+        <th>Fecha Nacimiento</th>
+        <th>Correo</th>
+        <th>Telefono</th>
+        <th>Aspiracion Salarial</th>
+        <th>Informacion Adicional</th>
+        <th>CV</th>
+        <th>No Seleccionado</th>
+        <th>Seleccion Oficial</th>
+      </tr>
+    </thead>
+
+      <tbody id="tablaCandidatos"></tbody>
+    </table>
+
+
+<!-- BOTONES FINALES CENTRADOS -->
+<div class="mt-5 text-center">
+
+  <button id="btnIniciarSeleccionOficial" class="btn btn-success btn-lg me-3" onclick="iniciarSeleccionOficial()">
+    Iniciar Seleccion Oficial
+  </button>
+
+  <button id="btnGuardar" class="btn btn-primary btn-lg me-3" onclick="guardarCambiosGenerales()">
+    Guardar Cambios
+  </button>
+
+  <button id="btnFinalizarSeleccionOficial" class="btn btn-danger btn-lg" onclick="finalizarSeleccionOficial()">
+    Finalizar Seleccion Oficial
+  </button>
+
+</div>
+
+
+
+
+
+  </div>
+
+<script>
+
+let solicitudIndex = null;
+let contador = 1;
+const MODO_EMBED =
+    new URLSearchParams(window.location.search).get("embed") === "1" ||
+    window.self !== window.top;
+
+function aplicarModoEmbed() {
+    if (!MODO_EMBED) return;
+    const btnVolver = document.getElementById("btnVolverSeleccionOficial");
+    if (btnVolver) btnVolver.style.display = "none";
+
+    const topHeader = document.getElementById("topHeaderSeleccionOficial");
+    if (topHeader) {
+        topHeader.classList.remove("d-flex");
+        topHeader.classList.add("d-none");
+        topHeader.setAttribute("hidden", "hidden");
+        topHeader.style.setProperty("display", "none", "important");
+    }
+
+    const titulo = document.getElementById("tituloSeleccionOficial");
+    if (titulo) titulo.style.setProperty("display", "none", "important");
+}
+
+function mostrarMensaje(texto) {
+    const box = document.getElementById("mensajeSeleccionOficial");
+    box.textContent = texto;
+    box.classList.remove("d-none");
+
+    setTimeout(() => {
+        box.classList.add("d-none");
+    }, 4000);
+}
+
+
+// -------------------------------------------------------
+function registrarEtapa(solicitud, nuevaEtapa) {
+
+    if (!solicitud.historialEtapas) solicitud.historialEtapas = [];
+
+    const historico = solicitud.historialEtapas;
+
+    const fecha = new Date().toLocaleString("es-EC", { hour12: false });
+    const usuario = "Nicolas Crisanto";
+
+    if (historico.length > 0 && historico[historico.length - 1].etapa === nuevaEtapa) {
+        historico[historico.length - 1] = {
+            etapa: nuevaEtapa,
+            fecha: fecha,
+            usuario: usuario
+        };
+    } else {
+        historico.push({
+            etapa: nuevaEtapa,
+            fecha: fecha,
+            usuario: usuario
+        });
+    }
+}
+
+
+// -------------------------------------------------------
+function actualizarHabilitacionChecks() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    const checkboxes = document.querySelectorAll(".chk-noSel, .chk-seleccionado-oficial")
+
+
+    if (!solicitud.etapaSeleccionOficial || solicitud.etapaSeleccionOficial === "no_iniciada") {
+        checkboxes.forEach(chk => chk.disabled = true);
+        return;
+    }
+
+    if (solicitud.seleccionOficialFinalizada) {
+        checkboxes.forEach(chk => chk.disabled = true);
+        return;
+    }
+
+    checkboxes.forEach(chk => chk.disabled = false);
+}
+
+
+
+// -------------------------------------------------------
+function cargarDatosSolicitud() {
+
+    const params = new URLSearchParams(window.location.search);
+    solicitudIndex = params.get("sol");
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    if (!solicitud) {
+        alert("Error: No existe la solicitud.");
+        return;
+    }
+
+    document.getElementById("nSolicitud").value = solicitud.numero;
+    document.getElementById("solicitante").value = solicitud.solicitante;
+    document.getElementById("fechaSolicitud").value = solicitud.fechaSolicitud;
+    document.getElementById("area").value = solicitud.area;
+    document.getElementById("departamento").value = solicitud.departamento;
+    document.getElementById("cargoSolicitado").value = solicitud.cargoSolicitado;
+
+    if (solicitud.seleccionOficialFinalizada) {
+        bloquearPantalla();
+    }
+}
+
+
+
+// -------------------------------------------------------
+function cargarCandidatosSolicitud() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    if (!solicitud || !solicitud.candidatos) return;
+
+    const tabla = document.getElementById("tablaCandidatos");
+    tabla.innerHTML = "";
+    contador = 1;
+
+    const candidatosFiltrados = solicitud.candidatos.filter(c =>
+        c.estado === "pendiente" ||
+        c.estado === "postulado" ||
+        c.estado === "reproceso" ||
+         c.estado === "terna" ||   
+        c.estado === "no_seleccionado" ||
+        c.estado === "seleccionado_oficial"
+
+    );
+
+    candidatosFiltrados.forEach(c => {
+
+        const fechaFormateada = c.fechaNacimiento.split("-").reverse().join("-");
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${contador++}</td>
+            <td>${c.cedula}</td>
+            <td>${c.nombre}</td>
+            <td>${fechaFormateada}</td>
+            <td>${c.correo}</td>
+            <td>${c.telefono}</td>
+
+            <td>${c.aspiracion ? c.aspiracion + " USD" : "-"}</td>
+            <td>${c.infoAdicional ? c.infoAdicional : "-"}</td>
+
+            <td><a href="${c.cv}" target="_blank">${c.cvNombre}</a></td>
+
+            <td><input type="checkbox" class="chk-noSel" data-cedula="${c.cedula}"
+                ${c.estado === "no_seleccionado" ? "checked" : ""}></td>
+
+            <td><input type="checkbox" class="chk-seleccionado-oficial" data-cedula="${c.cedula}"
+                ${c.estado === "seleccionado_oficial" ? "checked" : ""}></td>
+
+        `;
+
+        tabla.appendChild(row);
+        actualizarChecks(row);
+    });
+
+    if (JSON.parse(localStorage.getItem("solicitudes"))[solicitudIndex].seleccionOficialFinalizada) {
+        bloquearPantalla();
+    }
+}
+
+
+
+// -------------------------------------------------------
+function actualizarChecks(row) {
+
+    const noSel = row.querySelector(".chk-noSel");
+    const terna = row.querySelector(".chk-seleccionado-oficial");
+
+
+    noSel.addEventListener("change", () => {
+        if (noSel.checked) terna.checked = false;
+    });
+
+    terna.addEventListener("change", () => {
+        if (terna.checked) noSel.checked = false;
+    });
+}
+
+
+
+// -------------------------------------------------------
+function guardarCambiosGenerales() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    if (!solicitud) return;
+
+    solicitud.candidatos.forEach(candidato => {
+
+        const chkNoSel = document.querySelector(`.chk-noSel[data-cedula="${candidato.cedula}"]`);
+        const chkTerna = document.querySelector(`.chk-seleccionado-oficial[data-cedula="${candidato.cedula}"]`)
+
+
+        if (chkNoSel && chkTerna) {
+
+            if (chkNoSel.checked) candidato.estado = "no_seleccionado";
+            else if (chkTerna.checked) candidato.estado = "seleccionado_oficial";
+            else candidato.estado = "pendiente";
+        }
+    });
+
+    localStorage.setItem("solicitudes", JSON.stringify(lista));
+    mostrarMensaje("Cambios guardados correctamente.");
+}
+
+
+
+// -------------------------------------------------------
+function finalizarSeleccionOficial() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    solicitud.candidatos.forEach(candidato => {
+
+        const chkNoSel = document.querySelector(`.chk-noSel[data-cedula="${candidato.cedula}"]`);
+        const chkOficial = document.querySelector(`.chk-seleccionado-oficial[data-cedula="${candidato.cedula}"]`);
+
+        if (chkNoSel && chkOficial) {
+            if (chkNoSel.checked) candidato.estado = "no_seleccionado";
+            else if (chkOficial.checked) candidato.estado = "seleccionado_oficial";
+            else candidato.estado = "pendiente";   // sigue siendo pendiente si no marcaron nada
+        }
+    });
+
+    localStorage.setItem("solicitudes", JSON.stringify(lista));
+
+    // VALIDACION CORRECTA
+    const algunInvalido = solicitud.candidatos.some(c =>
+        c.estado !== "seleccionado_oficial" &&   // valido
+        c.estado !== "no_seleccionado"           // valido
+    );
+
+    if (algunInvalido) {
+        mostrarMensaje("Debe seleccionar SELECCION OFICIAL o NO SELECCIONADO para TODOS los candidatos antes de finalizar.");
+        return;
+    }
+
+    if (!confirm("Esta accion finalizara la seleccion oficial. Desea continuar?")) return;
+
+    solicitud.seleccionOficialFinalizada = true;
+    solicitud.estadoSeleccionOficial = "Seleccion Oficial Finalizada";
+    solicitud.etapaSeleccionOficial = "finalizada";
+
+    registrarEtapa(solicitud, "seleccion-oficial-finalizada");
+
+    localStorage.setItem("solicitudes", JSON.stringify(lista));
+
+    bloquearPantalla();
+    actualizarBotonesSegunEtapa();
+    actualizarHabilitacionChecks();
+
+    mostrarMensaje("Seleccion oficial finalizada correctamente.");
+}
+
+
+
+
+// -------------------------------------------------------
+function bloquearPantalla() {
+
+    document.querySelectorAll("input[type='checkbox']").forEach(chk => {
+        chk.disabled = true;
+    });
+
+    document.getElementById("btnGuardar").style.display = "none";
+    document.getElementById("btnFinalizarSeleccionOficial").style.display = "none";
+}
+
+
+
+// -------------------------------------------------------
+function actualizarBotonesSegunEtapa() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    const btnIniciar = document.getElementById("btnIniciarSeleccionOficial");
+    const btnGuardar = document.getElementById("btnGuardar");
+    const btnFinalizar = document.getElementById("btnFinalizarSeleccionOficial");
+
+    if (solicitud.seleccionOficialFinalizada) {
+        btnIniciar.style.display = "none";
+        btnGuardar.style.display = "none";
+        btnFinalizar.style.display = "none";
+        return;
+    }
+
+    if (!solicitud.etapaSeleccionOficial || solicitud.etapaSeleccionOficial === "no_iniciada") {
+        btnIniciar.style.display = "inline-block";
+        btnGuardar.style.display = "none";
+        btnFinalizar.style.display = "none";
+        return;
+    }
+
+    if (solicitud.etapaSeleccionOficial === "iniciada") {
+        btnIniciar.style.display = "none";
+        btnGuardar.style.display = "inline-block";
+        btnFinalizar.style.display = "inline-block";
+        return;
+    }
+}
+
+
+
+// -------------------------------------------------------
+window.onload = function () {
+    aplicarModoEmbed();
+    cargarDatosSolicitud();
+    cargarCandidatosSolicitud();
+    actualizarBotonesSegunEtapa();
+    actualizarHabilitacionChecks();
+};
+
+
+
+// -------------------------------------------------------
+function iniciarSeleccionOficial() {
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const solicitud = lista[solicitudIndex];
+
+    if (!solicitud.candidatos) solicitud.candidatos = [];
+
+    if (!solicitud.estadoOriginal) {
+        solicitud.estadoOriginal = solicitud.estado || solicitud.estadoSeleccionOficial || "pendiente";
+    }
+
+    solicitud.candidatos.forEach(c => {
+        if (!c.estadoOriginal) c.estadoOriginal = c.estado;
+    });
+
+    registrarEtapa(solicitud, "seleccion-oficial-iniciada");
+
+    solicitud.etapaSeleccionOficial = "iniciada";
+
+    localStorage.setItem("solicitudes", JSON.stringify(lista));
+
+    mostrarMensaje("Seleccion Oficial iniciada correctamente. Ahora puedes trabajar los candidatos.");
+
+    actualizarBotonesSegunEtapa();
+    actualizarHabilitacionChecks();
+}
+
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>  
+
+  

@@ -1,0 +1,447 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>9. Evaluacion del Periodo de Prueba</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  table th, table td {
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .readonly {
+    background-color: #e9ecef !important;
+  }
+
+  .verde {
+    background-color: #c8f7c5 !important;
+    font-weight: bold;
+  }
+
+  .rojo {
+    background-color: #f7c5c5 !important;
+    font-weight: bold;
+  }
+
+  .estado-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .2px;
+  }
+
+  .estado-abierto {
+    background: #edf2f7;
+    color: #334155;
+  }
+
+  .estado-progreso {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 2000;
+  }
+
+  .modal-overlay.show {
+    display: flex;
+  }
+
+  .modal-card {
+    width: min(560px, 100%);
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #d6dee8;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .2);
+    overflow: hidden;
+  }
+
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e6edf5;
+    background: #f8fbff;
+  }
+
+  .modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #0d5f6f;
+    font-weight: 700;
+  }
+
+  .btn-close-modal {
+    border: 0;
+    background: transparent;
+    font-size: 28px;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+  }
+
+  .modal-body-custom {
+    padding: 16px;
+  }
+
+  .modal-footer-custom {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid #e6edf5;
+    background: #fafcff;
+  }
+
+  .helper-text {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+    text-align: left;
+  }
+</style>
+<link rel="stylesheet" href="../../assets/css/global-theme.css">
+<link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+<div class="container">
+  <h3 class="mb-4">Evaluacion del Periodo de Prueba</h3>
+
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-secondary">
+      <tr>
+        <th>N Solicitud</th>
+        <th>Fecha Solicitud</th>
+        <th>Solicitante</th>
+        <th>Area</th>
+        <th>Departamento</th>
+        <th>Cargo</th>
+        <th>Nombre Trabajador</th>
+        <th>Cedula</th>
+        <th>Fecha Estimada Ingreso</th>
+        <th>Estado Periodo</th>
+        <th>Dias Periodo Prueba</th>
+        <th>Accion</th>
+      </tr>
+    </thead>
+
+    <tbody id="tablaPP"></tbody>
+  </table>
+</div>
+
+<div id="modalPeriodo" class="modal-overlay" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalPeriodoTitulo">
+    <div class="modal-head">
+      <h4 id="modalPeriodoTitulo" class="modal-title">Periodo de prueba</h4>
+      <button type="button" class="btn-close-modal" onclick="cerrarModalPeriodo()">&times;</button>
+    </div>
+
+    <div class="modal-body-custom">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">Trabajador</label>
+          <input id="mdNombre" class="form-control" readonly>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Codigo unico (5 digitos)</label>
+          <input id="mdCodigoUnico" type="text" class="form-control" inputmode="numeric" maxlength="5" placeholder="00000">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Fecha de ingreso</label>
+          <input id="mdFechaIngreso" type="date" class="form-control">
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Aptitud del cargo</label>
+          <select id="mdAptitudCargo" class="form-select">
+            <option value="">Seleccione...</option>
+            <option value="APTO">APTO</option>
+            <option value="NO APTO">NO APTO</option>
+          </select>
+          <div id="mdAptitudHint" class="helper-text"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button type="button" class="btn btn-outline-secondary" onclick="cerrarModalPeriodo()">Cancelar</button>
+      <button id="btnConfirmarModal" type="button" class="btn btn-primary">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let contextoModal = null;
+
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function soloDigitos(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function validarCodigoUnico(valor) {
+  return /^\d{5}$/.test(String(valor || ""));
+}
+
+function obtenerSolicitudes() {
+  return JSON.parse(localStorage.getItem("solicitudes") || "[]");
+}
+
+function guardarSolicitudes(lista) {
+  localStorage.setItem("solicitudes", JSON.stringify(lista));
+}
+
+function formatearEstadoPeriodo(estado) {
+  if (estado === "EN PRUEBA") return '<span class="estado-pill estado-progreso">EN PRUEBA</span>';
+  return '<span class="estado-pill estado-abierto">PENDIENTE</span>';
+}
+
+function calcularDias(fechaIngreso) {
+  if (!fechaIngreso) return null;
+
+  const inicio = new Date(`${fechaIngreso}T00:00:00`);
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  let diff = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24));
+  if (!Number.isFinite(diff) || diff < 0) diff = 0;
+  return diff;
+}
+
+function renderDias(fechaIngreso) {
+  const dias = calcularDias(fechaIngreso);
+  if (dias === null) {
+    return { texto: "-", clase: "readonly" };
+  }
+
+  if (dias >= 90) {
+    return { texto: `${dias} dias`, clase: "rojo" };
+  }
+
+  return { texto: `${dias} dias`, clase: "verde" };
+}
+
+function registrarEtapa(sol, candidato, etapa) {
+  const fechaLocalEcuador = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
+
+  if (!sol.historialEtapas) sol.historialEtapas = [];
+  sol.historialEtapas.push({
+    etapa,
+    fecha: fechaLocalEcuador,
+    usuario: "Nicolas Crisanto"
+  });
+
+  if (!candidato.historialEtapas) candidato.historialEtapas = [];
+  candidato.historialEtapas.push({
+    etapa,
+    fecha: fechaLocalEcuador,
+    usuario: "Nicolas Crisanto"
+  });
+}
+
+function cargarPeriodoPrueba() {
+  const tabla = document.getElementById("tablaPP");
+  tabla.innerHTML = "";
+
+  const solicitudes = obtenerSolicitudes();
+  let huboCambios = false;
+
+  solicitudes.forEach((sol, solIndex) => {
+    (sol.candidatos || [])
+      .filter(c => {
+        const tipoCargo = normalizarTexto(sol.tipoCargo);
+        const estadoCandidato = normalizarTexto(c.estado);
+
+        const esOperativo = tipoCargo.includes("operativo");
+        const esAdministrativo = tipoCargo.includes("administrativo");
+
+        const operativoSeleccionado = esOperativo && estadoCandidato === "seleccionado_oficial";
+        const administrativoAprobadoIngreso = esAdministrativo && estadoCandidato === "aprobado_ingreso";
+
+        const mostrar = operativoSeleccionado || administrativoAprobadoIngreso;
+        const noCerrado = c.periodoEstado !== "CERRADO";
+
+        return mostrar && noCerrado;
+      })
+      .forEach(c => {
+        if (!c.periodoEstado) {
+          c.periodoEstado = "ABIERTO";
+          huboCambios = true;
+        }
+
+        const dias = renderDias(c.fechaIngreso || "");
+        const etiquetaAccion = c.periodoEstado === "EN PRUEBA" ? "FINALIZAR" : "INICIAR";
+        const claseAccion = c.periodoEstado === "EN PRUEBA" ? "btn-success" : "btn-primary";
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="readonly">${sol.numero}</td>
+          <td class="readonly">${sol.fechaSolicitud || "-"}</td>
+          <td class="readonly">${sol.solicitante || "-"}</td>
+          <td class="readonly">${sol.area || "-"}</td>
+          <td class="readonly">${sol.departamento || "-"}</td>
+          <td class="readonly">${sol.cargoSolicitado || "-"}</td>
+          <td class="readonly">${c.nombre || "-"}</td>
+          <td class="readonly">${c.cedula || "-"}</td>
+          <td class="readonly">${sol.fechaIngreso || "N/A"}</td>
+          <td class="readonly">${formatearEstadoPeriodo(c.periodoEstado)}</td>
+          <td class="${dias.clase}">${dias.texto}</td>
+          <td>
+            <button
+              type="button"
+              class="btn ${claseAccion}"
+              onclick="abrirModalPeriodo(${solIndex}, '${String(c.cedula).replace(/'/g, "\\'")}')"
+            >${etiquetaAccion}</button>
+          </td>
+        `;
+
+        tabla.appendChild(row);
+      });
+  });
+
+  if (huboCambios) guardarSolicitudes(solicitudes);
+}
+
+function abrirModalPeriodo(solIndex, cedula) {
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[Number(solIndex)];
+  if (!sol) return;
+
+  const candidato = (sol.candidatos || []).find(c => String(c.cedula) === String(cedula));
+  if (!candidato) return;
+
+  const modo = candidato.periodoEstado === "EN PRUEBA" ? "finalizar" : "iniciar";
+  contextoModal = { solIndex: Number(solIndex), cedula: String(cedula), modo };
+
+  const titulo = document.getElementById("modalPeriodoTitulo");
+  const nombre = document.getElementById("mdNombre");
+  const codigo = document.getElementById("mdCodigoUnico");
+  const fecha = document.getElementById("mdFechaIngreso");
+  const aptitud = document.getElementById("mdAptitudCargo");
+  const hint = document.getElementById("mdAptitudHint");
+  const btnConfirmar = document.getElementById("btnConfirmarModal");
+
+  titulo.textContent = modo === "iniciar" ? "Iniciar periodo de prueba" : "Finalizar periodo de prueba";
+  nombre.value = `${candidato.nombre || "-"} - CI ${candidato.cedula || "-"}`;
+
+  codigo.value = soloDigitos(candidato.codigoUnico || "").slice(0, 5);
+  fecha.value = candidato.fechaIngreso || sol.fechaIngreso || "";
+  aptitud.value = candidato.periodoAptitudFinal || "";
+
+  aptitud.disabled = modo === "iniciar";
+  hint.textContent = modo === "iniciar"
+    ? "La aptitud se habilita al finalizar el periodo de prueba."
+    : "Selecciona la aptitud final para cerrar el periodo.";
+
+  btnConfirmar.textContent = modo === "iniciar" ? "Iniciar" : "Finalizar";
+  btnConfirmar.className = modo === "iniciar" ? "btn btn-primary" : "btn btn-success";
+
+  document.getElementById("modalPeriodo").classList.add("show");
+}
+
+function cerrarModalPeriodo() {
+  contextoModal = null;
+  document.getElementById("modalPeriodo").classList.remove("show");
+}
+
+function confirmarModalPeriodo() {
+  if (!contextoModal) return;
+
+  const codigoInput = document.getElementById("mdCodigoUnico");
+  const fechaInput = document.getElementById("mdFechaIngreso");
+  const aptitudInput = document.getElementById("mdAptitudCargo");
+
+  const codigo = soloDigitos(codigoInput.value).slice(0, 5);
+  const fechaIngreso = fechaInput.value || "";
+
+  if (!validarCodigoUnico(codigo)) {
+    alert("El codigo unico debe tener exactamente 5 digitos numericos.");
+    codigoInput.focus();
+    return;
+  }
+
+  if (!fechaIngreso) {
+    alert("Debe ingresar la fecha de ingreso.");
+    fechaInput.focus();
+    return;
+  }
+
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[contextoModal.solIndex];
+  if (!sol) return;
+
+  const candidato = (sol.candidatos || []).find(c => String(c.cedula) === contextoModal.cedula);
+  if (!candidato) return;
+
+  candidato.codigoUnico = codigo;
+  candidato.fechaIngreso = fechaIngreso;
+
+  if (contextoModal.modo === "iniciar") {
+    candidato.periodoEstado = "EN PRUEBA";
+    registrarEtapa(sol, candidato, "Periodo de prueba iniciado");
+    guardarSolicitudes(solicitudes);
+    cerrarModalPeriodo();
+    cargarPeriodoPrueba();
+    alert("Periodo de prueba iniciado correctamente.");
+    return;
+  }
+
+  if (!aptitudInput.value) {
+    alert("Debe seleccionar la aptitud del cargo para finalizar.");
+    aptitudInput.focus();
+    return;
+  }
+
+  candidato.periodoEstado = "CERRADO";
+  candidato.periodoAptitudFinal = aptitudInput.value;
+  registrarEtapa(sol, candidato, `Periodo de prueba finalizado - Aptitud: ${aptitudInput.value}`);
+
+  guardarSolicitudes(solicitudes);
+  cerrarModalPeriodo();
+  cargarPeriodoPrueba();
+
+  if (aptitudInput.value === "APTO") {
+    alert("Periodo de prueba finalizado. Resultado: APTO.");
+  } else {
+    alert("Periodo de prueba finalizado. Resultado: NO APTO.");
+  }
+}
+
+document.getElementById("mdCodigoUnico").addEventListener("input", (e) => {
+  e.target.value = soloDigitos(e.target.value).slice(0, 5);
+});
+
+document.getElementById("btnConfirmarModal").addEventListener("click", confirmarModalPeriodo);
+
+document.getElementById("modalPeriodo").addEventListener("click", (ev) => {
+  if (ev.target.id === "modalPeriodo") cerrarModalPeriodo();
+});
+
+document.addEventListener("DOMContentLoaded", cargarPeriodoPrueba);
+</script>
+
+<script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

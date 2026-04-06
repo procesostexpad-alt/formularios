@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>2. Gestión de Aprobación Solicitud</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body {
+    background: #f4f6f9;
+    font-family: Arial, sans-serif;
+  }
+
+  h3 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 700;
+  }
+
+  .tabla-container {
+    max-width: 95%;
+    margin: 0 auto;
+  }
+
+  table {
+    width: 100%;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  }
+
+  .table thead {
+    background: #e9ecef;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 13px;
+  }
+
+  .table td, .table th {
+    vertical-align: middle !important;
+    text-align: center;
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .badge {
+    padding: 7px 12px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+
+  .badge-pendiente { background: #ffc107; color: #000; }
+  .badge-aprobado { background: #28a745; color: #fff; }
+  .badge-rechazado { background: #dc3545; color: #fff; }
+  .badge-info { background: #0dcaf0; color: #fff; }
+  .badge-dark { background: #343a40; color: #fff; }
+
+  .pdf-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 6100;
+    display: none;
+  }
+
+  .pdf-modal.is-open {
+    display: block;
+  }
+
+  .pdf-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 24, 24, 0.65);
+  }
+
+  .pdf-modal-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(1200px, 96vw);
+    height: min(92vh, 860px);
+    margin: 3vh auto;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #c9d5d1;
+    background: #fff;
+    box-shadow: 0 28px 52px rgba(10, 26, 25, 0.38);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pdf-modal-head {
+    padding: 10px 12px;
+    border-bottom: 1px solid #d7e1de;
+    background: #f2f7f5;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .pdf-modal-title {
+    margin: 0;
+    font-size: 0.96rem;
+    color: #1b2a2a;
+  }
+
+  .pdf-modal-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .pdf-modal-frame {
+    border: 0;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    background: #2b2f35;
+  }
+</style>
+
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body>
+
+  <div class="tabla-container">
+  <h3>Gestión de Aprobación Solicitud</h3>
+
+  <table class="table table-bordered table-hover align-middle">
+    <thead>
+      <tr>
+        <th>N°</th>
+        <th>Fecha</th>
+        <th>Solicitante</th>
+        <th>Área</th>
+        <th>Departamento</th>
+        <th>Ingreso Estimado</th>
+        <th>Cargo</th>
+        <th>Cambiar Estado</th>
+        <th>Ver</th>
+      </tr>
+    </thead>
+
+    <tbody id="tablaBody"></tbody>
+  </table>
+</div>
+
+<div id="pdfModal" class="pdf-modal" aria-hidden="true">
+  <div class="pdf-modal-backdrop" onclick="cerrarPdfModal()"></div>
+  <section class="pdf-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pdfModalTitle">
+    <header class="pdf-modal-head">
+      <p id="pdfModalTitle" class="pdf-modal-title">Vista previa PDF de solicitud</p>
+      <div class="pdf-modal-actions">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="descargarPdfActual()">Descargar</button>
+        <button type="button" class="btn btn-outline-dark btn-sm" onclick="abrirPdfActual()">Abrir en pestaña</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="cerrarPdfModal()">Cerrar</button>
+      </div>
+    </header>
+    <iframe id="pdfPreviewFrame" class="pdf-modal-frame" title="Vista previa PDF"></iframe>
+  </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+<script>
+
+let pdfActualUrl = "";
+let pdfActualNombre = "solicitud.pdf";
+
+/* =====================================================
+   REGISTRAR ETAPA (con control para NO duplicar)
+===================================================== */
+function registrarEtapa(solicitud, nuevaEtapa) {
+
+  if (!solicitud.historialEtapas) solicitud.historialEtapas = [];
+
+  const historico = solicitud.historialEtapas;
+
+  // Si la última etapa registrada ES LA MISMA → reemplazar
+  if (historico.length > 0 && historico[historico.length - 1].etapa === nuevaEtapa) {
+    historico[historico.length - 1] = {
+      etapa: nuevaEtapa,
+      fecha: new Date().toLocaleString(),
+      usuario: solicitud.solicitante
+    };
+  } else {
+    historico.push({
+      etapa: nuevaEtapa,
+      fecha: new Date().toLocaleString(),
+      usuario: solicitud.solicitante
+    });
+  }
+}
+
+/* =====================================================
+   Extraer ÚLTIMA ETAPA
+===================================================== */
+function obtenerUltimaEtapa(sol) {
+  if (!sol.historialEtapas || sol.historialEtapas.length === 0) return "—";
+  return sol.historialEtapas[sol.historialEtapas.length - 1].etapa;
+}
+
+function esPendienteAprobacion(estado) {
+  const valor = String(estado || "").trim().toLowerCase();
+  return (
+    valor === "pendiente por aprobar" ||
+    valor === "pendiente de aprobar" ||
+    valor === "ingresado para aprobar"
+  );
+}
+
+function textoPdf(valor) {
+  if (valor === null || valor === undefined) return "-";
+  const limpio = String(valor).replace(/\s+/g, " ").trim();
+  return limpio ? limpio : "-";
+}
+
+function obtenerConstructorJsPdf() {
+  if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  alert("No se pudo cargar la libreria PDF.");
+  return null;
+}
+
+function nombreArchivoPdf(solicitud) {
+  const base = textoPdf(solicitud.numero).replace(/[^a-zA-Z0-9_-]/g, "_");
+  return "solicitud_" + (base || "sin_numero") + ".pdf";
+}
+
+function cerrarPdfModal() {
+  const modal = document.getElementById("pdfModal");
+  const frame = document.getElementById("pdfPreviewFrame");
+  if (frame) frame.removeAttribute("src");
+  if (pdfActualUrl) {
+    URL.revokeObjectURL(pdfActualUrl);
+    pdfActualUrl = "";
+  }
+  if (modal) {
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+  }
+  document.body.style.overflow = "";
+}
+
+function abrirPdfActual() {
+  if (!pdfActualUrl) return;
+  window.open(pdfActualUrl, "_blank");
+}
+
+function descargarPdfActual() {
+  if (!pdfActualUrl) return;
+  const link = document.createElement("a");
+  link.href = pdfActualUrl;
+  link.download = pdfActualNombre || "solicitud.pdf";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function abrirPdfEnModal(doc, nombreArchivo) {
+  const modal = document.getElementById("pdfModal");
+  const frame = document.getElementById("pdfPreviewFrame");
+  if (!modal || !frame) return;
+
+  if (pdfActualUrl) URL.revokeObjectURL(pdfActualUrl);
+  pdfActualUrl = URL.createObjectURL(doc.output("blob"));
+  pdfActualNombre = nombreArchivo || "solicitud.pdf";
+  frame.src = pdfActualUrl + "#toolbar=1&navpanes=1&scrollbar=1&view=FitH";
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function crearPdfSolicitud(sol) {
+  const JsPdf = obtenerConstructorJsPdf();
+  if (!JsPdf) return null;
+
+  const doc = new JsPdf({ unit: "mm", format: "a4", orientation: "portrait" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 12;
+  const labelW = 52;
+  const valueW = pageW - margin - margin - labelW;
+  let y = 14;
+
+  const accesos = Array.isArray(sol.accesosPC) && sol.accesosPC.length > 0 ? sol.accesosPC.join(", ") : "-";
+  const competencias = Array.isArray(sol.competenciasTabla) && sol.competenciasTabla.length > 0
+    ? sol.competenciasTabla.map(item => textoPdf(item.categoria || "General") + ": " + textoPdf(item.comp || "-")).join(" | ")
+    : textoPdf(sol.competencias);
+
+  function asegurarEspacio(altoNecesario) {
+    if (y + altoNecesario > pageH - 12) {
+      doc.addPage();
+      y = 14;
+    }
+  }
+
+  function agregarTitulo() {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Resumen de Solicitud", margin, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(70, 70, 70);
+    doc.text("Generado: " + new Date().toLocaleString(), margin, y);
+    doc.setTextColor(20, 20, 20);
+    y += 5;
+  }
+
+  function agregarSeccion(titulo, filas) {
+    asegurarEspacio(10);
+    doc.setDrawColor(212, 221, 218);
+    doc.setFillColor(243, 248, 246);
+    doc.rect(margin, y, pageW - (margin * 2), 7, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(titulo, margin + 2, y + 4.7);
+    y += 8;
+
+    filas.forEach(fila => {
+      const etiqueta = textoPdf(fila[0]);
+      const valor = textoPdf(fila[1]);
+      const etiquetaLineas = doc.splitTextToSize(etiqueta, labelW - 4);
+      const valorLineas = doc.splitTextToSize(valor, valueW - 4);
+      const lineas = Math.max(etiquetaLineas.length, valorLineas.length);
+      const altoFila = Math.max(6, (lineas * 3.7) + 2);
+      asegurarEspacio(altoFila);
+
+      doc.setDrawColor(216, 224, 221);
+      doc.setFillColor(250, 252, 251);
+      doc.rect(margin, y, labelW, altoFila, "FD");
+      doc.rect(margin + labelW, y, valueW, altoFila, "S");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(etiquetaLineas, margin + 2, y + 4);
+
+      doc.setFont("helvetica", "normal");
+      doc.text(valorLineas, margin + labelW + 2, y + 4);
+
+      y += altoFila;
+    });
+    y += 4;
+  }
+
+  agregarTitulo();
+  agregarSeccion("Datos Generales", [
+    ["Numero de solicitud", sol.numero],
+    ["Fecha de solicitud", sol.fechaSolicitud],
+    ["Solicitante", sol.solicitante],
+    ["Area", sol.area],
+    ["Departamento", sol.departamento],
+    ["Estado", sol.estado],
+    ["Ultima actualizacion", sol.ultimaActualizacion]
+  ]);
+  agregarSeccion("Detalle de la Solicitud", [
+    ["Motivo", sol.motivo],
+    ["Cargo solicitado", sol.cargoSolicitado],
+    ["Reemplaza a", sol.reemplazaA],
+    ["Fecha estimada de ingreso", sol.fechaIngreso],
+    ["Cantidad de vacantes", sol.cantidad],
+    ["Tipo de contratacion", sol.tipoContratacion],
+    ["Horario", sol.horario],
+    ["Horario completo", sol.horarioCompleto],
+    ["Tipo de cargo", sol.tipoCargo]
+  ]);
+  agregarSeccion("Perfil Requerido", [
+    ["Edad estimada", sol.edad],
+    ["Sexo sugerido", sol.sexo],
+    ["Nivel academico", sol.nivelAcademico],
+    ["Profesion", sol.profesion],
+    ["Experiencia minima", sol.experienciaMinima],
+    ["Conocimientos tecnicos", sol.conocimientosTecnicos],
+    ["Requerimientos adicionales", sol.requerimientosAdicionales],
+    ["Funciones del perfil", sol.funcionesPerfil],
+    ["Competencias", competencias]
+  ]);
+  agregarSeccion("Requerimientos Adicionales", [
+    ["Requiere accesos", sol.requiereAccesos],
+    ["Accesos requeridos", accesos],
+    ["Requiere computador", sol.requiereComp],
+    ["Requiere telefono", sol.requiereTel],
+    ["Requiere celular", sol.requiereCel],
+    ["Solicitud adicional", sol.adicional]
+  ]);
+
+  return doc;
+}
+
+function verSolicitudPdf(indice) {
+  const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+  const sol = lista[indice];
+  if (!sol) {
+    alert("No se encontro la solicitud seleccionada.");
+    return;
+  }
+  const doc = crearPdfSolicitud(sol);
+  if (!doc) return;
+  abrirPdfEnModal(doc, nombreArchivoPdf(sol));
+}
+
+/* =====================================================
+   Cargar tabla
+===================================================== */
+function cargarTabla() {
+  const tabla = document.getElementById("tablaBody");
+  tabla.innerHTML = "";
+
+  const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+
+  const hoy = new Date().toISOString().split("T")[0];
+  let totalPendientes = 0;
+
+  lista.forEach((sol, index) => {
+
+    // Solo mostrar solicitudes pendientes de aprobar
+    if (!esPendienteAprobacion(sol.estado)) return;
+    totalPendientes++;
+
+    /* ============================
+       Cierre automático
+    ============================= */
+    if (sol.postulacionActiva && sol.fechaFinPostulacion && sol.fechaFinPostulacion < hoy) {
+      sol.postulacionActiva = false;
+      sol.postulacionCerrada = true;
+
+      registrarEtapa(sol, "postulacion-finalizada-auto");
+      localStorage.setItem("solicitudes", JSON.stringify(lista));
+    }
+
+    const disabledEstado =
+  sol.postulacionActiva ||
+  sol.postulacionCerrada ||
+  sol.estadoPreseleccion === "Preselección Finalizada"
+  ? "disabled"
+  : "";
+
+
+const botonesEstado = `
+  <div class="d-flex justify-content-center gap-2">
+    <button class="btn btn-success btn-sm" onclick="cambiarEstado(${index}, 'Aprobado')" ${disabledEstado}>Aprobar</button>
+    <button class="btn btn-danger btn-sm" onclick="cambiarEstado(${index}, 'Rechazado')" ${disabledEstado}>Rechazar</button>
+  </div>
+`;
+
+
+    tabla.innerHTML += `
+      <tr>
+        <td>${sol.numero}</td>
+        <td>${sol.fechaSolicitud}</td>
+        <td>${sol.solicitante}</td>
+        <td>${sol.area}</td>
+        <td>${sol.departamento}</td>
+        <td>${sol.fechaIngreso}</td>
+        <td>${sol.cargoSolicitado}</td>
+
+        <td>${botonesEstado}</td>
+
+        <td><button class="btn btn-outline-danger btn-sm" onclick="verSolicitudPdf(${index})">PDF</button></td>
+      </tr>
+    `;
+  });
+
+  if (totalPendientes === 0) {
+    tabla.innerHTML = `
+      <tr>
+        <td colspan="9" class="text-center text-muted py-4">
+          No hay solicitudes pendientes por aprobar.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+/* =====================================================
+   Guardar estado
+===================================================== */
+function cambiarEstado(index, nuevoEstado) {
+  let lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+  let sol = lista[index];
+
+  if (!sol) return;
+  if (!confirm(`¿Confirmas cambiar el estado a: ${nuevoEstado}?`)) return;
+
+  // 1️⃣ Cambiar el estado normal visible
+  sol.estado = nuevoEstado;
+
+  // 2️⃣ Definir la etapa correspondiente
+  let nuevaEtapa = "";
+  if (nuevoEstado === "Aprobado") nuevaEtapa = "solicitud-aprobada";
+  if (nuevoEstado === "Rechazado") nuevaEtapa = "solicitud-rechazada";
+  if (esPendienteAprobacion(nuevoEstado)) nuevaEtapa = "solicitud-pendiente-por-aprobar";
+
+  // 3️⃣ Asegurar que historialEtapas exista
+  if (!sol.historialEtapas) sol.historialEtapas = [];
+
+  // 4️⃣ Eliminar cualquier etapa previa relacionada con solicitud-aprobada / solicitud-rechazada / solicitud-pendiente
+  sol.historialEtapas = sol.historialEtapas.filter(h =>
+    !h.etapa.startsWith("solicitud-")
+  );
+
+  // 5️⃣ Insertar SOLO la etapa actual (la final que quedó)
+  sol.historialEtapas.push({
+    etapa: nuevaEtapa,
+    fecha: new Date().toLocaleString()
+  });
+
+  // 6️⃣ Guardar en localStorage
+  localStorage.setItem("solicitudes", JSON.stringify(lista));
+
+  alert(
+    "✔ Estado actualizado.\n\n" +
+    "📧 Notificación enviada al solicitante:\n" +
+    "- Estado actual: " + nuevoEstado + "\n" +
+    "- Se ha informado al solicitante sobre el cambio de estado."
+  );
+
+  cargarTabla();
+}
+cargarTabla();
+
+window.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    const modal = document.getElementById("pdfModal");
+    if (modal && modal.classList.contains("is-open")) {
+      cerrarPdfModal();
+    }
+  }
+});
+
+
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>  
+  
+

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>12. Detalle de Solicitud (SSOMA)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    body {
+      background: #f4f6f9;
+      padding: 30px;
+    }
+    .card {
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .titulo {
+      font-size: 22px;
+      font-weight: bold;
+      color: #444;
+    }
+    .campo {
+      font-weight: bold;
+      color: #555;
+    }
+    .valor {
+      color: #222;
+    }
+    .section-title {
+      font-size: 18px;
+      margin-top: 25px;
+      font-weight: bold;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 5px;
+    }
+  </style>
+
+  <link rel="stylesheet" href="../../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../../assets/css/ui-shell.css">
+</head>
+<body>
+
+<div class="container">
+
+  <div class="card p-4">
+
+    <div class="text-center mb-3">
+      <div class="titulo">Detalle de Solicitud (SSOMA)</div>
+    </div>
+
+    <div id="contenido"></div>
+
+    <div class="text-center mt-4">
+      <button class="btn btn-secondary" onclick="window.history.back()">Volver</button>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// Obtener los parámetros de la URL
+const params = new URLSearchParams(window.location.search);
+const solIndex = params.get("sol");  // Índice de la solicitud
+const ced = params.get("ced");      // Cédula del candidato
+
+// Verificar si los parámetros están presentes
+if (!solIndex || !ced) {
+  document.getElementById("contenido").innerHTML = "<p>Error: No se encontraron los parámetros necesarios en la URL.</p>";
+} else {
+  // Obtener las solicitudes desde el localStorage
+  let lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+  let sol = lista[solIndex];
+
+  // Verificar si la solicitud existe
+  if (!sol) {
+    document.getElementById("contenido").innerHTML = "<p>No se encontró la solicitud en el índice proporcionado.</p>";
+  } else {
+    // Buscar el candidato dentro de la solicitud por cédula
+    const candidato = sol.candidatos.find(c => c.cedula === ced);
+
+    if (!candidato) {
+      document.getElementById("contenido").innerHTML = "<p>No se encontró el candidato en la solicitud.</p>";
+    } else {
+      // Si la solicitud y el candidato existen, mostrar los detalles
+      document.getElementById("contenido").innerHTML = `
+        <div class="section-title">Datos generales</div>
+        <p><span class="campo">N° Solicitud:</span> <span class="valor">${sol.numero}</span></p>
+        <p><span class="campo">Fecha de solicitud:</span> <span class="valor">${sol.fechaSolicitud}</span></p>
+        <p><span class="campo">Solicitante:</span> <span class="valor">${sol.solicitante}</span></p>
+ 
+
+        <div class="section-title">Datos del Trabajador</div>
+        <p><span class="campo">Nombre Completo:</span> <span class="valor">${candidato.nombre}</span></p>
+        <p><span class="campo">Cédula:</span> <span class="valor">${candidato.cedula}</span></p>
+        <p><span class="campo">Código Único:</span> <span class="valor">${candidato.codigoUnico || '-'}</span></p>
+        <p><span class="campo">Edad Real:</span> <span class="valor">${calcularEdad(candidato.fechaNacimiento)}</span></p>
+        <p><span class="campo">Fecha de Ingreso:</span> <span class="valor">${candidato.fechaIngreso || '-'}</span></p>
+        <p><span class="campo">Cargo:</span> <span class="valor">${sol.cargoSolicitado}</span></p>
+
+        <div class="section-title">Información del Cargo</div>
+        <p><span class="campo">Motivo:</span> <span class="valor">${sol.motivo}</span></p>
+        ${sol.insertarMotivo ? `<p><span class="campo">Otro motivo:</span> <span class="valor">${sol.insertarMotivo}</span></p>` : ""}
+        <p><span class="campo">Cargo solicitado:</span> <span class="valor">${sol.cargoSolicitado}</span></p>
+        <p><span class="campo">Reemplaza a:</span> <span class="valor">${sol.reemplazaA}</span></p>
+        <p><span class="campo">Área:</span> <span class="valor">${sol.area}</span></p>
+        <p><span class="campo">Departamento:</span> <span class="valor">${sol.departamento}</span></p>
+        <p><span class="campo">N° Vacantes:</span> <span class="valor">${sol.cantidad}</span></p>
+        <p><span class="campo">Edad sugerida:</span> <span class="valor">${sol.edad}</span></p>
+        <p><span class="campo">Sexo sugerido:</span> <span class="valor">${sol.sexo}</span></p>
+        <p><span class="campo">Fecha ingreso estimada:</span> <span class="valor">${sol.fechaIngreso}</span></p>
+        <p><span class="campo">Tipo contratación:</span> <span class="valor">${sol.tipoContratacion}</span></p>
+        <p><span class="campo">Tipo cargo:</span> <span class="valor">${sol.tipoCargo}</span></p>
+        <p><span class="campo">Tipo Horario:</span> <span class="valor">${normalizeHorario(sol.horario)}</span></p> <!-- Normalizamos el tipo de horario -->
+        <p><span class="campo">Horario:</span> <span class="valor">${sol.horarioCompleto}</span></p>
+      `;
+    }
+  }
+}
+
+// Función para calcular la edad real
+function calcularEdad(fechaNac) {
+  if (!fechaNac) return "-";
+
+  const nacimiento = new Date(fechaNac);
+  const hoy = new Date();
+
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const m = hoy.getMonth() - nacimiento.getMonth();
+
+  if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad--;
+  }
+  return edad;
+}
+
+// Función para normalizar el tipo de horario
+function normalizeHorario(horario) {
+  const horarioMap = {
+    "Producciónr": "Producción rotativo",
+    "Producciónf": "Producción fijo",
+    "Administrativo": "Administrativo",
+    "Almacenes": "Almacenes",
+    "otros": "Otros"
+  };
+  return horarioMap[horario] || horario;  // Si no está mapeado, se devuelve tal cual
+}
+</script>
+
+  <script src="../../../assets/js/ui-shell.js"></script>
+</body>
+</html>
+
+////

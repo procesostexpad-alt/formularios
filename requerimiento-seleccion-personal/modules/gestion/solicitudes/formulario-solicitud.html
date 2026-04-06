@@ -1,0 +1,655 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1.2. Formulario de Ingreso de Solicitud</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    :root {
+      --bg-a: #ecf5f2;
+      --bg-b: #d3e7df;
+      --surface: #ffffff;
+      --line: #d4e0db;
+      --text: #1f2a2b;
+      --muted: #5f6f73;
+      --brand: #0f5f4e;
+      --error: #c62828;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 100% 0%, rgba(15, 95, 78, 0.11), transparent 36%),
+        radial-gradient(circle at 0% 15%, rgba(31, 139, 113, 0.12), transparent 35%),
+        linear-gradient(180deg, var(--bg-a), var(--bg-b));
+    }
+    .hidden { display: none !important; }
+    .page-wrap { max-width: 1240px; margin: 0 auto; padding: 24px 14px 36px; }
+    .page-head {
+      border: 1px solid var(--line); background: var(--surface); border-radius: 18px;
+      box-shadow: 0 16px 30px rgba(21, 52, 44, 0.08); padding: 14px; margin-bottom: 14px;
+      display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .page-head h1 { margin: 0; color: var(--brand); font-size: 1.38rem; font-weight: 700; }
+    .page-head p { margin: 3px 0 0; color: var(--muted); font-size: 0.9rem; }
+    .section-card {
+      border: 1px solid var(--line); border-radius: 16px; background: var(--surface);
+      box-shadow: 0 10px 24px rgba(22, 57, 47, 0.07); padding: 14px; margin-bottom: 12px;
+    }
+    .section-title { margin: 0 0 10px; color: var(--brand); font-size: 1rem; font-weight: 700; letter-spacing: 0.2px; }
+    .info-box {
+      min-height: 38px; border: 1px solid var(--line); border-radius: 10px; background: #f7fbf9;
+      padding: 8px 10px; font-weight: 600; display: flex; align-items: center;
+    }
+    label { font-size: 0.85rem; color: #415154; margin-bottom: 4px; font-weight: 600; }
+    .form-control, .form-select { border-radius: 10px; border: 1px solid #cbd8d3; }
+    .form-control:focus, .form-select:focus { border-color: #86b7aa; box-shadow: 0 0 0 0.2rem rgba(31, 139, 113, 0.18); }
+    .field-invalid { border: 2px solid var(--error) !important; }
+    .trace-chip {
+      display: inline-flex; align-items: center; min-height: 38px; border-radius: 999px; padding: 0 12px;
+      background: #e6f4ee; color: #155f4e; font-size: 0.82rem; font-weight: 700; border: 1px solid #c3e3d7;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .actions {
+      border: 1px solid var(--line); border-radius: 16px; background: var(--surface);
+      box-shadow: 0 10px 24px rgba(22, 57, 47, 0.07); padding: 12px; text-align: center;
+      position: sticky; bottom: 12px; z-index: 5;
+    }
+    .table th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.2px; color: #4a585c; }
+    @media (max-width: 900px) { .page-head h1 { font-size: 1.2rem; } .actions { position: static; } }
+  </style>
+  <link rel="stylesheet" href="../../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../../assets/css/ui-shell.css">
+</head>
+<body>
+  <main class="page-wrap">
+    <div class="page-head">
+      <div>
+        <h1 id="tituloForm">Nueva Solicitud</h1>
+        <p>Formulario base con validaciones y trazabilidad de cambios.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" onclick="window.location.href='listado-solicitudes.html'">Volver al listado</button>
+      </div>
+    </div>
+
+    <div id="formSection">
+      <section class="section-card">
+        <h2 class="section-title">Datos de Control</h2>
+        <div class="row g-3">
+          <div class="col-md-3"><label>Nro Solicitud</label><div id="numSol" class="info-box"></div></div>
+          <div class="col-md-3"><label>Fecha Solicitud</label><div id="fechaSol" class="info-box"></div></div>
+          <div class="col-md-3"><label>Solicitante</label><div class="info-box">Nicolas Crisanto</div></div>
+          <div class="col-md-3"><label>ID Trazabilidad</label><div id="traceIdBox" class="trace-chip">Se genera al guardar</div></div>
+          <div class="col-md-6"><label>Ultima Actualizacion</label><div id="lastUpdateBox" class="info-box">Pendiente</div></div>
+          <div class="col-md-3"><label>Area</label><div class="info-box">Operaciones</div></div>
+          <div class="col-md-3"><label>Departamento</label><div class="info-box">Procesos</div></div>
+        </div>
+      </section>
+
+      <section class="section-card">
+        <h2 class="section-title">Motivo de Contratacion</h2>
+        <div class="row g-3">
+          <div class="col-md-5">
+            <label>Motivo</label>
+            <select id="motivo" class="form-select" onchange="motivoChange()">
+              <option value="">Seleccionar</option>
+              <option value="Creación de cargo">Creación de cargo</option>
+              <option value="Reemplazo por renuncia">Reemplazo por renuncia</option>
+              <option value="Reemplazo por reposo médico prolongado">Reemplazo por reposo médico prolongado</option>
+              <option value="Incremento de maquinaria">Incremento de maquinaria</option>
+              <option value="Incremento de demanda">Incremento de demanda</option>
+              <option value="Licencia de paternidad">Licencia de paternidad</option>
+              <option value="Licencia de maternidad">Licencia de maternidad</option>
+              <option value="Otros (especifique)">Otros (especifique)</option>
+            </select>
+          </div>
+          <div id="insertarMotivoBox" class="col-md-7 hidden"><label>Insertar motivo</label><input id="insertarMotivoInput" type="text" class="form-control"></div>
+          <div id="reemplazoBox" class="col-md-4 hidden"><label>Reemplaza a</label><select id="reemplazoSelect" class="form-select"><option value="">Seleccionar</option><option>Virginia Obando</option><option>Nayfe Cassis</option></select></div>
+          <div id="nuevoCargoBox" class="col-md-4 hidden"><label>Nuevo cargo</label><input id="nuevoCargoInput" type="text" class="form-control"></div>
+          <div id="cargoListaBox" class="col-md-4 hidden"><label>Cargo</label><select id="cargoLista" class="form-select"><option value="">Seleccionar</option><option>Asistente de procesos</option><option>Coordinador de procesos</option></select></div>
+        </div>
+      </section>
+
+      <section class="section-card">
+        <h2 class="section-title">Informacion del Cargo</h2>
+        <div class="row g-3">
+          <div class="col-md-3"><label>Nro Vacantes</label><input id="cantidad" type="number" class="form-control" min="1" step="1"></div>
+          <div class="col-md-3"><label>Edad sugerida</label><input id="edadEstimada" type="text" class="form-control" placeholder="18-29" oninput="soloNumerosGuion(this)" onchange="validarRangoEdad(this)"></div>
+          <div class="col-md-3"><label>Sexo sugerido</label><select id="sexoSugerido" class="form-select"><option value="">Seleccionar</option><option>Masculino</option><option>Femenino</option><option>Irrelevante</option></select></div>
+          <div class="col-md-3"><label>Fecha estimada de ingreso</label><input type="date" id="fechaIngreso" class="form-control"></div>
+          <div class="col-md-3"><label>Tipo de contratacion</label><select id="tipoContratacion" class="form-select"><option value="">Seleccionar</option><option>Indefinido</option><option>Temporal</option><option>Eventual</option><option>Prestacion de servicios</option><option>Pasantia</option></select></div>
+          <div class="col-md-3"><label>Horario</label><select id="horario" class="form-select" onchange="horarioChange()"><option value="">Seleccionar</option><option value="Administrativo">Administrativo</option><option value="Producciónr">Produccion rotativo</option><option value="Producciónf">Produccion fijo</option><option value="Almacenes">Almacenes</option><option value="otros">Otros</option></select></div>
+          <div id="horarioUnicoBox" class="col-md-6 hidden"><label>Horario (Inicio - Fin)</label><input type="text" id="horarioUnico" class="form-control" placeholder="07:00-16:00" oninput="soloHorarioValido(this)" onchange="validarHorarioRango(this)"></div>
+        </div>
+      </section>
+      <section class="section-card">
+        <h2 class="section-title">Accesos y Equipos Requeridos</h2>
+        <div class="row g-3">
+          <div class="col-md-4"><label>Tipo de cargo</label><select id="tipoCargo" class="form-select" onchange="tipoCargoChange()"><option value="">Seleccionar</option><option value="administrativo">Administrativo</option><option value="operativo">Operativo</option></select></div>
+          <div id="accesosRequiereBox" class="col-md-4 hidden"><label>Requiere accesos?</label><select id="requiereAccesos" class="form-select" onchange="accesosChange()"><option value="">Seleccionar</option><option value="si">Si</option><option value="no">No</option></select></div>
+          <div id="computadorBox" class="col-md-4 hidden"><label>Requiere computador?</label><select id="requiereComp" class="form-select"><option value="">Seleccionar</option><option value="si">Si</option><option value="no">No</option></select></div>
+          <div id="telefonoBox" class="col-md-4 hidden"><label>Requiere telefono?</label><select id="requiereTel" class="form-select" onchange="telChange()"><option value="">Seleccionar</option><option value="si">Si</option><option value="no">No</option></select></div>
+          <div id="celularBox" class="col-md-4 hidden"><label>Requiere celular?</label><select id="requiereCel" class="form-select" onchange="celChange()"><option value="">Seleccionar</option><option value="si">Si</option><option value="no">No</option></select></div>
+          <div id="accesosBox" class="col-md-12 hidden">
+            <label>Accesos internos</label>
+            <div class="row g-2 mt-1">
+              <div class="col-md-3"><label class="form-check-label"><input class="form-check-input me-1" type="checkbox" value="AS2">AS2</label></div>
+              <div class="col-md-3"><label class="form-check-label"><input class="form-check-input me-1" type="checkbox" value="Atlantis">Atlantis</label></div>
+              <div class="col-md-3"><label class="form-check-label"><input class="form-check-input me-1" type="checkbox" value="InfoTint">InfoTint</label></div>
+              <div class="col-md-3"><label class="form-check-label"><input class="form-check-input me-1" type="checkbox" value="Monitor.exe">Monitor.exe</label></div>
+              <div class="col-md-3"><label class="form-check-label"><input class="form-check-input me-1" type="checkbox" value="Correo">Correo</label></div>
+              <div class="col-md-3"><label class="form-check-label"><input class="form-check-input me-1" type="checkbox" value="Carpetas">Carpetas</label></div>
+              <div class="col-md-3"><label class="form-check-label"><input class="form-check-input me-1" type="checkbox" value="VPN">VPN</label></div>
+              <div class="col-md-3"><label class="form-check-label"><input class="form-check-input me-1" type="checkbox" value="Red Interna">Red Interna</label></div>
+            </div>
+          </div>
+          <div id="accesosTelBox" class="col-md-12 hidden"></div>
+          <div id="accesosCelBox" class="col-md-12 hidden"></div>
+          <div class="col-md-12 mt-2"><label>Solicitud adicional</label><textarea id="adicional" class="form-control" rows="2"></textarea></div>
+        </div>
+      </section>
+
+      <section class="section-card">
+        <h2 class="section-title">Perfil Requerido</h2>
+        <div class="row g-3">
+          <div class="col-md-3"><label>Nivel academico</label><select id="nivelAcademico" class="form-select" onchange="nivelAcademicoChange()"><option value="">Seleccionar</option><option>Bachiller</option><option>Tercer nivel</option><option>Cuarto nivel</option><option>No requerido</option></select></div>
+          <div id="profesionBox" class="col-md-5 hidden"><label>Profesion</label><input id="profesion" type="text" class="form-control"></div>
+          <div class="col-md-4"><label>Experiencia minima</label><select id="experienciaMinima" class="form-select"><option value="">Seleccionar</option><option>0 años</option><option>1 año</option><option>2 años</option><option>3+ años</option></select></div>
+          <div class="col-md-6"><label>Conocimientos tecnicos</label><textarea id="conocimientosTecnicos" class="form-control" rows="2"></textarea></div>
+          <div class="col-md-6"><label>Requerimientos adicionales</label><textarea id="requerimientosAdicionales" class="form-control" rows="2"></textarea></div>
+          <div class="col-md-12"><label>Funciones</label><textarea id="funcionesPerfil" class="form-control" rows="3"></textarea></div>
+          <div class="col-md-12"><label>Competencias</label><textarea id="competencias" class="form-control" rows="4" readonly></textarea></div>
+          <div class="col-md-4"><label>Categoria</label><select id="categoriaComp" class="form-select" onchange="cargarCompetenciasPorCategoria()"><option value="">Seleccionar</option><option>Aptitudinales</option><option>Comerciales</option><option>Comunicacionales</option><option>Administrativas</option><option>Digital</option><option>Educacional</option><option>Cognitivas</option><option>Emocionales</option><option>Liderazgo</option><option>Relacionales</option><option>Valores</option><option>Prevencion de Riesgos</option></select></div>
+          <div class="col-md-4"><label>Competencia</label><select id="competenciaEspecifica" class="form-select"><option value="">Seleccione categoria</option></select></div>
+          <div class="col-md-4 d-flex align-items-end"><button class="btn btn-primary w-100" type="button" onclick="agregarCompetencia()">+ Agregar</button></div>
+          <div class="table-responsive mt-3"><table class="table table-bordered table-hover align-middle"><thead class="table-light"><tr><th>Categoria</th><th>Competencia</th><th>Accion</th></tr></thead><tbody id="tablaComp"></tbody></table></div>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="btnGuardar" class="btn btn-success me-2" onclick="guardar()">Agregar Solicitud</button>
+        <button class="btn btn-danger" onclick="cancelar()">Cancelar</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const USUARIO_ACTUAL = "Nicolas Crisanto";
+    const ZONA_HORARIA = "America/Bogota";
+    const ESTADO_INICIAL = "Ingresado para aprobar";
+    const ETAPA_INICIAL = "ingresado-para-aprobar";
+
+    let editIndex = null;
+    let listaCompetencias = [];
+
+    const COMPETENCIAS_DATA = {
+      Aptitudinales: ["Atencion al detalle", "Proactividad", "Adaptabilidad", "Organizacion"],
+      Comerciales: ["Negociacion", "Ventas", "Prospeccion"],
+      Comunicacionales: ["Comunicacion verbal", "Comunicacion escrita", "Escucha activa"],
+      Administrativas: ["Planificacion", "Gestion documental"],
+      Digital: ["Excel", "ERP", "Herramientas digitales"],
+      Educacional: ["Capacitacion", "Tutoria"],
+      Cognitivas: ["Analisis", "Resolucion de problemas", "Pensamiento critico"],
+      Emocionales: ["Manejo de estres", "Empatia"],
+      Liderazgo: ["Toma de decisiones", "Gestion de equipos"],
+      Relacionales: ["Trabajo en equipo", "Colaboracion"],
+      Valores: ["Compromiso", "Responsabilidad", "Integridad"],
+      "Prevencion de Riesgos": ["Seguridad industrial", "Uso de EPP"]
+    };
+
+    function normalizarTexto(texto) {
+      return (texto || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    }
+
+    function obtenerFechaISO() {
+      return new Date().toLocaleDateString("sv-SE", { timeZone: ZONA_HORARIA });
+    }
+
+    function obtenerFechaHoraLocal() {
+      return new Intl.DateTimeFormat("es-CO", {
+        timeZone: ZONA_HORARIA,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).format(new Date());
+    }
+
+    function generarTraceId(numero) {
+      const base = String(numero || "SIN").padStart(4, "0");
+      return `SOL-${base}-${Date.now().toString(36).toUpperCase()}`;
+    }
+
+    function setSelectValue(id, valor) {
+      const select = document.getElementById(id);
+      if (!select) return;
+      select.value = valor || "";
+      if (select.value !== "" || !valor) return;
+      const objetivo = normalizarTexto(valor);
+      const opcion = [...select.options].find(op => normalizarTexto(op.value) === objetivo || normalizarTexto(op.textContent) === objetivo);
+      if (opcion) select.value = opcion.value;
+    }
+
+    function limpiarError(id) { const el = document.getElementById(id); if (el) el.classList.remove("field-invalid"); }
+    function marcarError(id) { const el = document.getElementById(id); if (el) el.classList.add("field-invalid"); }
+    function estaVisible(id) {
+      const elem = document.getElementById(id);
+      return !!elem && !elem.classList.contains("hidden") && elem.offsetParent !== null;
+    }
+
+    function validarCampoVisible(id) {
+      const elem = document.getElementById(id);
+      if (!elem || !estaVisible(id)) return true;
+      limpiarError(id);
+      if ((elem.value || "").toString().trim() === "") { marcarError(id); return false; }
+      return true;
+    }
+
+    function validarCheckboxGrupo(idContenedor) {
+      if (!estaVisible(idContenedor)) return true;
+      const checks = document.querySelectorAll(`#${idContenedor} input[type=checkbox]`);
+      const alguno = [...checks].some(ch => ch.checked);
+      if (!alguno) { alert("Debe seleccionar al menos 1 acceso."); return false; }
+      return true;
+    }
+
+    function resetMotivoDependientes() {
+      document.getElementById("insertarMotivoInput").value = "";
+      document.getElementById("reemplazoSelect").value = "";
+      document.getElementById("cargoLista").value = "";
+      document.getElementById("nuevoCargoInput").value = "";
+      ["insertarMotivoInput", "reemplazoSelect", "cargoLista", "nuevoCargoInput"].forEach(limpiarError);
+    }
+
+    function motivoChange() {
+      const motivo = normalizarTexto(document.getElementById("motivo").value);
+      resetMotivoDependientes();
+      ["insertarMotivoBox", "reemplazoBox", "cargoListaBox", "nuevoCargoBox"].forEach(id => document.getElementById(id).classList.add("hidden"));
+      if (!motivo) return;
+      if (motivo.includes("reemplazo por renuncia") || motivo.includes("reposo medico prolongado")) {
+        document.getElementById("reemplazoBox").classList.remove("hidden");
+        document.getElementById("cargoListaBox").classList.remove("hidden");
+        return;
+      }
+      if (motivo.includes("otros")) {
+        document.getElementById("insertarMotivoBox").classList.remove("hidden");
+        document.getElementById("cargoListaBox").classList.remove("hidden");
+        return;
+      }
+      if (motivo.includes("creacion de cargo")) {
+        document.getElementById("nuevoCargoBox").classList.remove("hidden");
+        return;
+      }
+      document.getElementById("cargoListaBox").classList.remove("hidden");
+    }
+    function horarioChange() {
+      const horario = document.getElementById("horario").value;
+      const box = document.getElementById("horarioUnicoBox");
+      const input = document.getElementById("horarioUnico");
+      limpiarError("horarioUnico");
+      input.value = "";
+      input.readOnly = false;
+      if (!horario) { box.classList.add("hidden"); return; }
+      box.classList.remove("hidden");
+      if (horario === "Administrativo") { input.value = "08:00-17:00"; input.readOnly = true; return; }
+      if (horario === "Producciónr") { input.value = "06:30-18:30 / 18:30-06:30"; input.readOnly = true; return; }
+      if (horario === "Producciónf") { input.value = "06:30-18:30"; input.readOnly = true; return; }
+      if (horario === "Almacenes") { input.value = "08:00-18:30"; input.readOnly = true; return; }
+      input.placeholder = "Ej: 07:00-16:00";
+    }
+
+    function resetDependents() {
+      document.getElementById("requiereAccesos").value = "";
+      document.getElementById("requiereComp").value = "";
+      document.getElementById("requiereTel").value = "";
+      document.getElementById("requiereCel").value = "";
+      ["requiereAccesos", "requiereComp", "requiereTel", "requiereCel"].forEach(limpiarError);
+      document.querySelectorAll("#accesosBox input[type=checkbox]").forEach(c => c.checked = false);
+      document.getElementById("accesosBox").classList.add("hidden");
+    }
+
+    function tipoCargoChange() {
+      const tipoCargo = document.getElementById("tipoCargo").value;
+      const visible = tipoCargo === "administrativo" || tipoCargo === "operativo";
+      resetDependents();
+      ["accesosRequiereBox", "computadorBox", "telefonoBox", "celularBox"].forEach(id => document.getElementById(id).classList.toggle("hidden", !visible));
+    }
+
+    function accesosChange() {
+      const requiere = normalizarTexto(document.getElementById("requiereAccesos").value);
+      const mostrar = requiere === "si";
+      document.getElementById("accesosBox").classList.toggle("hidden", !mostrar);
+      if (!mostrar) document.querySelectorAll("#accesosBox input[type=checkbox]").forEach(c => c.checked = false);
+    }
+
+    function telChange() { document.getElementById("accesosTelBox").classList.add("hidden"); }
+    function celChange() { document.getElementById("accesosCelBox").classList.add("hidden"); }
+
+    function nivelAcademicoChange() {
+      const nivel = normalizarTexto(document.getElementById("nivelAcademico").value);
+      const requiere = ["bachiller", "tercer nivel", "cuarto nivel"].includes(nivel);
+      document.getElementById("profesionBox").classList.toggle("hidden", !requiere);
+      if (!requiere) document.getElementById("profesion").value = "";
+      limpiarError("profesion");
+    }
+
+    function soloNumerosGuion(input) {
+      input.value = input.value.replace(/[^0-9\-]/g, "").replace(/\-{2,}/g, "-").replace(/^(\-)/, "");
+    }
+
+    function validarRangoEdad(input) {
+      const valor = (input.value || "").trim();
+      const regex = /^(\d{1,2})-(\d{1,2})$/;
+      limpiarError("edadEstimada");
+      if (!regex.test(valor)) { marcarError("edadEstimada"); alert("Formato incorrecto para edad. Usa: 18-29"); return false; }
+      const [minStr, maxStr] = valor.split("-");
+      const edadMin = parseInt(minStr, 10);
+      const edadMax = parseInt(maxStr, 10);
+      if (edadMin < 18 || edadMax <= edadMin) { marcarError("edadEstimada"); alert("La edad minima debe ser 18+ y el maximo mayor al minimo."); return false; }
+      return true;
+    }
+
+    function soloHorarioValido(input) { input.value = input.value.replace(/[^0-9:\-]/g, "").replace(/\-{2,}/g, "-"); }
+    function convertirMinutos(hora) { const [h, m] = hora.split(":").map(Number); return h * 60 + m; }
+
+    function validarHorarioRango(input) {
+      const valor = (input.value || "").trim();
+      const regex = /^([0-1]\d|2[0-3]):([0-5]\d)-([0-1]\d|2[0-3]):([0-5]\d)$/;
+      limpiarError("horarioUnico");
+      if (!regex.test(valor)) { marcarError("horarioUnico"); alert("Formato de horario invalido. Usa HH:MM-HH:MM"); return false; }
+      const [inicio, fin] = valor.split("-");
+      if (convertirMinutos(fin) <= convertirMinutos(inicio)) { marcarError("horarioUnico"); alert("La hora final debe ser mayor a la inicial."); return false; }
+      return true;
+    }
+
+    function cargarCompetenciasPorCategoria() {
+      const categoria = document.getElementById("categoriaComp").value;
+      const select = document.getElementById("competenciaEspecifica");
+      select.innerHTML = "<option value=''>Seleccionar</option>";
+      if (COMPETENCIAS_DATA[categoria]) {
+        COMPETENCIAS_DATA[categoria].forEach(comp => {
+          const option = document.createElement("option");
+          option.value = comp;
+          option.textContent = comp;
+          select.appendChild(option);
+        });
+      }
+    }
+
+    function actualizarTablaCompetencias() {
+      const body = document.getElementById("tablaComp");
+      body.innerHTML = "";
+      listaCompetencias.forEach((item, index) => {
+        body.insertAdjacentHTML("beforeend", `<tr><td>${item.categoria}</td><td>${item.comp}</td><td><button class='btn btn-danger btn-sm' type='button' onclick='eliminarCompetencia(${index})'>Eliminar</button></td></tr>`);
+      });
+    }
+
+    function actualizarTextareaCompetencias() {
+      document.getElementById("competencias").value = listaCompetencias.map(x => x.comp).join("\n");
+      limpiarError("competencias");
+    }
+
+    function agregarCompetencia() {
+      const categoria = document.getElementById("categoriaComp").value;
+      const comp = document.getElementById("competenciaEspecifica").value;
+      if (!categoria || !comp) { alert("Selecciona categoria y competencia."); return; }
+      const existe = listaCompetencias.some(x => x.categoria === categoria && x.comp === comp);
+      if (existe) { alert("Esa competencia ya fue agregada."); return; }
+      listaCompetencias.push({ categoria, comp });
+      actualizarTablaCompetencias();
+      actualizarTextareaCompetencias();
+    }
+
+    function eliminarCompetencia(i) {
+      listaCompetencias.splice(i, 1);
+      actualizarTablaCompetencias();
+      actualizarTextareaCompetencias();
+    }
+
+    function obtenerListaSolicitudes() { return JSON.parse(localStorage.getItem("solicitudes") || "[]"); }
+    function guardarListaSolicitudes(lista) { localStorage.setItem("solicitudes", JSON.stringify(lista)); }
+
+    function agregarHistorialInicialSiFalta(historial) {
+      if (historial.length > 0) return;
+      historial.push({ etapa: ETAPA_INICIAL, fecha: obtenerFechaHoraLocal(), usuario: USUARIO_ACTUAL, detalle: "Solicitud creada" });
+    }
+
+    function agregarAuditoria(auditTrail, accion, detalle) {
+      auditTrail.push({ accion, detalle, usuario: USUARIO_ACTUAL, fecha: obtenerFechaHoraLocal() });
+    }
+
+    function actualizarResumenTrazabilidad(solicitud) {
+      document.getElementById("traceIdBox").textContent = solicitud?.traceId || "Se genera al guardar";
+      document.getElementById("lastUpdateBox").textContent = solicitud?.ultimaActualizacion || "Pendiente";
+    }
+    function validarFormulario() {
+      let valido = true;
+      const camposBase = ["motivo", "fechaIngreso", "cantidad", "tipoContratacion", "horario", "tipoCargo", "edadEstimada", "sexoSugerido", "nivelAcademico", "experienciaMinima", "conocimientosTecnicos", "requerimientosAdicionales", "funcionesPerfil", "competencias"];
+      camposBase.forEach(id => { if (!validarCampoVisible(id)) valido = false; });
+
+      const motivo = normalizarTexto(document.getElementById("motivo").value);
+      if (motivo.includes("creacion de cargo")) {
+        if (!validarCampoVisible("nuevoCargoInput")) valido = false;
+      } else if (motivo.includes("reemplazo por renuncia") || motivo.includes("reposo medico prolongado")) {
+        if (!validarCampoVisible("cargoLista")) valido = false;
+        if (!validarCampoVisible("reemplazoSelect")) valido = false;
+      } else if (motivo.includes("otros")) {
+        if (!validarCampoVisible("insertarMotivoInput")) valido = false;
+        if (!validarCampoVisible("cargoLista")) valido = false;
+      } else if (motivo !== "") {
+        if (!validarCampoVisible("cargoLista")) valido = false;
+      }
+
+      if (document.getElementById("horario").value === "otros") {
+        if (!validarCampoVisible("horarioUnico")) valido = false;
+        if (valido && !validarHorarioRango(document.getElementById("horarioUnico"))) valido = false;
+      }
+
+      ["requiereAccesos", "requiereComp", "requiereTel", "requiereCel"].forEach(id => { if (!validarCampoVisible(id)) valido = false; });
+      if (normalizarTexto(document.getElementById("requiereAccesos").value) === "si") {
+        if (!validarCheckboxGrupo("accesosBox")) valido = false;
+      }
+
+      const nivel = normalizarTexto(document.getElementById("nivelAcademico").value);
+      if (["bachiller", "tercer nivel", "cuarto nivel"].includes(nivel)) {
+        if (!validarCampoVisible("profesion")) valido = false;
+      }
+
+      if (!validarRangoEdad(document.getElementById("edadEstimada"))) valido = false;
+      if (!document.getElementById("competencias").value.trim()) { marcarError("competencias"); alert("Debes ingresar al menos una competencia."); valido = false; }
+      return valido;
+    }
+
+    function obtenerDatosFormulario(existente) {
+      const base = existente ? { ...existente } : {};
+      const historialEtapas = Array.isArray(base.historialEtapas) ? [...base.historialEtapas] : [];
+      const auditTrail = Array.isArray(base.auditTrail) ? [...base.auditTrail] : [];
+      if (!existente) agregarHistorialInicialSiFalta(historialEtapas);
+
+      const accesosPC = [...document.querySelectorAll("#accesosBox input[type=checkbox]")].filter(ch => ch.checked).map(ch => ch.value);
+      const motivo = document.getElementById("motivo").value;
+      const motivoNorm = normalizarTexto(motivo);
+      let cargoSolicitado = document.getElementById("cargoLista").value.trim();
+      if (motivoNorm.includes("creacion de cargo")) cargoSolicitado = document.getElementById("nuevoCargoInput").value.trim();
+
+      const numero = document.getElementById("numSol").innerText.trim();
+      const traceId = base.traceId || generarTraceId(numero);
+      const ultimaActualizacion = obtenerFechaHoraLocal();
+
+      if (existente) {
+        agregarAuditoria(auditTrail, "edicion_formulario", "Actualizacion manual del formulario");
+      } else {
+        agregarAuditoria(auditTrail, "creacion_solicitud", "Creacion inicial de solicitud");
+      }
+
+      return {
+        ...base,
+        numero,
+        traceId,
+        ultimaActualizacion,
+        fechaSolicitud: document.getElementById("fechaSol").innerText,
+        solicitante: "Nicolas Crisanto",
+        area: "Operaciones",
+        departamento: "Procesos",
+        motivo,
+        insertarMotivo: document.getElementById("insertarMotivoInput").value,
+        nuevoCargo: document.getElementById("nuevoCargoInput").value,
+        cargoSolicitado,
+        reemplazaA: document.getElementById("reemplazoSelect").value,
+        fechaIngreso: document.getElementById("fechaIngreso").value,
+        cantidad: document.getElementById("cantidad").value,
+        tipoContratacion: document.getElementById("tipoContratacion").value,
+        horario: document.getElementById("horario").value,
+        horarioCompleto: document.getElementById("horarioUnico").value,
+        tipoCargo: document.getElementById("tipoCargo").value,
+        requiereAccesos: document.getElementById("requiereAccesos").value,
+        accesosPC,
+        requiereComp: document.getElementById("requiereComp").value,
+        requiereTel: document.getElementById("requiereTel").value,
+        requiereCel: document.getElementById("requiereCel").value,
+        adicional: document.getElementById("adicional").value,
+        edad: document.getElementById("edadEstimada").value,
+        sexo: document.getElementById("sexoSugerido").value,
+        nivelAcademico: document.getElementById("nivelAcademico").value,
+        profesion: document.getElementById("profesion").value,
+        experienciaMinima: document.getElementById("experienciaMinima").value,
+        conocimientosTecnicos: document.getElementById("conocimientosTecnicos").value,
+        requerimientosAdicionales: document.getElementById("requerimientosAdicionales").value,
+        funcionesPerfil: document.getElementById("funcionesPerfil").value,
+        competencias: document.getElementById("competencias").value,
+        competenciasTabla: listaCompetencias,
+        estado: base.estado || ESTADO_INICIAL,
+        estadoGeneral: base.estadoGeneral || ESTADO_INICIAL,
+        etapaActual: base.etapaActual || ETAPA_INICIAL,
+        historialEtapas,
+        auditTrail
+      };
+    }
+
+    function guardar() {
+      if (!validarFormulario()) {
+        alert("Completa los campos obligatorios antes de guardar.");
+        return;
+      }
+      const lista = obtenerListaSolicitudes();
+      const existente = editIndex !== null ? lista[editIndex] : null;
+      const solicitud = obtenerDatosFormulario(existente);
+      if (editIndex !== null) {
+        lista[editIndex] = solicitud;
+      } else {
+        lista.push(solicitud);
+        const numeroActual = parseInt(solicitud.numero, 10);
+        if (!Number.isNaN(numeroActual)) localStorage.setItem("numeroSolicitud", String(numeroActual + 1));
+      }
+      guardarListaSolicitudes(lista);
+      alert(editIndex !== null ? "Solicitud actualizada correctamente." : "Solicitud creada correctamente.");
+      window.location.href = "listado-solicitudes.html";
+    }
+
+    function cargarDatosEdicion(indice) {
+      const lista = obtenerListaSolicitudes();
+      const sol = lista[indice];
+      if (!sol) return;
+
+      document.getElementById("numSol").innerText = sol.numero || "";
+      document.getElementById("fechaSol").innerText = sol.fechaSolicitud || obtenerFechaISO();
+
+      setSelectValue("motivo", sol.motivo);
+      motivoChange();
+      document.getElementById("insertarMotivoInput").value = sol.insertarMotivo || "";
+      document.getElementById("reemplazoSelect").value = sol.reemplazaA || "";
+      document.getElementById("nuevoCargoInput").value = sol.nuevoCargo || "";
+      setSelectValue("cargoLista", sol.cargoSolicitado);
+
+      document.getElementById("fechaIngreso").value = sol.fechaIngreso || "";
+      document.getElementById("cantidad").value = sol.cantidad || "";
+      setSelectValue("tipoContratacion", sol.tipoContratacion);
+      setSelectValue("horario", sol.horario);
+      horarioChange();
+      document.getElementById("horarioUnico").value = sol.horarioCompleto || "";
+
+      setSelectValue("tipoCargo", sol.tipoCargo);
+      tipoCargoChange();
+      setSelectValue("requiereAccesos", sol.requiereAccesos);
+      setSelectValue("requiereComp", sol.requiereComp);
+      setSelectValue("requiereTel", sol.requiereTel);
+      setSelectValue("requiereCel", sol.requiereCel);
+      accesosChange();
+
+      const accesosGuardados = Array.isArray(sol.accesosPC) ? sol.accesosPC : [];
+      document.querySelectorAll("#accesosBox input[type=checkbox]").forEach(ch => { ch.checked = accesosGuardados.includes(ch.value); });
+
+      document.getElementById("adicional").value = sol.adicional || "";
+      document.getElementById("edadEstimada").value = sol.edad || "";
+      setSelectValue("sexoSugerido", sol.sexo);
+      setSelectValue("nivelAcademico", sol.nivelAcademico);
+      nivelAcademicoChange();
+      document.getElementById("profesion").value = sol.profesion || "";
+      setSelectValue("experienciaMinima", sol.experienciaMinima);
+      document.getElementById("conocimientosTecnicos").value = sol.conocimientosTecnicos || "";
+      document.getElementById("requerimientosAdicionales").value = sol.requerimientosAdicionales || "";
+      document.getElementById("funcionesPerfil").value = sol.funcionesPerfil || "";
+
+      if (Array.isArray(sol.competenciasTabla) && sol.competenciasTabla.length > 0) {
+        listaCompetencias = sol.competenciasTabla.map(x => ({ categoria: x.categoria || "General", comp: x.comp || "" })).filter(x => x.comp);
+      } else {
+        listaCompetencias = (sol.competencias || "").split("\n").map(x => x.trim()).filter(Boolean).map(comp => ({ categoria: "General", comp }));
+      }
+
+      actualizarTablaCompetencias();
+      actualizarTextareaCompetencias();
+      actualizarResumenTrazabilidad(sol);
+    }
+
+    function detectarEdicion() {
+      const params = new URLSearchParams(window.location.search);
+      const valor = params.get("edit");
+      if (valor === null) return false;
+      const indice = parseInt(valor, 10);
+      if (Number.isNaN(indice)) return false;
+      editIndex = indice;
+      document.getElementById("tituloForm").innerText = "Editar Solicitud";
+      document.getElementById("btnGuardar").innerText = "Guardar Cambios";
+      cargarDatosEdicion(indice);
+      return true;
+    }
+
+    function inicializarFormulario() {
+      const lista = obtenerListaSolicitudes();
+      const maxNumero = lista.reduce((max, s) => {
+        const n = parseInt(s.numero, 10);
+        return Number.isNaN(n) ? max : Math.max(max, n);
+      }, 0);
+      document.getElementById("numSol").innerText = String(maxNumero + 1);
+      document.getElementById("fechaSol").innerText = obtenerFechaISO();
+      actualizarResumenTrazabilidad(null);
+    }
+
+    function cancelar() {
+      if (confirm("Seguro que deseas cancelar?")) window.location.href = "listado-solicitudes.html";
+    }
+
+    function boot() {
+      inicializarFormulario();
+      const esEdicion = detectarEdicion();
+      if (!esEdicion) {
+        motivoChange();
+        horarioChange();
+        tipoCargoChange();
+        nivelAcademicoChange();
+      }
+    }
+
+    boot();
+  </script>
+  <script src="../../../assets/js/ui-shell.js"></script>
+</body>
+</html>
+

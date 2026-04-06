@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>11. Detalle de Solicitud</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body {
+    background: #f4f6f9;
+    padding: 30px;
+  }
+  .card {
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  .titulo {
+    font-size: 22px;
+    font-weight: bold;
+    color: #444;
+  }
+  .campo {
+    font-weight: bold;
+    color: #555;
+  }
+  .valor {
+    color: #222;
+  }
+  .section-title {
+    font-size: 18px;
+    margin-top: 25px;
+    font-weight: bold;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+  }
+</style>
+
+  <link rel="stylesheet" href="../../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../../assets/css/ui-shell.css">
+</head>
+<body>
+
+<div class="container">
+
+  <div class="card p-4">
+
+    <div class="text-center mb-3">
+      <div class="titulo">Detalle de Solicitud</div>
+    </div>
+
+    <div id="contenido"></div>
+
+    <div class="text-center mt-4">
+      <button class="btn btn-secondary" onclick="window.history.back()">Volver</button>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+function cargarSolicitud() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("id");
+
+  let lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+  let sol = lista[id];
+
+  if (!sol) {
+    document.getElementById("contenido").innerHTML = "<p>No se encontró la solicitud.</p>";
+    return;
+  }
+
+  document.getElementById("contenido").innerHTML = `
+
+    <div class="section-title">Datos generales</div>
+    <p><span class="campo">N° Solicitud:</span> <span class="valor">${sol.numero}</span></p>
+    <p><span class="campo">Fecha de solicitud:</span> <span class="valor">${sol.fechaSolicitud}</span></p>
+    <p><span class="campo">Solicitante:</span> <span class="valor">${sol.solicitante}</span></p>
+
+    <div class="section-title">Información del cargo</div>
+    <p><span class="campo">Motivo:</span> <span class="valor">${sol.motivo}</span></p>
+    ${sol.insertarMotivo ? `<p><span class="campo">Otro motivo:</span> <span class="valor">${sol.insertarMotivo}</span></p>` : ""}
+    <p><span class="campo">Cargo solicitado:</span> <span class="valor">${sol.cargoSolicitado}</span></p>
+    <p><span class="campo">Reemplaza a:</span> <span class="valor">${sol.reemplazaA}</span></p>
+    <p><span class="campo">Área:</span> <span class="valor">${sol.area}</span></p>
+    <p><span class="campo">Departamento:</span> <span class="valor">${sol.departamento}</span></p>
+    <p><span class="campo">N° Vacantes:</span> <span class="valor">${sol.cantidad}</span></p>
+    <p><span class="campo">Edad sugerida:</span> <span class="valor">${sol.edad}</span></p>
+    <p><span class="campo">Sexo sugerido:</span> <span class="valor">${sol.sexo}</span></p>
+    <p><span class="campo">Fecha ingreso estimada:</span> <span class="valor">${sol.fechaIngreso}</span></p>
+    <p><span class="campo">Tipo contratación:</span> <span class="valor">${sol.tipoContratacion}</span></p>
+    <p><span class="campo">Horario:</span> <span class="valor">${sol.horarioCompleto}</span></p>
+    <p><span class="campo">Tipo de horario:</span> 
+   <span class="valor">${mapaHorario[sol.horario] || sol.horario}</span>
+</p>
+
+
+
+    <div class="section-title">Accesos / Equipos</div>
+    <p><span class="campo">Tipo cargo:</span> <span class="valor">${sol.tipoCargo}</span></p>
+    <p><span class="campo">¿Requiere accesos?:</span> <span class="valor">${sol.requiereAccesos}</span></p>
+    ${sol.accesosPC.length > 0 ? `<p><span class="campo">Accesos internos:</span> <span class="valor">${sol.accesosPC.join(", ")}</span></p>` : ""}
+    <p><span class="campo">¿Requiere computador?:</span> <span class="valor">${sol.requiereComp}</span></p>
+    <p><span class="campo">¿Requiere teléfono?:</span> <span class="valor">${sol.requiereTel}</span></p>
+    <p><span class="campo">¿Requiere celular?:</span> <span class="valor">${sol.requiereCel}</span></p>
+
+    <div class="section-title">Perfil requerido</div>
+    <p><span class="campo">Nivel académico:</span> <span class="valor">${sol.nivelAcademico}</span></p>
+    ${sol.profesion ? `<p><span class="campo">Profesión:</span> <span class="valor">${sol.profesion}</span></p>` : ""}
+    <p><span class="campo">Experiencia mínima:</span> <span class="valor">${sol.experienciaMinima}</span></p>
+    
+    <p><span class="campo">Conocimientos técnicos:</span></p>
+    <p class="valor">${sol.conocimientosTecnicos.replace(/\n/g, "<br>")}</p>
+
+    <p><span class="campo">Requerimientos adicionales:</span></p>
+    <p class="valor">${sol.requerimientosAdicionales.replace(/\n/g, "<br>")}</p>
+
+    <p><span class="campo">Funciones:</span></p>
+    <p class="valor">${sol.funcionesPerfil.replace(/\n/g, "<br>")}</p>
+
+    <p><span class="campo">Competencias:</span></p>
+    <p class="valor">${sol.competencias.replace(/\n/g, "<br>")}</p>
+
+  `;
+}
+const mapaHorario = {
+    "Administrativo": "Administrativo",
+    "Producciónr": "Producción rotativo",
+    "Producciónf": "Producción fijo",
+    "Almacenes": "Almacenes",
+    "otros": "Otros"
+};
+
+
+cargarSolicitud();
+</script>
+
+  <script src="../../../assets/js/ui-shell.js"></script>
+</body>
+</html>
+

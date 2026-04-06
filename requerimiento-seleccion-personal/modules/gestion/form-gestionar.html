@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Gestionar Solicitud</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .readonly-field {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+    }
+    .section-header {
+        margin-top: 25px;
+        font-weight: bold;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+        font-size: 18px;
+    }
+</style>
+
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+<div class="container">
+
+    <h3 class="mb-4">Gestionar Solicitud</h3>
+
+    <div class="mb-3">
+        <button class="btn btn-secondary" onclick="regresarLista()">⟵ Regresar al listado</button>
+    </div>
+
+    <!-- ========================= -->
+    <!--        INFORMACIÓN BASE   -->
+    <!-- ========================= -->
+    <div class="section-header">Información General</div>
+    <div class="row g-3">
+
+        <div class="col-md-6">
+            <label class="form-label">N° Solicitud</label>
+            <input id="nSolicitud" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Fecha Solicitud</label>
+            <input id="fechaSolicitud" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Solicitante</label>
+            <input id="solicitante" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Área</label>
+            <input id="area" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Departamento</label>
+            <input id="departamento" class="form-control readonly-field" readonly>
+        </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!--   INFORMACIÓN DEL CARGO  -->
+    <!-- ========================= -->
+    <div class="section-header">Información del Cargo</div>
+    <div class="row g-3">
+
+        <div class="col-md-6">
+            <label class="form-label">Motivo</label>
+            <input id="motivo" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Fecha estimada de ingreso</label>
+            <input id="fechaIngreso" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Cargo solicitado</label>
+            <input id="cargoSolicitado" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6" id="reemplazaABox">
+            <label class="form-label">Reemplaza a</label>
+            <input id="reemplazaA" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Cantidad</label>
+            <input id="cantidad" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Tipo de contratación</label>
+            <input id="tipoContratacion" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Horario</label>
+            <input id="horario" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Hora Inicio</label>
+            <input id="horaInicio" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Hora Fin</label>
+            <input id="horaFin" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Tipo de cargo</label>
+            <input id="tipoCargo" class="form-control readonly-field" readonly>
+        </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!--    ACCESOS Y EQUIPOS     -->
+    <!-- ========================= -->
+    <div class="section-header">Accesos y Equipos</div>
+    <div class="row g-3">
+
+        <!-- NUEVO: ¿Requiere Accesos? -->
+        <div class="col-md-6">
+            <label class="form-label">¿Requiere Accesos?</label>
+            <input id="requiereAccesos" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Accesos Internos</label>
+            <textarea id="accesosPC" class="form-control readonly-field" rows="3" readonly></textarea>
+        </div>
+
+        <!-- ¿Requiere computador? -->
+        <div class="col-md-6">
+            <label class="form-label">¿Requiere Computador?</label>
+            <input id="requiereComp" class="form-control readonly-field" readonly>
+        </div>
+
+        <!-- Teléfono -->
+        <div class="col-md-6">
+            <label class="form-label">¿Requiere Teléfono?</label>
+            <input id="requiereTel" class="form-control readonly-field" readonly>
+        </div>
+
+        <!-- Celular (NUEVO) -->
+        <div class="col-md-6">
+            <label class="form-label">¿Requiere Celular?</label>
+            <input id="requiereCel" class="form-control readonly-field" readonly>
+        </div>
+
+        <!-- Solicitud adicional -->
+        <div class="col-md-12">
+            <label class="form-label">Solicitud adicional</label>
+            <textarea id="adicional" class="form-control readonly-field" rows="3" readonly></textarea>
+        </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!--     PERFIL REQUERIDO     -->
+    <!-- ========================= -->
+    <div class="section-header">Perfil Requerido</div>
+    <div class="row g-3">
+
+        <div class="col-md-4">
+            <label class="form-label">Edad Estimada</label>
+            <input id="edad" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Sexo Sugerido</label>
+            <input id="sexo" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Nivel Académico</label>
+            <input id="nivelAcademico" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Experiencia Mínima</label>
+            <input id="experienciaMinima" class="form-control readonly-field" readonly>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Conocimientos Técnicos</label>
+            <textarea id="conocimientosTecnicos" class="form-control readonly-field" rows="3" readonly></textarea>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Requerimientos adicionales</label>
+            <textarea id="requerimientosAdicionales" class="form-control readonly-field" rows="3" readonly></textarea>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Funciones</label>
+            <textarea id="funcionesPerfil" class="form-control readonly-field" rows="3" readonly></textarea>
+        </div>
+
+        <div class="col-md-12">
+            <label class="form-label">Competencias</label>
+            <textarea id="competencias" class="form-control readonly-field" rows="3" readonly></textarea>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const params = new URLSearchParams(window.location.search);
+    const indice = params.get("sol");
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const sol = lista[indice];
+    if (!sol) return;
+
+    // Información Base
+    document.getElementById("nSolicitud").value = sol.numero;
+    document.getElementById("fechaSolicitud").value = sol.fechaSolicitud;
+    document.getElementById("solicitante").value = sol.solicitante;
+    document.getElementById("area").value = sol.area;
+    document.getElementById("departamento").value = sol.departamento;
+
+    // Cargo
+    document.getElementById("motivo").value = sol.motivo;
+    document.getElementById("fechaIngreso").value = sol.fechaIngreso;
+    document.getElementById("cargoSolicitado").value = sol.cargoSolicitado;
+    document.getElementById("reemplazaA").value = sol.reemplazaA || "N/A";
+
+    if (sol.motivo !== "Reemplazo por renuncia") {
+        document.getElementById("reemplazaABox").style.display = "none";
+    }
+
+    document.getElementById("cantidad").value = sol.cantidad;
+    document.getElementById("tipoContratacion").value = sol.tipoContratacion;
+    document.getElementById("horario").value = sol.horario;
+    document.getElementById("horaInicio").value = sol.horaInicio;
+    document.getElementById("horaFin").value = sol.horaFin;
+    document.getElementById("tipoCargo").value = sol.tipoCargo;
+
+    // ACCESOS Y EQUIPOS
+    document.getElementById("requiereAccesos").value = sol.requiereAccesos;
+    document.getElementById("accesosPC").value = sol.accesosPC.join(", ");
+
+    document.getElementById("requiereComp").value = sol.requiereComp;
+    document.getElementById("requiereTel").value = sol.requiereTel;
+    document.getElementById("requiereCel").value = sol.requiereCel;
+
+    document.getElementById("adicional").value = sol.adicional;
+
+    // Perfil
+    document.getElementById("edad").value = sol.edad;
+    document.getElementById("sexo").value = sol.sexo;
+    document.getElementById("nivelAcademico").value = sol.nivelAcademico;
+    document.getElementById("experienciaMinima").value = sol.experienciaMinima;
+    document.getElementById("conocimientosTecnicos").value = sol.conocimientosTecnicos;
+    document.getElementById("requerimientosAdicionales").value = sol.requerimientosAdicionales;
+    document.getElementById("funcionesPerfil").value = sol.funcionesPerfil;
+    document.getElementById("competencias").value = sol.competencias;
+});
+
+
+function regresarLista() {
+    window.location.href = "solicitudes/listado-solicitudes.html";
+}
+
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>
+

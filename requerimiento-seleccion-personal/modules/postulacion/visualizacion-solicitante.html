@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4. Selección Oficial de Postulantes</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .table thead { background-color: #f8f9fa; }
+    .table td, .table th { text-align: center; vertical-align: middle; }
+    .badge-pendiente { background: #ffc107; color: black; }
+    .badge-aprobado { background: #28a745; color: white; }
+    .badge-rechazado { background: #dc3545; color: white; }
+    .review-modal-frame {
+      width: 100%;
+      min-height: 78vh;
+      border: 0;
+      background: #fff;
+    }
+    .review-modal-header {
+      background: #eef6f3;
+      color: #0f5f4e;
+      border-bottom: 1px solid #d5e5df;
+    }
+    .review-modal-title {
+      margin: 0;
+      font-weight: 700;
+      color: #0f5f4e;
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+  <div class="container">
+    <h3 class="mb-4">Selección Oficial de Postulantes</h3>
+
+    <table class="table table-bordered table-hover align-middle">
+      <thead>
+        <tr>
+          <th>N° Solicitud</th>
+          <th>Fecha</th>
+          <th>Área</th>
+          <th>Departamento</th>
+          <th>Cargo Solicitado</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+
+      <tbody id="tablaSolicitante"></tbody>
+    </table>
+  </div>
+
+<div class="modal fade" id="modalSeleccionOficial" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header review-modal-header">
+        <h5 class="modal-title review-modal-title">Seleccion Oficial de Postulantes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body p-0">
+        <iframe id="iframeSeleccionOficial" class="review-modal-frame" title="Seleccion Oficial de Postulantes"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let modalSeleccionOficial = null;
+
+// -------------------------------------------------------
+// CARGAR SOLO SOLICITUDES CON CANDIDATOS EN TERNA
+// -------------------------------------------------------
+function cargarSolicitudesSolicitante() {
+
+    const tabla = document.getElementById("tablaSolicitante");
+    tabla.innerHTML = "";
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+
+    // AHORA SÍ: mostrar toda solicitud que tenga terna, sin importar seleccionFinalizada
+    // Mostrar solo solicitudes con preselección FINALIZADA y con candidatos en terna
+const solicitudesConTerna = lista
+    .map((sol, index) => ({ sol, index }))
+    .filter(item => {
+        const seleccionFinalizada =
+            item.sol.seleccionOficialFinalizada === true ||
+            item.sol.etapaSeleccionOficial === "finalizada" ||
+            item.sol.estadoSeleccionOficial === "Seleccion Oficial Finalizada";
+
+        return (
+            item.sol.preseleccionFinalizada === true &&
+            !seleccionFinalizada &&
+            Array.isArray(item.sol.candidatos) &&
+            item.sol.candidatos.some(c =>
+                c.estado === "terna" ||
+                c.estado === "pendiente" ||
+                c.estado === "seleccionado_oficial" ||
+                c.estado === "no_seleccionado"
+            )
+        );
+    });
+
+
+    if (solicitudesConTerna.length === 0) {
+        tabla.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-muted">
+                    No existen solicitudes con candidatos preseleccionados.
+                </td>
+            </tr>`;
+        return;
+    }
+
+    solicitudesConTerna.forEach(item => {
+
+        const sol = item.sol;
+        const index = item.index;
+
+        const enProcesoSeleccionOficial = sol.etapaSeleccionOficial === "iniciada";
+        const badgeClass = enProcesoSeleccionOficial ? "badge-aprobado" : "badge-pendiente";
+        const textoEstado = enProcesoSeleccionOficial
+            ? "En proceso seleccion oficial"
+            : "Pendiente seleccion oficial";
+
+        const fila = `
+          <tr>
+            <td>${sol.numero}</td>
+            <td>${sol.fechaSolicitud}</td>
+            <td>${sol.area}</td>
+            <td>${sol.departamento}</td>
+            <td>${sol.cargoSolicitado}</td>
+
+            <td><span class="badge ${badgeClass}">${textoEstado}</span></td>
+
+            <td>
+              <button class="btn btn-primary btn-sm btn-accion-candidatos"
+                      onclick="seleccionarCandidatos(${index})">
+                  Seleccionar Candidatos
+              </button>
+            </td>
+          </tr>
+        `;
+
+        tabla.innerHTML += fila;
+    });
+}
+
+
+// -------------------------------------------------------
+// REDIRECCIÓN CORRECTA A SELECCIÓN OFICIAL
+// -------------------------------------------------------
+function seleccionarCandidatos(indice) {
+    const iframe = document.getElementById("iframeSeleccionOficial");
+    const modalEl = document.getElementById("modalSeleccionOficial");
+    if (!iframe || !modalEl) return;
+
+    iframe.src = `../seleccion/seleccion-postulantes-oficiales.html?sol=${indice}&embed=1&v=${Date.now()}`;
+
+    if (!modalSeleccionOficial) {
+        modalSeleccionOficial = new bootstrap.Modal(modalEl);
+        modalEl.addEventListener("hidden.bs.modal", () => {
+            iframe.src = "";
+            cargarSolicitudesSolicitante();
+        });
+    }
+
+    modalSeleccionOficial.show();
+}
+
+// -------------------------------------------------------
+window.onload = cargarSolicitudesSolicitante;
+
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,223 @@
+﻿:root {
+  --gt-bg-1: #edf4f2;
+  --gt-bg-2: #d6e7e1;
+  --gt-surface: #ffffff;
+  --gt-surface-soft: #f8fbfa;
+  --gt-line: #d6e1dd;
+  --gt-line-strong: #c8d6d0;
+  --gt-text: #1f2a2b;
+  --gt-muted: #5f7075;
+  --gt-brand: #0f5f4e;
+  --gt-brand-soft: #e4f2ed;
+  --gt-head-bg: #e9f2ee;
+  --gt-table-hover: #f4f8f7;
+  --gt-shadow: 0 12px 28px rgba(22, 52, 44, 0.08);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: var(--gt-text);
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  line-height: 1.35;
+  min-height: 100vh;
+  background-color: var(--gt-bg-1);
+  background-image: linear-gradient(145deg, #edf5f2 0%, #dfece7 55%, #d4e5de 100%);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+.container,
+.tabla-container {
+  background: var(--gt-surface);
+  border: 1px solid var(--gt-line);
+  border-radius: 14px;
+  box-shadow: var(--gt-shadow);
+  padding: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.card,
+.panel,
+.module-card {
+  border-radius: 14px !important;
+  border: 1px solid var(--gt-line) !important;
+  box-shadow: 0 8px 22px rgba(22, 52, 44, 0.06) !important;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  color: var(--gt-brand);
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+p,
+small,
+label {
+  color: var(--gt-text);
+}
+
+/* =========================
+   ESTANDAR DE TABLAS GLOBAL
+========================= */
+.table-responsive {
+  border-radius: 12px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table,
+table.table,
+table:not(.table-borderless) {
+  width: 100%;
+  max-width: 100%;
+  table-layout: auto;
+  border-collapse: separate !important;
+  border-spacing: 0;
+  border: 1px solid var(--gt-line) !important;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--gt-surface);
+  margin-bottom: 0.8rem;
+}
+
+.table thead th,
+table thead th {
+  background: var(--gt-head-bg) !important;
+  color: #2d4441 !important;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid var(--gt-line-strong) !important;
+  vertical-align: middle !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.table th,
+.table td,
+table th,
+table td {
+  border-color: var(--gt-line) !important;
+  vertical-align: middle !important;
+  padding: 0.58rem 0.65rem;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  min-width: 0;
+}
+
+.table td .form-control,
+.table td .form-select,
+table td .form-control,
+table td .form-select {
+  width: 100%;
+  max-width: 100%;
+}
+
+.table tbody tr:nth-child(even),
+table tbody tr:nth-child(even) {
+  background: var(--gt-surface-soft);
+}
+
+.table tbody tr:hover,
+table tbody tr:hover {
+  background: var(--gt-table-hover) !important;
+}
+
+/* =========================
+   FORMULARIOS Y CONTROLES
+========================= */
+.form-control,
+.form-select,
+textarea {
+  border: 1px solid var(--gt-line-strong) !important;
+  border-radius: 10px !important;
+  background: #fff;
+}
+
+.form-control:focus,
+.form-select:focus,
+textarea:focus {
+  border-color: #8ab8aa !important;
+  box-shadow: 0 0 0 0.18rem rgba(31, 139, 113, 0.18) !important;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 0.38rem 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+/* =========================
+   BOTONES
+========================= */
+.btn {
+  border-radius: 10px !important;
+  font-weight: 600;
+  letter-spacing: 0.15px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(18, 54, 45, 0.14);
+}
+
+.btn-accion-candidatos {
+  background: linear-gradient(135deg, #1f73ea 0%, #1b5cc9 100%) !important;
+  border-color: #1b5cc9 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  min-width: 180px;
+}
+
+.btn-accion-candidatos:hover {
+  filter: brightness(1.05);
+}
+
+.btn-accion-candidatos:focus {
+  box-shadow: 0 0 0 0.2rem rgba(31, 115, 234, 0.2) !important;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .container,
+  .tabla-container {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .table thead th,
+  table thead th {
+    font-size: 0.72rem;
+  }
+
+  .table th,
+  .table td,
+  table th,
+  table td {
+    padding: 0.46rem 0.45rem;
+    font-size: 0.86rem;
+  }
+}

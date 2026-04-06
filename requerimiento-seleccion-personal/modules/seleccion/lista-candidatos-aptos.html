@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5. Aprobación de Ingreso</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .table thead { background-color: #f8f9fa; }
+    .table td, .table th { text-align: center; vertical-align: middle; }
+    .badge-pendiente { background: #ffc107; color: black; }
+    .badge-aprobado { background: #28a745; color: white; }
+    .badge-rechazado { background: #dc3545; color: white; }
+    .review-modal-frame {
+      width: 100%;
+      min-height: 78vh;
+      border: 0;
+      background: #fff;
+    }
+    .review-modal-header {
+      background: #eef6f3;
+      color: #0f5f4e;
+      border-bottom: 1px solid #d5e5df;
+    }
+    .review-modal-title {
+      margin: 0;
+      font-weight: 700;
+      color: #0f5f4e;
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+  <div class="container">
+    <h3 class="mb-4">Aprobación de Ingreso</h3>
+
+    <table class="table table-bordered table-hover align-middle">
+      <thead>
+        <tr>
+          <th>N° Solicitud</th>
+          <th>Fecha</th>
+          <th>Área</th>
+          <th>Departamento</th>
+          <th>Cargo Solicitado</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+
+      <tbody id="tablaSolicitante"></tbody>
+    </table>
+  </div>
+
+<div class="modal fade" id="modalAprobacionIngreso" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header review-modal-header">
+        <h5 class="modal-title review-modal-title">Aprobacion de Ingreso</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body p-0">
+        <iframe id="iframeAprobacionIngreso" class="review-modal-frame" title="Aprobacion de Ingreso"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let modalAprobacionIngreso = null;
+
+// -------------------------------------------------------
+// CARGAR SOLICITUDES PARA APROBACIÓN DE INGRESO
+// -------------------------------------------------------
+function cargarSolicitudesSolicitante() {
+
+    const tabla = document.getElementById("tablaSolicitante");
+    tabla.innerHTML = "";
+
+    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+
+    // Mostrar solicitudes con selección oficial finalizada
+    // y candidatos listos para aprobación de ingreso
+    const solicitudesAprobacionIngreso = lista
+        .map((sol, index) => ({ sol, index }))
+        .filter(item => {
+            const aprobacionFinalizada =
+                item.sol.aprobacionIngresoFinalizada === true ||
+                item.sol.etapaAprobacionIngreso === "finalizada" ||
+                item.sol.estadoAprobacionIngreso === "Aprobacion de Ingreso Finalizada" ||
+                item.sol.estadoAprobacionIngreso === "Aprobación de Ingreso Finalizada";
+            const tipoCargoNormalizado = String(item.sol.tipoCargo || "")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .trim()
+                .toLowerCase();
+            const esCargoAdministrativo = tipoCargoNormalizado.includes("administrativo");
+
+            return (
+                item.sol.seleccionOficialFinalizada === true &&
+                !aprobacionFinalizada &&
+                esCargoAdministrativo &&
+                Array.isArray(item.sol.candidatos) &&
+                item.sol.candidatos.some(c =>
+                    c.estado === "aprobado_ingreso" ||
+                    c.estado === "seleccionado_oficial" ||
+                    c.estado === "pendiente" ||
+                    c.estado === "no_seleccionado"
+                )
+            );
+        });
+
+    if (solicitudesAprobacionIngreso.length === 0) {
+        tabla.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-muted">
+                    No existen solicitudes administrativas con candidatos para aprobacion de ingreso.
+                </td>
+            </tr>`;
+        return;
+    }
+
+    solicitudesAprobacionIngreso.forEach(item => {
+
+        const sol = item.sol;
+        const index = item.index;
+
+        const enProcesoAprobacion = sol.etapaAprobacionIngreso === "iniciada";
+        const badgeClass = enProcesoAprobacion ? "badge-aprobado" : "badge-pendiente";
+        const textoEstado = enProcesoAprobacion
+            ? "En proceso aprobacion de ingreso"
+            : "Pendiente aprobacion de ingreso";
+
+        const fila = `
+          <tr>
+            <td>${sol.numero}</td>
+            <td>${sol.fechaSolicitud}</td>
+            <td>${sol.area}</td>
+            <td>${sol.departamento}</td>
+            <td>${sol.cargoSolicitado}</td>
+
+            <td><span class="badge ${badgeClass}">${textoEstado}</span></td>
+
+            <td>
+              <button class="btn btn-primary btn-sm btn-accion-candidatos"
+                      onclick="verAprobacionIngreso(${index})">
+                  Aprobación de Ingreso
+              </button>
+            </td>
+          </tr>
+        `;
+
+        tabla.innerHTML += fila;
+    });
+}
+
+
+// -------------------------------------------------------
+// REDIRECCIÓN A LA PANTALLA 5.1
+// -------------------------------------------------------
+function verAprobacionIngreso(indice) {
+    const iframe = document.getElementById("iframeAprobacionIngreso");
+    const modalEl = document.getElementById("modalAprobacionIngreso");
+    if (!iframe || !modalEl) return;
+
+    iframe.src = `confirmacion-postulantes-seleccionados.html?sol=${indice}&embed=1&v=${Date.now()}`;
+
+    if (!modalAprobacionIngreso) {
+        modalAprobacionIngreso = new bootstrap.Modal(modalEl);
+        modalEl.addEventListener("hidden.bs.modal", () => {
+            iframe.src = "";
+            cargarSolicitudesSolicitante();
+        });
+    }
+
+    modalAprobacionIngreso.show();
+}
+
+
+// -------------------------------------------------------
+window.onload = cargarSolicitudesSolicitante;
+
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>
+

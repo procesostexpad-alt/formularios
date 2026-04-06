@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activacion de Postulacion</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: #f4f6f9;
+      font-family: Arial, sans-serif;
+    }
+
+    h3 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+
+    .tabla-container {
+      max-width: 96%;
+      margin: 0 auto;
+    }
+
+    .table thead {
+      background: #e9ecef;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+    }
+
+    .table td, .table th {
+      vertical-align: middle !important;
+      text-align: center;
+      font-size: 13px;
+      padding: 10px;
+    }
+
+    .estado-chip {
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-weight: 700;
+      font-size: 12px;
+      display: inline-block;
+    }
+
+    .chip-pendiente { background: #e9ecef; color: #334155; }
+    .chip-programada { background: #ffe69c; color: #5b3c00; }
+    .chip-activa { background: #198754; color: #fff; }
+    .chip-finalizada { background: #6c757d; color: #fff; }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body class="p-4">
+  <div class="tabla-container">
+    <h3>Activacion de Postulacion</h3>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle bg-white">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Fecha Solicitud</th>
+            <th>Solicitante</th>
+            <th>Area</th>
+            <th>Departamento</th>
+            <th>Cargo</th>
+            <th>Estado Postulacion</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Configurar</th>
+            <th>Finalizar</th>
+            <th>Postulantes</th>
+          </tr>
+        </thead>
+        <tbody id="tablaBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalFechas" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Configurar Fechas de Postulacion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label><b>Fecha inicio:</b></label>
+          <input type="date" id="fechaInicioPost" class="form-control mb-3">
+
+          <label><b>Fecha fin:</b></label>
+          <input type="date" id="fechaFinPost" class="form-control">
+
+          <small class="text-muted d-block mt-2">
+            Las fechas no pueden ser menores a la fecha actual.
+          </small>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-success" onclick="guardarFechasPostulacion()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let indiceSeleccionado = null;
+
+    function hoyISO() {
+      return new Date().toISOString().split("T")[0];
+    }
+
+    function registrarEtapa(solicitud, nuevaEtapa) {
+      if (!solicitud.historialEtapas) solicitud.historialEtapas = [];
+      const historico = solicitud.historialEtapas;
+
+      if (historico.length > 0 && historico[historico.length - 1].etapa === nuevaEtapa) {
+        historico[historico.length - 1] = {
+          etapa: nuevaEtapa,
+          fecha: new Date().toLocaleString(),
+          usuario: solicitud.solicitante || "Sistema"
+        };
+      } else {
+        historico.push({
+          etapa: nuevaEtapa,
+          fecha: new Date().toLocaleString(),
+          usuario: solicitud.solicitante || "Sistema"
+        });
+      }
+    }
+
+    function estadoPostulacion(sol) {
+      if (sol.postulacionCerrada) {
+        return { label: "Finalizada", clase: "chip-finalizada" };
+      }
+      return { label: "Activa", clase: "chip-activa" };
+    }
+
+    function normalizarCierresAutomaticos(lista) {
+      const hoy = hoyISO();
+      let huboCambios = false;
+
+      lista.forEach(sol => {
+        if (sol.postulacionActiva && sol.fechaFinPostulacion && sol.fechaFinPostulacion < hoy) {
+          sol.postulacionActiva = false;
+          sol.postulacionCerrada = true;
+          registrarEtapa(sol, "postulacion-finalizada-auto");
+          huboCambios = true;
+        }
+      });
+
+      if (huboCambios) {
+        localStorage.setItem("solicitudes", JSON.stringify(lista));
+      }
+    }
+
+    function cargarTabla() {
+      const tabla = document.getElementById("tablaBody");
+      tabla.innerHTML = "";
+
+      const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+      normalizarCierresAutomaticos(lista);
+
+      const aprobadas = lista
+        .map((sol, index) => ({ sol, index }))
+        .filter(item =>
+          String(item.sol.estado || "").trim().toLowerCase() === "aprobado" &&
+          item.sol.postulacionCerrada !== true
+        );
+
+      if (aprobadas.length === 0) {
+        tabla.innerHTML = `
+          <tr>
+                <td colspan="12" class="text-center text-muted py-4">
+              No hay solicitudes disponibles para activacion de postulacion.
+                </td>
+          </tr>
+        `;
+        return;
+      }
+
+      aprobadas.forEach(item => {
+        const sol = item.sol;
+        const index = item.index;
+        const estado = estadoPostulacion(sol);
+        const totalPostulantes = Array.isArray(sol.candidatos) ? sol.candidatos.length : 0;
+        const textoConfig = sol.postulacionActiva ? "Configurar" : "Activar";
+        const deshabilitarFinalizar = (!sol.postulacionActiva || sol.postulacionCerrada) ? "disabled" : "";
+
+        tabla.innerHTML += `
+          <tr>
+            <td>${sol.numero || "-"}</td>
+            <td>${sol.fechaSolicitud || "-"}</td>
+            <td>${sol.solicitante || "-"}</td>
+            <td>${sol.area || "-"}</td>
+            <td>${sol.departamento || "-"}</td>
+            <td>${sol.cargoSolicitado || "-"}</td>
+            <td><span class="estado-chip ${estado.clase}">${estado.label}</span></td>
+            <td>${sol.fechaInicioPostulacion || "-"}</td>
+            <td>${sol.fechaFinPostulacion || "-"}</td>
+            <td>
+              <button class="btn btn-primary btn-sm" onclick="abrirModalFechas(${index})">
+                ${textoConfig}
+              </button>
+            </td>
+            <td>
+              <button class="btn btn-danger btn-sm" onclick="finalizarPostulacion(${index})" ${deshabilitarFinalizar}>
+                Finalizar
+              </button>
+            </td>
+            <td><b>${totalPostulantes}</b></td>
+          </tr>
+        `;
+      });
+    }
+
+    function abrirModalFechas(index) {
+      const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+      const sol = lista[index];
+      if (!sol) return;
+
+      indiceSeleccionado = index;
+      const hoy = hoyISO();
+      const inputInicio = document.getElementById("fechaInicioPost");
+      const inputFin = document.getElementById("fechaFinPost");
+
+      inputInicio.min = hoy;
+      inputFin.min = hoy;
+      inputInicio.value = sol.fechaInicioPostulacion && sol.fechaInicioPostulacion >= hoy ? sol.fechaInicioPostulacion : hoy;
+      inputFin.value = sol.fechaFinPostulacion && sol.fechaFinPostulacion >= hoy ? sol.fechaFinPostulacion : hoy;
+
+      const modal = new bootstrap.Modal(document.getElementById("modalFechas"));
+      modal.show();
+    }
+
+    function guardarFechasPostulacion() {
+      const fechaInicio = document.getElementById("fechaInicioPost").value;
+      const fechaFin = document.getElementById("fechaFinPost").value;
+      const hoy = hoyISO();
+
+      if (!fechaInicio || !fechaFin) {
+        alert("Debe ingresar ambas fechas.");
+        return;
+      }
+
+      if (fechaInicio < hoy || fechaFin < hoy) {
+        alert("Las fechas no pueden ser menores a la fecha actual.");
+        return;
+      }
+
+      if (fechaFin < fechaInicio) {
+        alert("La fecha fin no puede ser menor que la fecha inicio.");
+        return;
+      }
+
+      let lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+      let sol = lista[indiceSeleccionado];
+      if (!sol) return;
+
+      const yaActiva = Boolean(sol.postulacionActiva);
+
+      sol.postulacionActiva = true;
+      sol.postulacionCerrada = false;
+      sol.fechaInicioPostulacion = fechaInicio;
+      sol.fechaFinPostulacion = fechaFin;
+
+      registrarEtapa(sol, yaActiva ? "postulacion-fechas-actualizadas" : "postulacion-iniciada");
+
+      localStorage.setItem("solicitudes", JSON.stringify(lista));
+      cargarTabla();
+      document.querySelector("#modalFechas .btn-close").click();
+    }
+
+    function finalizarPostulacion(index) {
+      let lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+      let sol = lista[index];
+      if (!sol || !sol.postulacionActiva) return;
+
+      if (!confirm("¿Deseas finalizar la postulacion antes de su fecha establecida?")) return;
+
+      const hoy = hoyISO();
+      sol.postulacionActiva = false;
+      sol.postulacionCerrada = true;
+      if (sol.fechaInicioPostulacion && sol.fechaInicioPostulacion > hoy) {
+        sol.fechaInicioPostulacion = hoy;
+      }
+      if (!sol.fechaFinPostulacion || sol.fechaFinPostulacion > hoy) {
+        sol.fechaFinPostulacion = hoy;
+      }
+
+      registrarEtapa(sol, "postulacion-finalizada-manual");
+
+      localStorage.setItem("solicitudes", JSON.stringify(lista));
+      cargarTabla();
+    }
+
+    cargarTabla();
+  </script>
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

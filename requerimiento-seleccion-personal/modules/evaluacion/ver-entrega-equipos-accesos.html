@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>9.3. Solicitudes de Equipos / Accesos - Sistemas</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  table th, table td { 
+    text-align: center; 
+    vertical-align: middle; 
+  }
+  .readonly {
+    background: #f2f2f2 !important;
+  }
+  .acciones-btn {
+    cursor: pointer;
+    font-size: 20px;
+  }
+
+  /* 🎨 COLORES ESTADO ENTREGA */
+  .estado-pendiente {
+    background: #fff3cd !important; /* Amarillo suave */
+    font-weight: bold;
+  }
+  .estado-entregado {
+    background: #d4edda !important; /* Verde suave */
+    font-weight: bold;
+  }
+  .estado-incompleto {
+    background: #f8d7da !important; /* Rojo suave */
+    font-weight: bold;
+  }
+</style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+
+<body class="bg-light p-4">
+
+<div class="container">
+
+  <h3 class="mb-4">Solicitudes de Equipos / Accesos - Sistemas</h3>
+
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-secondary">
+      <tr>
+        <th>N° de Solicitud</th>
+        <th>Tipo de Contratación</th>
+        <th>Solicitante</th>
+        <th>Área</th>
+        <th>Cargo</th>
+        <th>Nombre del Trabajador</th>
+        <th>Código Único</th>
+        <th>Fecha de Ingreso</th>
+        <th>Estado PP</th>
+        <th>Requiere Computador</th>
+        <th>Requiere Teléfono</th>
+        <th>Estado Entrega</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody id="tablaSistemas"></tbody>
+
+  </table>
+
+</div>
+
+<script>
+
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function esSi(valor) {
+  return normalizarTexto(valor) === "si";
+}
+
+// ==========================================================
+// CARGAR
+// - Requiere accesos/computador/telefono
+// - Solo candidatos EN PRUEBA
+// ==========================================================
+function cargarSistemas() {
+
+  const tabla = document.getElementById("tablaSistemas");
+  tabla.innerHTML = "";
+
+  const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+
+  solicitudes.forEach(sol => {
+
+    const requierePC = esSi(sol.requiereComp);
+    const requiereTelefono = esSi(sol.requiereTel);
+    const requiereAccesos = esSi(sol.requiereAccesos);
+
+    if (!requierePC && !requiereTelefono && !requiereAccesos) return;
+
+    sol.candidatos?.forEach(c => {
+
+      if (c.periodoEstado !== "EN PRUEBA") return;
+
+      const estadoEntrega = c.estadoEntrega || "PENDIENTE";
+
+      // 🎨 DEFINIR CLASE SEGÚN EL ESTADO
+      let claseEstado = "";
+      if (estadoEntrega === "PENDIENTE") claseEstado = "estado-pendiente";
+      if (estadoEntrega === "ENTREGADO") claseEstado = "estado-entregado";
+      if (estadoEntrega === "ENTREGA INCOMPLETA") claseEstado = "estado-incompleto";
+
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td class="readonly">${sol.numero}</td>
+        <td class="readonly">${sol.tipoContratacion || "-"}</td>
+        <td class="readonly">${sol.solicitante}</td>
+        <td class="readonly">${sol.area}</td>
+        <td class="readonly">${sol.cargoSolicitado}</td>
+
+        <td class="readonly">${c.nombre}</td>
+        <td class="readonly">${c.codigoUnico || ""}</td>
+        <td class="readonly">${c.fechaIngreso || ""}</td>
+
+        <td class="readonly">${c.periodoEstado}</td>
+
+        <td class="readonly">${sol.requiereComp || "no"}</td>
+        <td class="readonly">${sol.requiereTel || "no"}</td>
+
+        <!-- 🎨 ESTADO CON COLOR -->
+        <td class="${claseEstado}">${estadoEntrega}</td>
+
+        <td>
+          <span class="acciones-btn" onclick="accion('${c.cedula}', '${sol.numero}')">🛠️</span>
+        </td>
+      `;
+
+      tabla.appendChild(row);
+    });
+  });
+}
+
+
+
+// ==========================================================
+// ACCIÓN DEL BOTÓN 🛠️
+// ==========================================================
+function accion(cedula, numeroSolicitud) {
+  window.location.href = 
+    `gestionar-entrega-equipos-accesos.html?ced=${cedula}&sol=${numeroSolicitud}`;
+}
+
+
+
+// ==========================================================
+document.addEventListener("DOMContentLoaded", cargarSistemas);
+// ==========================================================
+
+</script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>
+
