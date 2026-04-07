@@ -31,6 +31,16 @@
       let huboCambios = false;
 
       lista.forEach(sol => {
+        if (sol.estado === "Ingresado para aprobar") {
+          sol.estado = "Ingresado";
+          huboCambios = true;
+        }
+
+        if (sol.estadoGeneral === "Ingresado para aprobar") {
+          sol.estadoGeneral = "Ingresado";
+          huboCambios = true;
+        }
+
         if (!sol.traceId) {
           sol.traceId = generarTraceId(sol.numero);
           huboCambios = true;
@@ -59,6 +69,7 @@
 
     function colorEstado(estado) {
       switch (estado) {
+        case "Ingresado": return "warning text-dark";
         case "Ingresado para aprobar": return "warning text-dark";
         case "Solicitud Aprobada": return "primary";
         case "Postulacion Cerrada": return "danger";
@@ -108,8 +119,8 @@
 
       if (!solicitud) return;
 
-      if (solicitud.estado === "Anulado") {
-        alert("No se puede editar una solicitud anulada.");
+      if (solicitud.estado !== "Ingresado") {
+        alert("Solo se puede editar una solicitud en estado Ingresado.");
         return;
       }
 
@@ -427,12 +438,14 @@
       });
 
       if (filtrada.length === 0) {
-        tabla.innerHTML = "<tr><td colspan=\"9\" class=\"text-center text-muted py-4\">No hay solicitudes para los filtros aplicados.</td></tr>";
+        tabla.innerHTML = "<tr><td colspan=\"8\" class=\"text-center text-muted py-4\">No hay solicitudes para los filtros aplicados.</td></tr>";
         return;
       }
 
       filtrada.forEach(sol => {
         const indiceReal = lista.findIndex(x => x.traceId === sol.traceId && x.numero == sol.numero);
+        const puedeEditar = sol.estado === "Ingresado";
+        const attrEditar = puedeEditar ? "" : " disabled title=\"Solo editable en estado Ingresado\"";
 
         const fila =
           "<tr>" +
@@ -443,10 +456,9 @@
           "<td>" + (sol.departamento || "-") + "</td>" +
           "<td>" + (sol.cargoSolicitado || "-") + "</td>" +
           "<td><span class=\"badge bg-" + colorEstado(sol.estado) + "\">" + (sol.estado || "-") + "</span></td>" +
-          "<td>" + (sol.ultimaActualizacion || "-") + "</td>" +
           "<td class=\"actions\">" +
           "<button class=\"btn btn-outline-danger btn-sm\" onclick=\"verSolicitudPdf(" + indiceReal + ")\">PDF</button>" +
-          "<button class=\"btn btn-warning btn-sm\" onclick=\"editarSolicitud(" + indiceReal + ")\">Editar</button>" +
+          "<button class=\"btn btn-warning btn-sm\" onclick=\"editarSolicitud(" + indiceReal + ")\"" + attrEditar + ">Editar</button>" +
           "<button class=\"btn btn-secondary btn-sm\" onclick=\"anularSolicitud(" + indiceReal + ")\">Anular</button>" +
           "<button class=\"btn btn-danger btn-sm\" onclick=\"eliminarSolicitud(" + indiceReal + ")\">Eliminar</button>" +
           "</td>" +
@@ -457,3 +469,4 @@
     }
 
     cargarTabla();
+

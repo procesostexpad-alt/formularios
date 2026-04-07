@@ -18,8 +18,8 @@
       key: "gestion",
       label: "Gestion",
       items: [
-        { label: "Listado de solicitudes", path: "modules/gestion/solicitudes/listado-solicitudes.html" },
-        { label: "Formulario de solicitud", path: "modules/gestion/solicitudes/formulario-solicitud.html" },
+        { label: "Solicitud de Requerimiento de Personal", path: "modules/gestion/solicitudes/listado-solicitudes.html" },
+        { label: "Formulario de Requerimiento de Personal", path: "modules/gestion/solicitudes/formulario-solicitud.html" },
         { label: "Ver solicitud", path: "modules/gestion/solicitudes/ver-solicitud.html" },
         { label: "Ver solicitud SSOMA", path: "modules/gestion/solicitudes/ver-solicitud-ssoma.html" },
         { label: "Estado general", path: "modules/gestion/estado-general.html" },

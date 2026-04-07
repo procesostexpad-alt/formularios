@@ -164,7 +164,6 @@
         <h1>Gestion Aprobacion de Creacion de Cargo</h1>
         <p>Listado de solicitudes de creacion de cargo para revisar informacion y aprobar o rechazar.</p>
       </div>
-      <a class="btn btn-outline-primary" href="solicitud-creacion-puesto.html">Ir a solicitudes</a>
     </section>
 
     <section class="container">
@@ -815,15 +814,14 @@
       tabla.innerHTML = "";
 
       const lista = asegurarData();
-      if (!lista.length) {
-        tabla.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay solicitudes de creacion de cargo registradas.</td></tr>';
+      const pendientes = lista.filter(item => textoSeguro(item.estadoSolicitud).toLowerCase() === "pendiente");
+
+      if (!pendientes.length) {
+        tabla.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay solicitudes pendientes de aprobacion.</td></tr>';
         return;
       }
 
-      lista.forEach((item, index) => {
-        const estado = textoSeguro(item.estadoSolicitud).toLowerCase();
-        const bloqueado = estado === "aprobada";
-
+      pendientes.forEach((item, index) => {
         const fila = document.createElement("tr");
         fila.innerHTML = `
           <td>${index + 1}</td>
@@ -836,8 +834,8 @@
           <td>
             <div class="acciones">
               <button type="button" class="btn btn-outline-primary btn-sm btn-accion" data-ver="${item.idSolicitud}">PDF</button>
-              <button type="button" class="btn btn-success btn-sm btn-accion" data-aprobar="${item.idSolicitud}" ${bloqueado ? "disabled" : ""}>Aprobar</button>
-              <button type="button" class="btn btn-outline-danger btn-sm btn-accion" data-rechazar="${item.idSolicitud}" ${bloqueado ? "disabled" : ""}>Rechazar</button>
+              <button type="button" class="btn btn-success btn-sm btn-accion" data-aprobar="${item.idSolicitud}">Aprobar</button>
+              <button type="button" class="btn btn-outline-danger btn-sm btn-accion" data-rechazar="${item.idSolicitud}">Rechazar</button>
             </div>
           </td>
         `;

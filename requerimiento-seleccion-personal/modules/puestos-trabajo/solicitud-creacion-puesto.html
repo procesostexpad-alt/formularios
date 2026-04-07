@@ -51,14 +51,56 @@
     }
 
     .acciones {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+      gap: 6px;
+      width: 100%;
     }
 
-    .btn-accion {
-      min-width: 92px;
+    .tabla-solicitudes {
+      table-layout: fixed !important;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .tabla-solicitudes th,
+    .tabla-solicitudes td {
+      white-space: normal !important;
+      word-break: normal !important;
+      overflow-wrap: break-word !important;
+      vertical-align: middle !important;
+    }
+
+    .tabla-solicitudes td:last-child,
+    .tabla-solicitudes th:last-child {
+      width: 248px;
+      min-width: 248px;
+    }
+
+    .tabla-solicitudes th:first-child,
+    .tabla-solicitudes td:first-child {
+      width: 52px;
+      min-width: 52px;
+      max-width: 52px;
+      text-align: center;
+    }
+
+    .badge-estado {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    .tabla-solicitudes .acciones .btn {
+      width: 100%;
+      min-width: 0 !important;
+      margin: 0 !important;
+      white-space: nowrap;
+    }
+
+    .table-responsive {
+      overflow-x: visible !important;
     }
 
     .pdf-modal {
@@ -143,14 +185,13 @@
         <p>Registra nuevas solicitudes de creacion de cargo y haz seguimiento de su estado.</p>
       </div>
       <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-outline-primary" href="gestion-aprobacion-creacion-puesto.html">Gestion aprobacion</a>
         <button type="button" class="btn btn-success" onclick="irASolicitar()">+ Solicitar</button>
       </div>
     </section>
 
     <section class="container">
       <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
+        <table class="table table-bordered table-hover align-middle tabla-solicitudes">
           <thead class="table-secondary">
             <tr>
               <th>#</th>
@@ -255,6 +296,15 @@
       const hh = String(fecha.getHours()).padStart(2, "0");
       const mi = String(fecha.getMinutes()).padStart(2, "0");
       return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }
+
+    function formatearFechaSolo(fechaIso) {
+      const fecha = new Date(fechaIso || "");
+      if (Number.isNaN(fecha.getTime())) return "-";
+      const yyyy = fecha.getFullYear();
+      const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+      const dd = String(fecha.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
     }
 
     function normalizarRegistro(item) {
@@ -720,7 +770,7 @@
         const fila = document.createElement("tr");
         fila.innerHTML = `
           <td>${index + 1}</td>
-          <td>${formatearFechaISO(item.fechaSolicitud)}</td>
+          <td>${formatearFechaSolo(item.fechaSolicitud)}</td>
           <td>${textoSeguro(item.personaSolicita) || usuarioSesionActual()}</td>
           <td>${textoSeguro(item.codigoCargo) || "-"}</td>
           <td>${textoSeguro(item.nombreCargo) || "-"}</td>
