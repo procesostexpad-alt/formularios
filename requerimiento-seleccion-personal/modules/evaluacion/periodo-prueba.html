@@ -493,6 +493,10 @@ function confirmarModalPeriodo() {
 
   candidato.periodoEstado = "CERRADO";
   candidato.periodoAptitudFinal = aptitudInput.value;
+  // La aptitud medica se evalua despues del periodo de prueba.
+  // Si existia un valor antiguo, lo limpiamos para que aparezca en Revision de Aptitud Medica.
+  candidato.aptitudMedica = "";
+  candidato.aptitudMedicaProcesada = false;
   registrarEtapa(sol, candidato, `Periodo de prueba finalizado - Aptitud: ${aptitudInput.value}`);
 
   guardarSolicitudes(solicitudes);

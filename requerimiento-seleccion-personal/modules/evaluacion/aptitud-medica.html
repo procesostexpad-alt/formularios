@@ -46,6 +46,44 @@
 
 <script>
 
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase();
+}
+
+function obtenerEstadoPeriodo(candidato) {
+  return normalizarTexto(
+    candidato?.periodoEstado ||
+    candidato?.estadoPeriodo ||
+    candidato?.periodo_prueba_estado
+  );
+}
+
+function obtenerResultadoPeriodo(candidato) {
+  return normalizarTexto(
+    candidato?.periodoAptitudFinal ||
+    candidato?.resultadoPeriodoPrueba ||
+    candidato?.aptitudPeriodoPrueba
+  );
+}
+
+function aptitudMedicaFinalizada(candidato, enFlujoDesdePeriodo = false) {
+  if (candidato?.aptitudMedicaProcesada === true) return true;
+
+  const estado = normalizarTexto(candidato?.estado);
+  if (estado === "APTO" || estado === "APTO_OBSERVACION" || estado === "NO_APTO") return true;
+
+  // Si viene de periodo de prueba cerrado + apto, mostramos la fila
+  // aunque exista un texto antiguo en aptitudMedica.
+  if (enFlujoDesdePeriodo) return false;
+
+  const aptitud = normalizarTexto(candidato?.aptitudMedica);
+  return aptitud === "APTO" || aptitud === "APTO CON OBSERVACION" || aptitud === "NO APTO";
+}
+
 // ⭐ Cargar candidatos oficializados desde localStorage
 function cargarAptitudes() {
 
@@ -53,19 +91,30 @@ function cargarAptitudes() {
     tabla.innerHTML = "";
 
     const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    let totalFilas = 0;
 
     lista.forEach((sol, solIndex) => {
+        const candidatosAptosPeriodo = (sol.candidatos || []).filter(c => {
+            const estadoPeriodo = obtenerEstadoPeriodo(c);
+            const periodoCerrado =
+              estadoPeriodo === "CERRADO" ||
+              estadoPeriodo === "FINALIZADO";
 
-        if (!sol.seleccionOficialFinalizada) return;
+            const resultadoPeriodo = obtenerResultadoPeriodo(c);
+            const estadoCandidato = normalizarTexto(c?.estado);
+            const aptoPeriodo =
+              resultadoPeriodo === "APTO" ||
+              resultadoPeriodo === "APTO CON OBSERVACION" ||
+              estadoCandidato === "APROBADO_PERIODO_PRUEBA";
 
-const seleccionados = (sol.candidatos || []).filter(c =>
-    [ "aprobado_ingreso"]
-        .includes(c.estado)
-);
+            const enFlujoDesdePeriodo = periodoCerrado && aptoPeriodo;
+            return enFlujoDesdePeriodo && !aptitudMedicaFinalizada(c, enFlujoDesdePeriodo);
+        });
 
-        if (seleccionados.length === 0) return;
+        if (candidatosAptosPeriodo.length === 0) return;
 
-        seleccionados.forEach(c => {
+        candidatosAptosPeriodo.forEach(c => {
+            totalFilas += 1;
 
             const row = document.createElement("tr");
 
@@ -77,9 +126,9 @@ const seleccionados = (sol.candidatos || []).filter(c =>
                 <td>${sol.cargoSolicitado}</td>
                 <td>${c.nombre}</td>
                 <td>${c.cedula}</td>
-                <td>${sol.fechaIngreso || "N/A"}</td>
+                <td>${c.fechaIngreso || sol.fechaIngreso || "N/A"}</td>
 
-                <td><strong>${c.estado.replace(/_/g, " ").toUpperCase()}</strong></td>
+                <td><strong>APROBO PERIODO DE PRUEBA</strong></td>
 
                 <td>
                   <select class="form-select aptitud" onchange="colorearFila(this)">
@@ -98,6 +147,16 @@ const seleccionados = (sol.candidatos || []).filter(c =>
             tabla.appendChild(row);
         });
     });
+
+    if (totalFilas === 0) {
+      tabla.innerHTML = `
+        <tr>
+          <td colspan="11" class="text-center text-muted py-4">
+            No hay candidatos listos para revision de aptitud medica. Deben estar en periodo de prueba: CERRADO y APTO.
+          </td>
+        </tr>
+      `;
+    }
 }
 
 
@@ -128,7 +187,7 @@ function guardarNotificacion(btn, solIndex, cedula) {
   let solicitud = lista[solIndex];
   if (!solicitud) return;
 
-  let candidato = solicitud.candidatos.find(c => c.cedula === cedula);
+  let candidato = solicitud.candidatos.find(c => String(c.cedula) === String(cedula));
   if (!candidato) return;
 
   let mensaje = "";
@@ -138,6 +197,7 @@ function guardarNotificacion(btn, solIndex, cedula) {
   if (select.value === "apto") {
     candidato.estado = "apto";
     candidato.aptitudMedica = "APTO";
+    candidato.aptitudMedicaProcesada = true;
 
     mensaje =
       `🟢 Postulante ${candidato.nombre} marcado como APTO.\n\n` +
@@ -150,6 +210,7 @@ function guardarNotificacion(btn, solIndex, cedula) {
   if (select.value === "apto_observacion") {
     candidato.estado = "apto_observacion";
     candidato.aptitudMedica = "APTO CON OBSERVACIÓN";
+    candidato.aptitudMedicaProcesada = true;
 
     mensaje =
       `🟡 Postulante ${candidato.nombre} marcado como APTO CON OBSERVACIÓN.\n\n` +
@@ -162,6 +223,7 @@ function guardarNotificacion(btn, solIndex, cedula) {
   if (select.value === "no_apto") {
     candidato.estado = "postulado"; // vuelve a 2.2
     candidato.aptitudMedica = "NO APTO";
+    candidato.aptitudMedicaProcesada = true;
 
     mensaje =
       `🔴 Postulante ${candidato.nombre} marcado como NO APTO.\n\n` +
