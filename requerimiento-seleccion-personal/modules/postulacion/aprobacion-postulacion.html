@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -118,6 +118,61 @@
     flex: 1;
     background: #2b2f35;
   }
+
+  .decision-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 6200;
+    display: none;
+  }
+
+  .decision-modal.is-open {
+    display: block;
+  }
+
+  .decision-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 24, 24, 0.56);
+  }
+
+  .decision-modal-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(560px, 94vw);
+    margin: 8vh auto;
+    border-radius: 14px;
+    border: 1px solid #c9d5d1;
+    background: #ffffff;
+    box-shadow: 0 24px 42px rgba(10, 26, 25, 0.35);
+    overflow: hidden;
+  }
+
+  .decision-modal-head {
+    padding: 12px 14px;
+    border-bottom: 1px solid #d7e1de;
+    background: #f2f7f5;
+    font-weight: 700;
+    color: #1b2a2a;
+  }
+
+  .decision-modal-body {
+    padding: 14px;
+  }
+
+  .decision-modal-foot {
+    padding: 12px 14px;
+    border-top: 1px solid #d7e1de;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .decision-help {
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+    color: #4e5f63;
+  }
 </style>
 
   <link rel="stylesheet" href="../../assets/css/global-theme.css">
@@ -161,12 +216,28 @@
     <iframe id="pdfPreviewFrame" class="pdf-modal-frame" title="Vista previa PDF"></iframe>
   </section>
 </div>
+
+<div id="rechazoModal" class="decision-modal" aria-hidden="true">
+  <div class="decision-modal-backdrop" onclick="cerrarRechazoModal()"></div>
+  <section class="decision-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="rechazoModalTitle">
+    <header class="decision-modal-head" id="rechazoModalTitle">Motivo de rechazo</header>
+    <div class="decision-modal-body">
+      <p class="decision-help">Ingresa el motivo por el cual se rechaza esta solicitud.</p>
+      <textarea id="txtMotivoRechazo" class="form-control" rows="4" placeholder="Escribe el motivo de rechazo..."></textarea>
+    </div>
+    <footer class="decision-modal-foot">
+      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="cerrarRechazoModal()">Cancelar</button>
+      <button type="button" class="btn btn-danger btn-sm" onclick="confirmarRechazo()">Confirmar rechazo</button>
+    </footer>
+  </section>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <script>
 
 let pdfActualUrl = "";
 let pdfActualNombre = "solicitud.pdf";
+let rechazoPendienteIndex = null;
 
 /* =====================================================
    REGISTRAR ETAPA (con control para NO duplicar)
@@ -203,11 +274,7 @@ function obtenerUltimaEtapa(sol) {
 
 function esPendienteAprobacion(estado) {
   const valor = String(estado || "").trim().toLowerCase();
-  return (
-    valor === "pendiente por aprobar" ||
-    valor === "pendiente de aprobar" ||
-    valor === "ingresado para aprobar"
-  );
+  return valor === "ingresado";
 }
 
 function textoPdf(valor) {
@@ -408,6 +475,17 @@ function cargarTabla() {
   tabla.innerHTML = "";
 
   const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+  let huboMigracionEstados = false;
+  lista.forEach(sol => {
+    const estadoActual = String(sol?.estado || "").trim().toLowerCase();
+    if (estadoActual === "ingresado para aprobar") {
+      sol.estado = "Ingresado";
+      huboMigracionEstados = true;
+    }
+  });
+  if (huboMigracionEstados) {
+    localStorage.setItem("solicitudes", JSON.stringify(lista));
+  }
 
   const hoy = new Date().toISOString().split("T")[0];
   let totalPendientes = 0;
@@ -477,54 +555,109 @@ const botonesEstado = `
    Guardar estado
 ===================================================== */
 function cambiarEstado(index, nuevoEstado) {
+  if (nuevoEstado === "Rechazado") {
+    abrirRechazoModal(index);
+    return;
+  }
+  aplicarCambioEstado(index, nuevoEstado, "");
+}
+
+function abrirRechazoModal(index) {
+  rechazoPendienteIndex = index;
+  const modal = document.getElementById("rechazoModal");
+  const input = document.getElementById("txtMotivoRechazo");
+  if (!modal || !input) return;
+
+  input.value = "";
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  setTimeout(() => input.focus(), 80);
+}
+
+function cerrarRechazoModal() {
+  const modal = document.getElementById("rechazoModal");
+  const input = document.getElementById("txtMotivoRechazo");
+
+  if (modal) {
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+  }
+  if (input) input.value = "";
+
+  rechazoPendienteIndex = null;
+  document.body.style.overflow = "";
+}
+
+function confirmarRechazo() {
+  const input = document.getElementById("txtMotivoRechazo");
+  const motivo = String(input?.value || "").trim();
+
+  if (!motivo) {
+    alert("Debes ingresar el motivo de rechazo.");
+    if (input) input.focus();
+    return;
+  }
+
+  if (rechazoPendienteIndex === null || rechazoPendienteIndex === undefined) return;
+  const index = rechazoPendienteIndex;
+  cerrarRechazoModal();
+  aplicarCambioEstado(index, "Rechazado", motivo);
+}
+
+function aplicarCambioEstado(index, nuevoEstado, motivoRechazo) {
   let lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
   let sol = lista[index];
 
   if (!sol) return;
-  if (!confirm(`¿Confirmas cambiar el estado a: ${nuevoEstado}?`)) return;
+  if (nuevoEstado !== "Rechazado" && !confirm(`Confirmas cambiar el estado a: ${nuevoEstado}?`)) return;
 
-  // 1️⃣ Cambiar el estado normal visible
   sol.estado = nuevoEstado;
+  sol.estadoGeneral = nuevoEstado;
 
-  // 2️⃣ Definir la etapa correspondiente
   let nuevaEtapa = "";
   if (nuevoEstado === "Aprobado") nuevaEtapa = "solicitud-aprobada";
   if (nuevoEstado === "Rechazado") nuevaEtapa = "solicitud-rechazada";
   if (esPendienteAprobacion(nuevoEstado)) nuevaEtapa = "solicitud-pendiente-por-aprobar";
 
-  // 3️⃣ Asegurar que historialEtapas exista
   if (!sol.historialEtapas) sol.historialEtapas = [];
-
-  // 4️⃣ Eliminar cualquier etapa previa relacionada con solicitud-aprobada / solicitud-rechazada / solicitud-pendiente
-  sol.historialEtapas = sol.historialEtapas.filter(h =>
-    !h.etapa.startsWith("solicitud-")
-  );
-
-  // 5️⃣ Insertar SOLO la etapa actual (la final que quedó)
+  sol.historialEtapas = sol.historialEtapas.filter(h => !h.etapa.startsWith("solicitud-"));
   sol.historialEtapas.push({
     etapa: nuevaEtapa,
     fecha: new Date().toLocaleString()
   });
 
-  // 6️⃣ Guardar en localStorage
-  localStorage.setItem("solicitudes", JSON.stringify(lista));
+  if (nuevoEstado === "Rechazado") {
+    sol.motivoRechazo = motivoRechazo;
+    sol.fechaRechazo = new Date().toISOString();
+    sol.usuarioRechazo = sol.solicitante || "Usuario";
+  } else {
+    sol.motivoRechazo = "";
+    sol.fechaRechazo = "";
+    sol.usuarioRechazo = "";
 
-  alert(
-    "✔ Estado actualizado.\n\n" +
-    "📧 Notificación enviada al solicitante:\n" +
-    "- Estado actual: " + nuevoEstado + "\n" +
-    "- Se ha informado al solicitante sobre el cambio de estado."
-  );
+    if (nuevoEstado === "Aprobado") {
+      sol.fechaAprobacion = new Date().toISOString();
+      sol.usuarioAprobacion = sol.solicitante || "Usuario";
+    }
+  }
+
+  localStorage.setItem("solicitudes", JSON.stringify(lista));
 
   cargarTabla();
 }
+
 cargarTabla();
 
 window.addEventListener("keydown", event => {
   if (event.key === "Escape") {
     const modal = document.getElementById("pdfModal");
+    const modalRechazo = document.getElementById("rechazoModal");
     if (modal && modal.classList.contains("is-open")) {
       cerrarPdfModal();
+    }
+    if (modalRechazo && modalRechazo.classList.contains("is-open")) {
+      cerrarRechazoModal();
     }
   }
 });
@@ -536,4 +669,6 @@ window.addEventListener("keydown", event => {
 </body>
 </html>  
   
+
+
 

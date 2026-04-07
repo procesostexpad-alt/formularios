@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Induccion de Ingreso</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .estado-chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      letter-spacing: 0.2px;
+    }
+
+    .estado-pendiente {
+      background: #eef2f7;
+      color: #334155;
+      border-color: #dbe3ee;
+    }
+
+    .estado-proceso {
+      background: #fff4d8;
+      color: #7a4b00;
+      border-color: #f3dc9a;
+    }
+
+    .estado-completo {
+      background: #e7f7ee;
+      color: #0d6b4b;
+      border-color: #bce7d2;
+    }
+
+    .cell-actions {
+      min-width: 315px;
+    }
+
+    .btn-ind {
+      min-width: 92px;
+      font-weight: 700;
+    }
+
+    .btn-ind-ok {
+      border-color: #198754 !important;
+      color: #198754 !important;
+      background: #e9f7f0 !important;
+    }
+
+    .modal-checks {
+      display: grid;
+      gap: 8px;
+      max-height: 48vh;
+      overflow: auto;
+    }
+
+    .modal-check-item {
+      border: 1px solid #d6e1dd;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #f9fcfb;
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body class="bg-light p-4">
+  <div class="container">
+    <h3 class="mb-3">Induccion de Ingreso</h3>
+    <p class="text-muted mb-4">
+      Completa induccion de Talento Humano, SSOMA y Puesto de Trabajo para habilitar el siguiente flujo.
+    </p>
+
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-secondary">
+        <tr>
+          <th>N Solicitud</th>
+          <th>Solicitante</th>
+          <th>Area</th>
+          <th>Cargo</th>
+          <th>Tipo cargo</th>
+          <th>Candidato</th>
+          <th>Cedula</th>
+          <th>Estado induccion</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaInduccion"></tbody>
+    </table>
+  </div>
+
+  <div id="modalInduccion" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="modalInduccionTitulo" class="modal-title">Induccion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p id="modalInduccionInfo" class="mb-3 text-muted"></p>
+          <div id="checksContenedor" class="modal-checks"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarInduccionModal()">Guardar induccion</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const USUARIO = "Nicolas Crisanto";
+    const CHECKS_POR_TIPO = {
+      th: [
+        "Presentacion de la empresa y cultura organizacional",
+        "Explicacion de politicas de Talento Humano",
+        "Horario, asistencia y control interno",
+        "Beneficios y canales de comunicacion",
+        "Reglamento interno y compromisos del colaborador"
+      ],
+      ssoma: [
+        "Politicas de seguridad y salud ocupacional",
+        "Normas de medio ambiente aplicables al puesto",
+        "Riesgos criticos y medidas de prevencion",
+        "Uso correcto de EPP y protocolos de emergencia",
+        "Canales de reporte de incidentes y condiciones inseguras"
+      ],
+      puesto: [
+        "Objetivo del puesto y resultados esperados",
+        "Funciones y responsabilidades clave",
+        "Proceso operativo del area y flujo de trabajo",
+        "Indicadores de desempeno (KPI) del cargo",
+        "Lineamientos del jefe directo y equipo de trabajo"
+      ]
+    };
+
+    const LABEL_TIPO = {
+      th: "Induccion Talento Humano",
+      ssoma: "Induccion SSOMA",
+      puesto: "Induccion Puesto de Trabajo"
+    };
+
+    let modalInduccion = null;
+    let contextoModal = null;
+
+    function normalizarTexto(valor) {
+      return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    }
+
+    function obtenerSolicitudes() {
+      return JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    }
+
+    function guardarSolicitudes(lista) {
+      localStorage.setItem("solicitudes", JSON.stringify(lista));
+    }
+
+    function fechaHoraLocal() {
+      return new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
+    }
+
+    function registrarEtapa(sol, candidato, etapa, detalle) {
+      const evento = {
+        etapa,
+        detalle: detalle || "",
+        fecha: fechaHoraLocal(),
+        usuario: USUARIO
+      };
+
+      if (!Array.isArray(sol.historialEtapas)) sol.historialEtapas = [];
+      if (!Array.isArray(candidato.historialEtapas)) candidato.historialEtapas = [];
+
+      sol.historialEtapas.push({ ...evento });
+      candidato.historialEtapas.push({ ...evento });
+    }
+
+    function asegurarInduccion(candidato) {
+      if (!candidato.induccion || typeof candidato.induccion !== "object") {
+        candidato.induccion = {};
+      }
+
+      ["th", "ssoma", "puesto"].forEach(tipo => {
+        const modulo = candidato.induccion[tipo];
+        if (!modulo || typeof modulo !== "object") {
+          candidato.induccion[tipo] = { items: [], completada: false, fecha: "", usuario: "" };
+          return;
+        }
+
+        if (!Array.isArray(modulo.items)) modulo.items = [];
+        if (typeof modulo.completada !== "boolean") modulo.completada = modulo.items.length > 0;
+        if (typeof modulo.fecha !== "string") modulo.fecha = "";
+        if (typeof modulo.usuario !== "string") modulo.usuario = "";
+      });
+    }
+
+    function moduloCompleto(modulo) {
+      if (!modulo || typeof modulo !== "object") return false;
+      if (modulo.completada === true) return true;
+      return Array.isArray(modulo.items) && modulo.items.length > 0;
+    }
+
+    function induccionCompleta(candidato) {
+      asegurarInduccion(candidato);
+      const ind = candidato.induccion;
+      return moduloCompleto(ind.th) && moduloCompleto(ind.ssoma) && moduloCompleto(ind.puesto);
+    }
+
+    function estadoInduccion(candidato) {
+      asegurarInduccion(candidato);
+      const ind = candidato.induccion;
+      const completos = ["th", "ssoma", "puesto"].filter(tipo => moduloCompleto(ind[tipo])).length;
+
+      if (completos === 3) return { label: "Completada", clase: "estado-completo" };
+      if (completos > 0) return { label: "En proceso", clase: "estado-proceso" };
+      return { label: "Pendiente", clase: "estado-pendiente" };
+    }
+
+    function botonClase(candidato, tipo) {
+      asegurarInduccion(candidato);
+      return moduloCompleto(candidato.induccion[tipo]) ? "btn-ind-ok" : "";
+    }
+
+    function esCandidatoElegible(sol, candidato) {
+      const tipoCargo = normalizarTexto(sol?.tipoCargo);
+      const estadoCandidato = normalizarTexto(candidato?.estado);
+
+      const operativo = tipoCargo.includes("operativo") && estadoCandidato === "seleccionado_oficial";
+      const administrativo = tipoCargo.includes("administrativo") && estadoCandidato === "aprobado_ingreso";
+      const noCerrado = String(candidato?.periodoEstado || "").toUpperCase() !== "CERRADO";
+
+      return (operativo || administrativo) && noCerrado;
+    }
+
+    function cargarInduccion() {
+      const tabla = document.getElementById("tablaInduccion");
+      tabla.innerHTML = "";
+
+      const solicitudes = obtenerSolicitudes();
+
+      solicitudes.forEach((sol, solIndex) => {
+        const candidatos = Array.isArray(sol.candidatos) ? sol.candidatos : [];
+
+        candidatos.forEach((candidato, candIndex) => {
+          if (!esCandidatoElegible(sol, candidato)) return;
+          asegurarInduccion(candidato);
+          if (induccionCompleta(candidato)) return;
+
+          const estado = estadoInduccion(candidato);
+          const fila = document.createElement("tr");
+
+          fila.innerHTML = `
+            <td>${sol.numero || "-"}</td>
+            <td>${sol.solicitante || "-"}</td>
+            <td>${sol.area || "-"}</td>
+            <td>${sol.cargoSolicitado || "-"}</td>
+            <td>${sol.tipoCargo || "-"}</td>
+            <td>${candidato.nombre || "-"}</td>
+            <td>${candidato.cedula || "-"}</td>
+            <td><span class="estado-chip ${estado.clase}">${estado.label}</span></td>
+            <td class="cell-actions">
+              <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-sm btn-outline-primary btn-ind ${botonClase(candidato, "th")}" onclick="abrirModalInduccion(${solIndex}, ${candIndex}, 'th')">TH</button>
+                <button class="btn btn-sm btn-outline-primary btn-ind ${botonClase(candidato, "ssoma")}" onclick="abrirModalInduccion(${solIndex}, ${candIndex}, 'ssoma')">SSOMA</button>
+                <button class="btn btn-sm btn-outline-primary btn-ind ${botonClase(candidato, "puesto")}" onclick="abrirModalInduccion(${solIndex}, ${candIndex}, 'puesto')">Puesto</button>
+              </div>
+            </td>
+          `;
+
+          tabla.appendChild(fila);
+        });
+      });
+
+      if (!tabla.children.length) {
+        tabla.innerHTML = `
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">
+              No hay candidatos pendientes de induccion.
+            </td>
+          </tr>
+        `;
+      } else {
+        guardarSolicitudes(solicitudes);
+      }
+    }
+
+    function abrirModalInduccion(solIndex, candIndex, tipo) {
+      const solicitudes = obtenerSolicitudes();
+      const sol = solicitudes[Number(solIndex)];
+      const candidato = sol?.candidatos?.[Number(candIndex)];
+      if (!sol || !candidato) return;
+
+      asegurarInduccion(candidato);
+      const modulo = candidato.induccion[tipo];
+      const checks = CHECKS_POR_TIPO[tipo] || [];
+
+      contextoModal = { solIndex: Number(solIndex), candIndex: Number(candIndex), tipo };
+
+      document.getElementById("modalInduccionTitulo").textContent = LABEL_TIPO[tipo] || "Induccion";
+      document.getElementById("modalInduccionInfo").textContent = `Solicitud ${sol.numero || "-"} - ${candidato.nombre || "-"}`;
+
+      const cont = document.getElementById("checksContenedor");
+      cont.innerHTML = "";
+
+      checks.forEach((item, index) => {
+        const id = `chk_${tipo}_${index}`;
+        const marcado = Array.isArray(modulo.items) && modulo.items.includes(item);
+
+        const wrap = document.createElement("label");
+        wrap.className = "modal-check-item d-flex align-items-start gap-2";
+        wrap.innerHTML = `
+          <input type="checkbox" id="${id}" value="${item}" ${marcado ? "checked" : ""}>
+          <span>${item}</span>
+        `;
+        cont.appendChild(wrap);
+      });
+
+      modalInduccion.show();
+    }
+
+    function guardarInduccionModal() {
+      if (!contextoModal) return;
+
+      const solicitudes = obtenerSolicitudes();
+      const sol = solicitudes[contextoModal.solIndex];
+      const candidato = sol?.candidatos?.[contextoModal.candIndex];
+      if (!sol || !candidato) return;
+
+      asegurarInduccion(candidato);
+      const tipo = contextoModal.tipo;
+      const checks = CHECKS_POR_TIPO[tipo] || [];
+      const seleccionados = checks.filter((_, index) => {
+        const id = `chk_${tipo}_${index}`;
+        const el = document.getElementById(id);
+        return el && el.checked;
+      });
+
+      if (!seleccionados.length) {
+        alert("Selecciona al menos un punto de induccion para guardar.");
+        return;
+      }
+
+      const modulo = candidato.induccion[tipo];
+      modulo.items = seleccionados;
+      modulo.completada = true;
+      modulo.fecha = fechaHoraLocal();
+      modulo.usuario = USUARIO;
+
+      registrarEtapa(sol, candidato, `induccion-${tipo}-completada`, LABEL_TIPO[tipo] || "Induccion");
+
+      const completa = induccionCompleta(candidato);
+      const yaCompleta = candidato.induccionCompleta === true;
+      candidato.induccionCompleta = completa;
+
+      if (completa && !yaCompleta) {
+        registrarEtapa(sol, candidato, "induccion-completa", "Induccion finalizada");
+      }
+
+      guardarSolicitudes(solicitudes);
+      modalInduccion.hide();
+      contextoModal = null;
+      cargarInduccion();
+      alert(completa ? "Induccion completa registrada. Puedes continuar con el siguiente proceso." : "Induccion guardada.");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      modalInduccion = new bootstrap.Modal(document.getElementById("modalInduccion"));
+      cargarInduccion();
+    });
+  </script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

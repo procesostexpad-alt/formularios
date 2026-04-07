@@ -53,6 +53,7 @@
       key: "evaluacion",
       label: "Evaluacion",
       items: [
+        { label: "Induccion", path: "modules/evaluacion/induccion.html" },
         { label: "Periodo prueba", path: "modules/evaluacion/periodo-prueba.html" },
         { label: "Entrega dotacion", path: "modules/evaluacion/entrega-dotacion.html" },
         { label: "Ver entrega equipos accesos", path: "modules/evaluacion/ver-entrega-equipos-accesos.html" },

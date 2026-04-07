@@ -80,10 +80,60 @@ function esSi(valor) {
   return normalizarTexto(valor) === "si";
 }
 
+function tieneTextoValido(valor) {
+  const texto = normalizarTexto(valor);
+  return !!texto && !texto.includes("no aplica");
+}
+
+function requiereEquiposAccesos(sol) {
+  // Banderas derivadas en solicitud.
+  const porBanderas =
+    esSi(sol?.requiereComp) ||
+    esSi(sol?.requiereTel) ||
+    esSi(sol?.requiereCel) ||
+    esSi(sol?.requiereAccesos);
+
+  if (porBanderas) return true;
+
+  // Detalle de ficha (nuevo flujo por manual de funciones).
+  const detalleFicha = Array.isArray(sol?.manualCargoDetalle?.ficha?.equiposAccesosDetalle)
+    ? sol.manualCargoDetalle.ficha.equiposAccesosDetalle
+    : [];
+
+  if (detalleFicha.length > 0) {
+    return detalleFicha.some(item => {
+      const tipo = normalizarTexto(item?.tipo);
+      const recurso = normalizarTexto(item?.recurso);
+      return !!tipo && !!recurso && !tipo.includes("no aplica") && !recurso.includes("no aplica");
+    });
+  }
+
+  // Resumen textual de ficha.
+  if (tieneTextoValido(sol?.manualCargoDetalle?.ficha?.equiposAccesos)) return true;
+  if (tieneTextoValido(sol?.equiposAccesos)) return true;
+  if (tieneTextoValido(sol?.adicional)) return true;
+
+  return false;
+}
+
+function induccionCompletaCandidato(candidato) {
+  if (candidato?.induccionCompleta === true) return true;
+  const induccion = candidato?.induccion;
+  if (!induccion || typeof induccion !== "object") return false;
+
+  const completo = modulo => {
+    if (!modulo || typeof modulo !== "object") return false;
+    if (modulo.completada === true) return true;
+    return Array.isArray(modulo.items) && modulo.items.length > 0;
+  };
+
+  return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
+}
+
 // ==========================================================
 // CARGAR
-// - Requiere accesos/computador/telefono
-// - Solo candidatos EN PRUEBA
+// - Requiere equipos/accesos segun solicitud
+// - Solo candidatos con induccion completa y no cerrados
 // ==========================================================
 function cargarSistemas() {
 
@@ -93,16 +143,11 @@ function cargarSistemas() {
   const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
 
   solicitudes.forEach(sol => {
-
-    const requierePC = esSi(sol.requiereComp);
-    const requiereTelefono = esSi(sol.requiereTel);
-    const requiereAccesos = esSi(sol.requiereAccesos);
-
-    if (!requierePC && !requiereTelefono && !requiereAccesos) return;
+    if (!requiereEquiposAccesos(sol)) return;
 
     sol.candidatos?.forEach(c => {
-
-      if (c.periodoEstado !== "EN PRUEBA") return;
+      if (!induccionCompletaCandidato(c)) return;
+      if (String(c.periodoEstado || "").toUpperCase() === "CERRADO") return;
 
       const estadoEntrega = c.estadoEntrega || "PENDIENTE";
 
@@ -125,7 +170,7 @@ function cargarSistemas() {
         <td class="readonly">${c.codigoUnico || ""}</td>
         <td class="readonly">${c.fechaIngreso || ""}</td>
 
-        <td class="readonly">${c.periodoEstado}</td>
+        <td class="readonly">${c.periodoEstado || "ABIERTO"}</td>
 
         <td class="readonly">${sol.requiereComp || "no"}</td>
         <td class="readonly">${sol.requiereTel || "no"}</td>

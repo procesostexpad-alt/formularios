@@ -67,20 +67,199 @@
       }
     }
 
-    function colorEstado(estado) {
-      switch (estado) {
-        case "Ingresado": return "warning text-dark";
-        case "Ingresado para aprobar": return "warning text-dark";
-        case "Solicitud Aprobada": return "primary";
-        case "Postulacion Cerrada": return "danger";
-        case "En proceso de preseleccion": return "info text-dark";
-        case "En proceso de seleccion": return "secondary";
-        case "Preseleccion Finalizada": return "dark";
-        case "Aprobado": return "success";
-        case "Rechazado": return "danger";
-        case "Anulado": return "secondary";
-        default: return "light text-dark";
+    function normalizarTexto(valor) {
+      return String(valor || "").trim().toLowerCase();
+    }
+
+    function estadoNormalizadoCandidato(candidato) {
+      return normalizarTexto(candidato?.estado);
+    }
+
+    function tieneEstadoCandidato(sol, estadosObjetivo) {
+      const candidatos = Array.isArray(sol?.candidatos) ? sol.candidatos : [];
+      const setEstados = new Set(estadosObjetivo.map(normalizarTexto));
+      return candidatos.some(c => setEstados.has(estadoNormalizadoCandidato(c)));
+    }
+
+    function tienePeriodo(sol, estadoPeriodo) {
+      const candidatos = Array.isArray(sol?.candidatos) ? sol.candidatos : [];
+      const esperado = normalizarTexto(estadoPeriodo);
+      return candidatos.some(c => normalizarTexto(c?.periodoEstado) === esperado);
+    }
+
+    function tieneAptitudMedicaRegistrada(sol) {
+      const candidatos = Array.isArray(sol?.candidatos) ? sol.candidatos : [];
+      return candidatos.some(c => {
+        const apt = normalizarTexto(c?.aptitudMedica);
+        return apt === "apto" || apt === "apto con observacion" || apt === "apto con observación" || apt === "no apto";
+      });
+    }
+
+    function tieneIngresoRegistrado(sol) {
+      const candidatos = Array.isArray(sol?.candidatos) ? sol.candidatos : [];
+      return candidatos.some(c => {
+        const ingreso = normalizarTexto(c?.ingreso);
+        return ingreso === "ingreso" || ingreso === "no ingreso";
+      });
+    }
+
+    function tieneGestionEquiposAccesos(sol) {
+      const candidatos = Array.isArray(sol?.candidatos) ? sol.candidatos : [];
+      return candidatos.some(c => {
+        const estadoEntrega = normalizarTexto(c?.estadoEntrega);
+        return estadoEntrega === "pendiente" || estadoEntrega === "entregado" || estadoEntrega === "entrega incompleta";
+      });
+    }
+
+    function tieneInduccionCompleta(sol) {
+      const candidatos = Array.isArray(sol?.candidatos) ? sol.candidatos : [];
+      return candidatos.some(c => {
+        if (c?.induccionCompleta === true) return true;
+        const induccion = c?.induccion;
+        if (!induccion || typeof induccion !== "object") return false;
+
+        const completo = modulo => {
+          if (!modulo || typeof modulo !== "object") return false;
+          if (modulo.completada === true) return true;
+          return Array.isArray(modulo.items) && modulo.items.length > 0;
+        };
+
+        return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
+      });
+    }
+
+    function tieneInduccionEnProceso(sol) {
+      const candidatos = Array.isArray(sol?.candidatos) ? sol.candidatos : [];
+      return candidatos.some(c => {
+        if (c?.induccionCompleta === true) return false;
+        const induccion = c?.induccion;
+        if (!induccion || typeof induccion !== "object") return false;
+
+        const completo = modulo => {
+          if (!modulo || typeof modulo !== "object") return false;
+          if (modulo.completada === true) return true;
+          return Array.isArray(modulo.items) && modulo.items.length > 0;
+        };
+
+        return completo(induccion.th) || completo(induccion.ssoma) || completo(induccion.puesto);
+      });
+    }
+
+    function obtenerEstadoProcesoSolicitud(sol) {
+      const estadoBase = normalizarTexto(sol?.estado);
+      const estadoPre = normalizarTexto(sol?.estadoPreseleccion);
+      const estadoSel = normalizarTexto(sol?.estadoSeleccionOficial);
+      const estadoIngreso = normalizarTexto(sol?.estadoAprobacionIngreso);
+      const etapaPre = normalizarTexto(sol?.etapaPreseleccion);
+      const etapaSel = normalizarTexto(sol?.etapaSeleccionOficial);
+      const etapaIngreso = normalizarTexto(sol?.etapaAprobacionIngreso);
+
+      if (estadoBase === "anulado") return "Anulado";
+      if (estadoBase === "rechazado") return "Rechazado";
+
+      if (tieneIngresoRegistrado(sol)) return "Ingreso de personal";
+      if (tieneAptitudMedicaRegistrada(sol)) return "Aptitud medica";
+      if (tieneGestionEquiposAccesos(sol)) return "Gestion de equipos y accesos";
+      if (tienePeriodo(sol, "EN PRUEBA")) return "En periodo de prueba";
+      if (tienePeriodo(sol, "CERRADO")) return "Periodo de prueba finalizado";
+
+      const aprobacionIngresoIniciada = etapaIngreso === "iniciada" || estadoIngreso.includes("en proceso");
+      const aprobacionIngresoFinalizada = etapaIngreso === "finalizada" || estadoIngreso.includes("finalizada");
+      if (aprobacionIngresoIniciada) return "En aprobacion de ingreso";
+      if (aprobacionIngresoFinalizada || tieneEstadoCandidato(sol, ["aprobado_ingreso"])) return "Aprobacion de ingreso finalizada";
+      if (tieneInduccionEnProceso(sol)) return "En induccion";
+      if (tieneInduccionCompleta(sol)) return "Induccion completada";
+
+      const seleccionIniciada = etapaSel === "iniciada" || estadoSel.includes("en proceso");
+      const seleccionFinalizada =
+        sol?.seleccionOficialFinalizada === true ||
+        etapaSel === "finalizada" ||
+        estadoSel.includes("finalizada");
+      if (seleccionIniciada) return "En seleccion oficial";
+      if (seleccionFinalizada || tieneEstadoCandidato(sol, ["seleccionado_oficial", "no_seleccionado"])) {
+        return "Seleccion oficial finalizada";
       }
+
+      const preseleccionIniciada = etapaPre === "iniciada" || estadoPre.includes("en proceso");
+      const preseleccionFinalizada =
+        sol?.preseleccionFinalizada === true ||
+        etapaPre === "finalizada" ||
+        estadoPre.includes("finalizada");
+      if (preseleccionIniciada) return "En preseleccion";
+      if (preseleccionFinalizada || tieneEstadoCandidato(sol, ["terna"])) return "Preseleccion finalizada";
+
+      if (sol?.postulacionActiva === true && sol?.postulacionCerrada !== true) return "En postulacion";
+      if (sol?.postulacionCerrada === true) return "Postulacion cerrada";
+
+      if (estadoBase === "aprobado" || estadoBase === "solicitud aprobada") {
+        return "Aprobada - pendiente de postulacion";
+      }
+
+      if (estadoBase === "ingresado" || estadoBase === "ingresado para aprobar") return "Ingresado";
+      return sol?.estado || "Sin estado";
+    }
+
+    function colorEstado(estado) {
+      const normal = normalizarTexto(estado);
+
+      if (normal.includes("rechazado")) return "danger";
+      if (normal.includes("anulado")) return "secondary";
+      if (normal.includes("ingreso de personal")) return "success";
+      if (normal.includes("aptitud medica")) return "info text-dark";
+      if (normal.includes("periodo de prueba")) return "warning text-dark";
+      if (normal.includes("equipos y accesos")) return "secondary";
+      if (normal.includes("aprobacion de ingreso")) return "dark";
+      if (normal.includes("induccion")) return normal.includes("completada") ? "success" : "warning text-dark";
+      if (normal.includes("seleccion oficial")) return "secondary";
+      if (normal.includes("preseleccion")) return "info text-dark";
+      if (normal.includes("postulacion")) return normal.includes("cerrada") ? "dark" : "primary";
+      if (normal.includes("aprobada")) return "success";
+      if (normal.includes("ingresado")) return "warning text-dark";
+      return "light text-dark";
+    }
+
+    const ORDEN_ESTADOS_PROCESO = [
+      "Ingresado",
+      "Aprobada - pendiente de postulacion",
+      "En postulacion",
+      "Postulacion cerrada",
+      "En preseleccion",
+      "Preseleccion finalizada",
+      "En seleccion oficial",
+      "Seleccion oficial finalizada",
+      "En aprobacion de ingreso",
+      "Aprobacion de ingreso finalizada",
+      "En induccion",
+      "Induccion completada",
+      "En periodo de prueba",
+      "Periodo de prueba finalizado",
+      "Gestion de equipos y accesos",
+      "Aptitud medica",
+      "Ingreso de personal",
+      "Rechazado",
+      "Anulado"
+    ];
+
+    function poblarFiltroEstados(lista, estadoSeleccionado) {
+      const select = document.getElementById("selEstado");
+      if (!select) return;
+
+      const estadosSet = new Set();
+      lista.forEach(sol => estadosSet.add(obtenerEstadoProcesoSolicitud(sol)));
+
+      const estadosOrdenados = [
+        ...ORDEN_ESTADOS_PROCESO.filter(estado => estadosSet.has(estado)),
+        ...Array.from(estadosSet).filter(estado => !ORDEN_ESTADOS_PROCESO.includes(estado)).sort()
+      ];
+
+      select.innerHTML = "<option value=\"\">Todos los estados</option>";
+      estadosOrdenados.forEach(estado => {
+        const option = document.createElement("option");
+        option.value = estado;
+        option.textContent = estado;
+        if (estado === estadoSeleccionado) option.selected = true;
+        select.appendChild(option);
+      });
     }
 
     function registrarEtapa(solicitud, etapa, detalle) {
@@ -204,6 +383,31 @@
         modal.setAttribute("aria-hidden", "true");
       }
       document.body.style.overflow = "";
+    }
+
+    function abrirMotivoRechazoModal(motivo) {
+      const modal = document.getElementById("motivoRechazoModal");
+      const texto = document.getElementById("motivoRechazoTexto");
+      if (!modal || !texto) return;
+      texto.textContent = String(motivo || "").trim() || "Sin motivo registrado.";
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function cerrarMotivoRechazoModal() {
+      const modal = document.getElementById("motivoRechazoModal");
+      if (!modal) return;
+      modal.classList.remove("is-open");
+      modal.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    function verMotivoRechazo(indice) {
+      const lista = obtenerSolicitudes();
+      const sol = lista[indice];
+      if (!sol) return;
+      abrirMotivoRechazoModal(sol.motivoRechazo || "");
     }
 
     function abrirPdfActual() {
@@ -387,8 +591,12 @@
     window.addEventListener("keydown", event => {
       if (event.key === "Escape") {
         const modal = document.getElementById("pdfModal");
+        const modalMotivo = document.getElementById("motivoRechazoModal");
         if (modal && modal.classList.contains("is-open")) {
           cerrarPdfModal();
+        }
+        if (modalMotivo && modalMotivo.classList.contains("is-open")) {
+          cerrarMotivoRechazoModal();
         }
       }
     });
@@ -405,7 +613,7 @@
       cargarTabla();
     }
 
-    function cumpleFiltroTexto(solicitud, texto) {
+    function cumpleFiltroTexto(solicitud, texto, estadoProceso) {
       if (!texto) return true;
 
       const bolsa = [
@@ -415,7 +623,8 @@
         solicitud.cargoSolicitado,
         solicitud.area,
         solicitud.departamento,
-        solicitud.estado
+        solicitud.estado,
+        estadoProceso
       ].join(" ").toLowerCase();
 
       return bolsa.includes(texto.toLowerCase());
@@ -430,10 +639,12 @@
 
       const texto = document.getElementById("txtBuscar").value.trim();
       const estadoFiltro = document.getElementById("selEstado").value;
+      poblarFiltroEstados(lista, estadoFiltro);
 
       const filtrada = lista.filter(sol => {
-        const matchEstado = !estadoFiltro || sol.estado === estadoFiltro;
-        const matchTexto = cumpleFiltroTexto(sol, texto);
+        const estadoProceso = obtenerEstadoProcesoSolicitud(sol);
+        const matchEstado = !estadoFiltro || estadoProceso === estadoFiltro;
+        const matchTexto = cumpleFiltroTexto(sol, texto, estadoProceso);
         return matchEstado && matchTexto;
       });
 
@@ -446,6 +657,9 @@
         const indiceReal = lista.findIndex(x => x.traceId === sol.traceId && x.numero == sol.numero);
         const puedeEditar = sol.estado === "Ingresado";
         const attrEditar = puedeEditar ? "" : " disabled title=\"Solo editable en estado Ingresado\"";
+        const esRechazada = String(sol.estado || "").trim().toLowerCase() === "rechazado";
+        const attrMotivo = esRechazada ? "" : " disabled title=\"Disponible solo para solicitudes rechazadas\"";
+        const estadoProceso = obtenerEstadoProcesoSolicitud(sol);
 
         const fila =
           "<tr>" +
@@ -455,10 +669,11 @@
           "<td>" + (sol.area || "-") + "</td>" +
           "<td>" + (sol.departamento || "-") + "</td>" +
           "<td>" + (sol.cargoSolicitado || "-") + "</td>" +
-          "<td><span class=\"badge bg-" + colorEstado(sol.estado) + "\">" + (sol.estado || "-") + "</span></td>" +
+          "<td><span class=\"badge bg-" + colorEstado(estadoProceso) + "\">" + estadoProceso + "</span></td>" +
           "<td class=\"actions\">" +
           "<button class=\"btn btn-outline-danger btn-sm\" onclick=\"verSolicitudPdf(" + indiceReal + ")\">PDF</button>" +
           "<button class=\"btn btn-warning btn-sm\" onclick=\"editarSolicitud(" + indiceReal + ")\"" + attrEditar + ">Editar</button>" +
+          "<button class=\"btn btn-outline-dark btn-sm\" onclick=\"verMotivoRechazo(" + indiceReal + ")\"" + attrMotivo + ">Motivo rechazo</button>" +
           "<button class=\"btn btn-secondary btn-sm\" onclick=\"anularSolicitud(" + indiceReal + ")\">Anular</button>" +
           "<button class=\"btn btn-danger btn-sm\" onclick=\"eliminarSolicitud(" + indiceReal + ")\">Eliminar</button>" +
           "</td>" +

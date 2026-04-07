@@ -179,6 +179,68 @@
       background: #2b2f35;
     }
 
+    .motivo-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 3200;
+      display: none;
+    }
+
+    .motivo-modal.is-open {
+      display: block;
+    }
+
+    .motivo-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 24, 24, 0.6);
+    }
+
+    .motivo-modal-dialog {
+      position: relative;
+      z-index: 1;
+      width: min(620px, 94vw);
+      margin: 10vh auto;
+      border-radius: 14px;
+      border: 1px solid #c9d5d1;
+      background: #fff;
+      box-shadow: 0 24px 42px rgba(10, 26, 25, 0.35);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 76vh;
+    }
+
+    .motivo-modal-head {
+      padding: 10px 12px;
+      border-bottom: 1px solid #d7e1de;
+      background: #f2f7f5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .motivo-modal-title {
+      margin: 0;
+      font-size: 0.96rem;
+      color: #1b2a2a;
+      font-weight: 700;
+    }
+
+    .motivo-modal-body {
+      padding: 14px;
+      overflow: auto;
+    }
+
+    .motivo-modal-text {
+      margin: 0;
+      white-space: pre-wrap;
+      line-height: 1.45;
+      color: #2d3a3e;
+    }
+
     @media (max-width: 920px) {
       .toolbar {
         grid-template-columns: 1fr;
@@ -217,15 +279,6 @@
 
         <select id="selEstado" class="form-select" onchange="cargarTabla()">
           <option value="">Todos los estados</option>
-          <option>Ingresado</option>
-          <option>Solicitud Aprobada</option>
-          <option>Postulacion Cerrada</option>
-          <option>En proceso de preseleccion</option>
-          <option>En proceso de seleccion</option>
-          <option>Preseleccion Finalizada</option>
-          <option>Aprobado</option>
-          <option>Rechazado</option>
-          <option>Anulado</option>
         </select>
 
         <button class="btn btn-outline-dark" onclick="limpiarFiltros()">Limpiar filtros</button>
@@ -263,6 +316,19 @@
         </div>
       </header>
       <iframe id="pdfPreviewFrame" class="pdf-modal-frame" title="Vista previa PDF"></iframe>
+    </section>
+  </div>
+
+  <div id="motivoRechazoModal" class="motivo-modal" aria-hidden="true">
+    <div class="motivo-modal-backdrop" onclick="cerrarMotivoRechazoModal()"></div>
+    <section class="motivo-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="motivoRechazoTitle">
+      <header class="motivo-modal-head">
+        <p id="motivoRechazoTitle" class="motivo-modal-title">Motivo de rechazo</p>
+        <button type="button" class="btn btn-danger btn-sm" onclick="cerrarMotivoRechazoModal()">Cerrar</button>
+      </header>
+      <div class="motivo-modal-body">
+        <p id="motivoRechazoTexto" class="motivo-modal-text"></p>
+      </div>
     </section>
   </div>
 

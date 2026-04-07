@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>9.2. Gestión de Entrega de Equipos y Accesos</title>
+  <title>9.2. GestiÃ³n de Entrega de Equipos y Accesos</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     .readonly-field {
@@ -27,7 +27,7 @@
 
 <div class="container">
 
-  <h3 class="mb-4">Gestión de Entrega de Equipos y Accesos</h3>
+  <h3 class="mb-4">GestiÃ³n de Entrega de Equipos y Accesos</h3>
 
   <div id="contenido"></div>
 
@@ -40,7 +40,7 @@
 
 <script>
 // ======================================================
-// Función calcular edad real
+// FunciÃ³n calcular edad real
 // ======================================================
 function calcularEdad(fechaNac) {
     if (!fechaNac) return "-";
@@ -57,8 +57,67 @@ function calcularEdad(fechaNac) {
     return edad;
 }
 
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function esSi(valor) {
+  return normalizarTexto(valor) === "si";
+}
+
+function tieneTextoValido(valor) {
+  const texto = normalizarTexto(valor);
+  return !!texto && !texto.includes("no aplica");
+}
+
+function requiereEquiposAccesos(sol) {
+  const porBanderas =
+    esSi(sol?.requiereComp) ||
+    esSi(sol?.requiereTel) ||
+    esSi(sol?.requiereCel) ||
+    esSi(sol?.requiereAccesos);
+
+  if (porBanderas) return true;
+
+  const detalleFicha = Array.isArray(sol?.manualCargoDetalle?.ficha?.equiposAccesosDetalle)
+    ? sol.manualCargoDetalle.ficha.equiposAccesosDetalle
+    : [];
+
+  if (detalleFicha.length > 0) {
+    return detalleFicha.some(item => {
+      const tipo = normalizarTexto(item?.tipo);
+      const recurso = normalizarTexto(item?.recurso);
+      return !!tipo && !!recurso && !tipo.includes("no aplica") && !recurso.includes("no aplica");
+    });
+  }
+
+  if (tieneTextoValido(sol?.manualCargoDetalle?.ficha?.equiposAccesos)) return true;
+  if (tieneTextoValido(sol?.equiposAccesos)) return true;
+  if (tieneTextoValido(sol?.adicional)) return true;
+
+  return false;
+}
+
+function induccionCompletaCandidato(candidato) {
+  if (candidato?.induccionCompleta === true) return true;
+  const induccion = candidato?.induccion;
+  if (!induccion || typeof induccion !== "object") return false;
+
+  const completo = modulo => {
+    if (!modulo || typeof modulo !== "object") return false;
+    if (modulo.completada === true) return true;
+    return Array.isArray(modulo.items) && modulo.items.length > 0;
+  };
+
+  return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
+}
+
 // ======================================================
-// Obtener parámetros enviados desde Sistemas
+// Obtener parÃ¡metros enviados desde Sistemas
 // ======================================================
 const url = new URLSearchParams(window.location.search);
 const ced = url.get("ced");
@@ -70,21 +129,43 @@ const numSol = url.get("sol");
 let solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
 const solicitud = solicitudes.find(s => s.numero == numSol);
 
-if (!solicitud) {
-  alert("No se encontró la solicitud.");
-}
 
-const candidato = solicitud.candidatos.find(c => c.cedula === ced);
+const candidato = solicitud?.candidatos?.find(c => c.cedula === ced);
+
+if (!solicitud) {
+  window.location.href = "ver-entrega-equipos-accesos.html";
+  throw new Error("Solicitud no encontrada");
+}
 
 if (!candidato) {
-  alert("No se encontró el candidato.");
+  window.location.href = "ver-entrega-equipos-accesos.html";
+  throw new Error("Candidato no encontrado");
 }
 
-// Si no tiene estado → iniciar como PENDIENTE
+if (!induccionCompletaCandidato(candidato)) {
+  alert("La induccion no esta completa para este candidato.");
+  window.location.href = "ver-entrega-equipos-accesos.html";
+  throw new Error("Induccion incompleta");
+}
+
+if (String(candidato.periodoEstado || "").toUpperCase() === "CERRADO") {
+  alert("El periodo de prueba esta cerrado para este candidato.");
+  window.location.href = "ver-entrega-equipos-accesos.html";
+  throw new Error("Periodo de prueba cerrado");
+}
+
+if (!requiereEquiposAccesos(solicitud)) {
+  alert("Esta solicitud no requiere entrega de equipos o accesos.");
+  window.location.href = "ver-entrega-equipos-accesos.html";
+  throw new Error("Solicitud sin requerimiento de equipos/accesos");
+}
+
+
+// Si no tiene estado â†’ iniciar como PENDIENTE
 if (!candidato.estadoEntrega) candidato.estadoEntrega = "PENDIENTE";
 
 // ======================================================
-// Armar accesos dinámicos
+// Armar accesos dinÃ¡micos
 // ======================================================
 function cargarDatos() {
 
@@ -111,7 +192,7 @@ function cargarDatos() {
         </div>`;
     });
   } else {
-    accesosTel_HTML = `<div class="col-12"><small>No se solicitaron accesos telefónicos</small></div>`;
+    accesosTel_HTML = `<div class="col-12"><small>No se solicitaron accesos telefÃ³nicos</small></div>`;
   }
 
 
@@ -123,7 +204,7 @@ function cargarDatos() {
   <!-- DATOS SOLICITUD -->
   <div class="row">
     <div class="col-6">
-      <label>N° Solicitud</label>
+      <label>NÂ° Solicitud</label>
       <input class="form-control readonly-field" value="${solicitud.numero}" readonly>
     </div>
 
@@ -140,7 +221,7 @@ function cargarDatos() {
     </div>
 
     <div class="col-6">
-      <label>Área</label>
+      <label>Ãrea</label>
       <input class="form-control readonly-field" value="${solicitud.area}" readonly>
     </div>
   </div>
@@ -164,14 +245,14 @@ function cargarDatos() {
     </div>
 
     <div class="col-6">
-      <label>Cédula</label>
+      <label>CÃ©dula</label>
       <input class="form-control readonly-field" value="${candidato.cedula}" readonly>
     </div>
   </div>
 
   <div class="row mt-3">
     <div class="col-6">
-      <label>Código Único</label>
+      <label>CÃ³digo Ãšnico</label>
       <input class="form-control readonly-field" value="${candidato.codigoUnico || '-'}" readonly>
     </div>
 
@@ -195,7 +276,7 @@ function cargarDatos() {
 
   <div class="row mt-3">
     <div class="col-6">
-      <label>Área</label>
+      <label>Ãrea</label>
       <input class="form-control readonly-field" value="${solicitud.area}" readonly>
     </div>
 
@@ -225,19 +306,19 @@ function cargarDatos() {
 
   <div class="row mt-3">
     <div class="col-6">
-      <label>Nivel Académico</label>
+      <label>Nivel AcadÃ©mico</label>
       <input class="form-control readonly-field" value="${solicitud.nivelAcademico}" readonly>
     </div>
 
     <div class="col-6">
-      <label>Experiencia Mínima</label>
+      <label>Experiencia MÃ­nima</label>
       <input class="form-control readonly-field" value="${solicitud.experienciaMinima}" readonly>
     </div>
   </div>
 
   <div class="row mt-3">
     <div class="col-6">
-      <label>Conocimientos Técnicos</label>
+      <label>Conocimientos TÃ©cnicos</label>
       <input class="form-control readonly-field" value="${solicitud.conocimientosTecnicos}" readonly>
     </div>
 
@@ -275,7 +356,7 @@ function cargarDatos() {
 
   <div class="row mt-3">
     <div class="col-6">
-      <label>¿Requiere Computador?</label>
+      <label>Â¿Requiere Computador?</label>
       <input class="form-control readonly-field" value="${solicitud.requiereComp}" readonly>
     </div>
   </div>
@@ -288,13 +369,13 @@ function cargarDatos() {
 
   <div class="row mt-4">
     <div class="col-6">
-      <label>¿Requiere Teléfono?</label>
+      <label>Â¿Requiere TelÃ©fono?</label>
       <input class="form-control readonly-field" value="${solicitud.requiereTel}" readonly>
     </div>
   </div>
 
   <div class="row mt-2">
-    <div class="col-12 fw-bold">Accesos Telefónicos</div>
+    <div class="col-12 fw-bold">Accesos TelefÃ³nicos</div>
     ${accesosTel_HTML}
   </div>
 
@@ -344,16 +425,16 @@ function guardar() {
 
   // Mensajes por estado
   if (estado === "ENTREGADO") {
-      alert("✔ Equipos y accesos ENTREGADOS. Notificado a Talento Humano y solicitante.");
+      alert("âœ” Equipos y accesos ENTREGADOS. Notificado a Talento Humano y solicitante.");
   } 
   else if (estado === "ENTREGA INCOMPLETA") {
-      alert("⚠ Entrega INCOMPLETA. Notificado a Talento Humano y solicitante.");
+      alert("âš  Entrega INCOMPLETA. Notificado a Talento Humano y solicitante.");
   }
   else {
-      alert("⏳ Pendiente de entrega. Notificado a Talento Humano y solicitante.");
+      alert("â³ Pendiente de entrega. Notificado a Talento Humano y solicitante.");
   }
 
-  // 🔥 REDIRECCIÓN AUTOMÁTICA
+  // ðŸ”¥ REDIRECCIÃ“N AUTOMÃTICA
   window.location.href = "ver-entrega-equipos-accesos.html";
 }
 
@@ -372,4 +453,5 @@ function cancelar() {
   <script src="../../assets/js/ui-shell.js"></script>
 </body>
 </html>
+
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -36,18 +36,6 @@
       padding: 10px;
     }
 
-    .estado-chip {
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-weight: 700;
-      font-size: 12px;
-      display: inline-block;
-    }
-
-    .chip-pendiente { background: #e9ecef; color: #334155; }
-    .chip-programada { background: #ffe69c; color: #5b3c00; }
-    .chip-activa { background: #198754; color: #fff; }
-    .chip-finalizada { background: #6c757d; color: #fff; }
   </style>
   <link rel="stylesheet" href="../../assets/css/global-theme.css">
   <link rel="stylesheet" href="../../assets/css/ui-shell.css">
@@ -66,11 +54,9 @@
             <th>Area</th>
             <th>Departamento</th>
             <th>Cargo</th>
-            <th>Estado Postulacion</th>
             <th>Inicio</th>
             <th>Fin</th>
-            <th>Configurar</th>
-            <th>Finalizar</th>
+            <th>Acciones</th>
             <th>Postulantes</th>
           </tr>
         </thead>
@@ -132,11 +118,35 @@
       }
     }
 
-    function estadoPostulacion(sol) {
-      if (sol.postulacionCerrada) {
-        return { label: "Finalizada", clase: "chip-finalizada" };
-      }
-      return { label: "Activa", clase: "chip-activa" };
+    function estadoAprobado(sol) {
+      return String(sol?.estado || "").trim().toLowerCase() === "aprobado";
+    }
+
+    function tieneProcesosPosteriores(sol) {
+      const etapaPre = String(sol?.etapaPreseleccion || "").trim().toLowerCase();
+      const etapaSel = String(sol?.etapaSeleccionOficial || "").trim().toLowerCase();
+      const etapaIngreso = String(sol?.etapaAprobacionIngreso || "").trim().toLowerCase();
+      const estadoPre = String(sol?.estadoPreseleccion || "").trim().toLowerCase();
+      const estadoSel = String(sol?.estadoSeleccionOficial || "").trim().toLowerCase();
+      const estadoIngreso = String(sol?.estadoAprobacionIngreso || "").trim().toLowerCase();
+
+      const preseleccionIniciada = etapaPre !== "" && etapaPre !== "no_iniciada";
+      const seleccionIniciada = etapaSel !== "" && etapaSel !== "no_iniciada";
+      const ingresoIniciado = etapaIngreso !== "" && etapaIngreso !== "no_iniciada";
+
+      const estadoPosteriorTexto =
+        estadoPre.includes("preseleccion") ||
+        estadoSel.includes("seleccion oficial") ||
+        estadoIngreso.includes("aprobacion de ingreso") ||
+        estadoIngreso.includes("aprobación de ingreso");
+
+      return (
+        sol?.preseleccionFinalizada === true ||
+        preseleccionIniciada ||
+        seleccionIniciada ||
+        ingresoIniciado ||
+        estadoPosteriorTexto
+      );
     }
 
     function normalizarCierresAutomaticos(lista) {
@@ -167,15 +177,16 @@
       const aprobadas = lista
         .map((sol, index) => ({ sol, index }))
         .filter(item =>
-          String(item.sol.estado || "").trim().toLowerCase() === "aprobado" &&
-          item.sol.postulacionCerrada !== true
+          estadoAprobado(item.sol) &&
+          item.sol.postulacionCerrada !== true &&
+          !tieneProcesosPosteriores(item.sol)
         );
 
       if (aprobadas.length === 0) {
         tabla.innerHTML = `
           <tr>
-                <td colspan="12" class="text-center text-muted py-4">
-              No hay solicitudes disponibles para activacion de postulacion.
+              <td colspan="10" class="text-center text-muted py-4">
+              No hay solicitudes aprobadas disponibles sin procesos posteriores.
                 </td>
           </tr>
         `;
@@ -185,7 +196,6 @@
       aprobadas.forEach(item => {
         const sol = item.sol;
         const index = item.index;
-        const estado = estadoPostulacion(sol);
         const totalPostulantes = Array.isArray(sol.candidatos) ? sol.candidatos.length : 0;
         const textoConfig = sol.postulacionActiva ? "Configurar" : "Activar";
         const deshabilitarFinalizar = (!sol.postulacionActiva || sol.postulacionCerrada) ? "disabled" : "";
@@ -198,18 +208,17 @@
             <td>${sol.area || "-"}</td>
             <td>${sol.departamento || "-"}</td>
             <td>${sol.cargoSolicitado || "-"}</td>
-            <td><span class="estado-chip ${estado.clase}">${estado.label}</span></td>
             <td>${sol.fechaInicioPostulacion || "-"}</td>
             <td>${sol.fechaFinPostulacion || "-"}</td>
             <td>
-              <button class="btn btn-primary btn-sm" onclick="abrirModalFechas(${index})">
-                ${textoConfig}
-              </button>
-            </td>
-            <td>
-              <button class="btn btn-danger btn-sm" onclick="finalizarPostulacion(${index})" ${deshabilitarFinalizar}>
-                Finalizar
-              </button>
+              <div class="d-flex justify-content-center flex-wrap gap-2">
+                <button class="btn btn-primary btn-sm" onclick="abrirModalFechas(${index})">
+                  ${textoConfig}
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="finalizarPostulacion(${index})" ${deshabilitarFinalizar}>
+                  Finalizar
+                </button>
+              </div>
             </td>
             <td><b>${totalPostulantes}</b></td>
           </tr>
@@ -279,7 +288,7 @@
       let sol = lista[index];
       if (!sol || !sol.postulacionActiva) return;
 
-      if (!confirm("¿Deseas finalizar la postulacion antes de su fecha establecida?")) return;
+      if (!confirm("¿Deseas finalizar la postulación antes de su fecha establecida?")) return;
 
       const hoy = hoyISO();
       sol.postulacionActiva = false;
@@ -302,3 +311,4 @@
   <script src="../../assets/js/ui-shell.js"></script>
 </body>
 </html>
+

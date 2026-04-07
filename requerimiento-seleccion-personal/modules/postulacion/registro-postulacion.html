@@ -3,50 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2.1. Postulación de Candidato</title>
+  <title>Registro de Postulacion</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>
-    body { background: #f5f6fa; }
-    .card { padding: 25px; border-radius: 12px; }
-    .btn-large { width: 100%; padding: 14px; font-size: 1.1rem; }
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+  <style>
+    .form-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .btn-large {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
 
     #mensajeFinal {
       display: none;
       text-align: center;
-      padding: 50px;
+      padding: 48px 24px;
+      background: var(--gt-surface);
+      border: 1px solid var(--gt-line);
+      border-radius: 14px;
+      box-shadow: var(--gt-shadow);
     }
+
     #mensajeFinal h1 {
-      font-size: 2.3rem;
-      color: #28a745;
-      font-weight: bold;
+      font-size: 2rem;
+      color: var(--gt-brand);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
     }
+
     #mensajeFinal p {
-      font-size: 1.2rem;
-      margin-top: 10px;
-      color: #444;
+      font-size: 1.05rem;
+      margin: 0;
+      color: var(--gt-text);
     }
   </style>
-  <link rel="stylesheet" href="../../assets/css/global-theme.css">
-  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
 </head>
-
 <body class="p-4">
+  <div class="form-wrapper">
+    <div id="formularioCard" class="module-card p-4">
+      <h3 class="mb-4">Registro de Postulacion</h3>
 
-  <div class="container">
-
-    <!-- ⭐ FORMULARIO -->
-    <div id="formularioCard" class="card shadow-sm">
-
-      <h3 class="mb-4 text-primary">Procesar Candidatos</h3>
-
-      <label class="form-label fw-bold">Número de Solicitud</label>
+      <label class="form-label fw-bold">Numero de Solicitud</label>
       <select id="selectSolicitud" class="form-control mb-4"></select>
 
       <div class="row">
-
         <div class="col-md-3 mb-3">
-          <label class="form-label">Cédula</label>
-          <input type="text" id="cedula" class="form-control" placeholder="Cédula">
+          <label class="form-label">Cedula</label>
+          <input type="text" id="cedula" class="form-control" placeholder="Cedula">
         </div>
 
         <div class="col-md-4 mb-3">
@@ -66,83 +75,73 @@
       </div>
 
       <div class="row">
-
         <div class="col-md-6 mb-3">
-          <label class="form-label">Correo Electrónico</label>
-          <input type="email" id="correo" class="form-control" placeholder="Correo Electrónico">
+          <label class="form-label">Correo Electronico</label>
+          <input type="email" id="correo" class="form-control" placeholder="Correo Electronico">
         </div>
 
         <div class="col-md-6 mb-3">
-          <label class="form-label">Número de Teléfono</label>
-          <input type="tel" id="telefono" class="form-control" placeholder="Número de Teléfono">
+          <label class="form-label">Numero de Telefono</label>
+          <input type="tel" id="telefono" class="form-control" placeholder="Numero de Telefono">
         </div>
       </div>
 
-      <!-- ⭐ ASPIRACIÓN SALARIAL -->
       <div class="mb-3">
-        <label class="form-label fw-bold">Aspiración Salarial (USD)</label>
+        <label class="form-label fw-bold">Aspiracion Salarial (USD)</label>
         <input type="number" id="aspiracion" class="form-control" placeholder="Ej: 550 - 1000">
       </div>
 
-      <!-- ⭐ CAMPO ADICIONAL NO OBLIGATORIO -->
       <div class="mb-3">
-        <label class="form-label fw-bold">Información adicional (opcional)</label>
+        <label class="form-label fw-bold">Informacion adicional (opcional)</label>
         <textarea id="infoAdicional" class="form-control" rows="3" placeholder="Escriba cualquier detalle adicional..."></textarea>
       </div>
 
       <button class="btn btn-primary btn-large mt-3" onclick="guardarPostulacion()">
         Postular
       </button>
-
     </div>
 
-    <!-- ⭐ MENSAJE FINAL -->
-    <div id="mensajeFinal">
-      <h1>🎉 ¡Gracias por tu postulación!</h1>
-      <p>Tu información ha sido enviada correctamente.
-      En caso de ser seleccionado, nos pondremos en contacto contigo.</p>
+    <div id="mensajeFinal" class="mt-4">
+      <h1>Gracias por tu postulacion</h1>
+      <p>Tu informacion fue enviada correctamente. Si eres seleccionado, nos pondremos en contacto contigo.</p>
     </div>
-
   </div>
 
   <script>
-
     let solicitudIndex = null;
 
     function cargarSolicitudesHabilitadas() {
-        const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
-        const select = document.getElementById("selectSolicitud");
-        const hoy = new Date().toISOString().split("T")[0];
+      const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+      const select = document.getElementById("selectSolicitud");
+      const hoy = new Date().toISOString().split("T")[0];
 
-        select.innerHTML = `<option value="">Seleccione una solicitud habilitada</option>`;
+      select.innerHTML = '<option value="">Seleccione una solicitud habilitada</option>';
 
-        lista.forEach((sol, index) => {
-            const dentroDeRango = (
-              sol.fechaInicioPostulacion &&
-              sol.fechaFinPostulacion &&
-              hoy >= sol.fechaInicioPostulacion &&
-              hoy <= sol.fechaFinPostulacion
-            );
+      lista.forEach((sol, index) => {
+        const dentroDeRango = (
+          sol.fechaInicioPostulacion &&
+          sol.fechaFinPostulacion &&
+          hoy >= sol.fechaInicioPostulacion &&
+          hoy <= sol.fechaFinPostulacion
+        );
 
-            if (
-              sol.estado === "Aprobado" &&
-              sol.postulacionActiva === true &&
-              sol.postulacionCerrada !== true &&
-              dentroDeRango
-            ) {
-                select.innerHTML += `
-                    <option value="${index}">${sol.numero}</option>`;
-            }
-        });
+        if (
+          sol.estado === "Aprobado" &&
+          sol.postulacionActiva === true &&
+          sol.postulacionCerrada !== true &&
+          dentroDeRango
+        ) {
+          select.innerHTML += `<option value="${index}">${sol.numero}</option>`;
+        }
+      });
     }
 
     function guardarPostulacion() {
-
       solicitudIndex = document.getElementById("selectSolicitud").value;
 
       if (!solicitudIndex) {
-          alert("Debe seleccionar una solicitud habilitada.");
-          return;
+        alert("Debe seleccionar una solicitud habilitada.");
+        return;
       }
 
       const cedulaVal = cedula.value.trim();
@@ -152,61 +151,59 @@
       const telefonoVal = telefono.value.trim();
       const aspiracionVal = aspiracion.value.trim();
       const cvFile = cv.files[0];
-      const infoAdicionalVal = document.getElementById("infoAdicional").value.trim(); // ⭐ nuevo
+      const infoAdicionalVal = document.getElementById("infoAdicional").value.trim();
 
-      // Validaciones obligatorias
       if (!cedulaVal || !nombreVal || !fechaNVal || !correoVal || !telefonoVal || !aspiracionVal || !cvFile) {
-          alert("⚠ Complete todos los campos obligatorios.");
-          return;
+        alert("Complete todos los campos obligatorios.");
+        return;
       }
 
       if (cedulaVal.length !== 10 || isNaN(cedulaVal)) {
-          alert("⚠ La cédula debe tener 10 dígitos numéricos.");
-          return;
+        alert("La cedula debe tener 10 digitos numericos.");
+        return;
       }
 
       if (!correoVal.includes("@")) {
-          alert("⚠ Correo inválido.");
-          return;
+        alert("Correo invalido.");
+        return;
       }
 
       if (telefonoVal.length < 10 || isNaN(telefonoVal)) {
-          alert("⚠ Teléfono inválido.");
-          return;
+        alert("Telefono invalido.");
+        return;
       }
 
-      if (isNaN(aspiracionVal) || aspiracionVal <= 0) {
-          alert("⚠ Aspiración salarial inválida.");
-          return;
+      if (isNaN(aspiracionVal) || Number(aspiracionVal) <= 0) {
+        alert("Aspiracion salarial invalida.");
+        return;
       }
 
       if (cvFile.type !== "application/pdf") {
-          alert("⚠ Solo se aceptan archivos PDF.");
-          return;
+        alert("Solo se aceptan archivos PDF.");
+        return;
       }
 
-      // Verificar duplicados
       const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
       const solicitud = lista[solicitudIndex];
 
       if (solicitud.candidatos && solicitud.candidatos.some(c => c.cedula === cedulaVal)) {
-          alert("⚠ Tu postulación ya ha sido registrada.");
-          return;
+        alert("Tu postulacion ya fue registrada.");
+        return;
       }
 
       const fileURL = URL.createObjectURL(cvFile);
 
       const candidato = {
-          cedula: cedulaVal,
-          nombre: nombreVal,
-          fechaNacimiento: fechaNVal,
-          correo: correoVal,
-          telefono: telefonoVal,
-          aspiracion: aspiracionVal,
-          infoAdicional: infoAdicionalVal, // ⭐ Guardado de campo opcional
-          cv: fileURL,
-          cvNombre: cvFile.name,
-          estado: "pendiente"
+        cedula: cedulaVal,
+        nombre: nombreVal,
+        fechaNacimiento: fechaNVal,
+        correo: correoVal,
+        telefono: telefonoVal,
+        aspiracion: aspiracionVal,
+        infoAdicional: infoAdicionalVal,
+        cv: fileURL,
+        cvNombre: cvFile.name,
+        estado: "pendiente"
       };
 
       if (!solicitud.candidatos) solicitud.candidatos = [];
@@ -214,17 +211,13 @@
 
       localStorage.setItem("solicitudes", JSON.stringify(lista));
 
-      // Mostrar mensaje final
       document.getElementById("formularioCard").style.display = "none";
       document.getElementById("mensajeFinal").style.display = "block";
-
     }
 
     window.onload = cargarSolicitudesHabilitadas;
-
   </script>
 
   <script src="../../assets/js/ui-shell.js"></script>
 </body>
 </html>
-

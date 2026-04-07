@@ -63,19 +63,55 @@ function esSi(valor) {
     return normalizarTexto(valor) === "si";
 }
 
+function tieneTextoValido(valor) {
+    const texto = normalizarTexto(valor);
+    return !!texto && !texto.includes("no aplica");
+}
+
 function requiereDotacionEpp(sol) {
     // Compatibilidad con posibles campos explicitos en datos nuevos.
     const flagExplicito =
         esSi(sol?.requiereDotacion) ||
         esSi(sol?.requiereEpp) ||
         esSi(sol?.requiereUniforme) ||
-        esSi(sol?.requiereDotacionEpp);
+        esSi(sol?.requiereDotacionEpp) ||
+        esSi(sol?.requiereEppsUniformes);
 
     if (flagExplicito) return true;
 
-    // Regla por defecto para datos actuales.
-    const tipoCargo = normalizarTexto(sol?.tipoCargo);
-    return tipoCargo.includes("operativo");
+    // Detalle de la ficha de cargo (nuevo flujo).
+    const detalleFicha = Array.isArray(sol?.manualCargoDetalle?.ficha?.eppsUniformesDetalle)
+        ? sol.manualCargoDetalle.ficha.eppsUniformesDetalle
+        : [];
+
+    if (detalleFicha.length > 0) {
+        return detalleFicha.some(item => {
+            const tipo = normalizarTexto(item?.tipo);
+            const elemento = normalizarTexto(item?.elemento);
+            const cantidad = Number.parseInt(String(item?.cantidad ?? "").trim(), 10) || 0;
+            return !!tipo && !!elemento && cantidad > 0 && !tipo.includes("no aplica") && !elemento.includes("no aplica");
+        });
+    }
+
+    // Resumen textual de ficha.
+    if (tieneTextoValido(sol?.manualCargoDetalle?.ficha?.eppsUniformes)) return true;
+    if (tieneTextoValido(sol?.eppsUniformes)) return true;
+
+    return false;
+}
+
+function induccionCompletaCandidato(candidato) {
+    if (candidato?.induccionCompleta === true) return true;
+    const induccion = candidato?.induccion;
+    if (!induccion || typeof induccion !== "object") return false;
+
+    const completo = modulo => {
+        if (!modulo || typeof modulo !== "object") return false;
+        if (modulo.completada === true) return true;
+        return Array.isArray(modulo.items) && modulo.items.length > 0;
+    };
+
+    return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
 }
 
 // ====================================================================
@@ -91,10 +127,17 @@ function cargarDotacion() {
     solicitudes.forEach((sol, solIndex) => {
         if (!requiereDotacionEpp(sol)) return;
 
-        sol.candidatos
-            ?.filter(c => 
-                c.periodoEstado === "EN PRUEBA"
-            )
+        (Array.isArray(sol.candidatos) ? sol.candidatos : [])
+            ?.filter(c => {
+                if (!induccionCompletaCandidato(c)) return false;
+
+                const estadoPP = String(c.periodoEstado || "ABIERTO").toUpperCase();
+                const aptitud = String(c.periodoAptitudFinal || "").toUpperCase();
+                const etapaBasica = estadoPP === "ABIERTO" || estadoPP === "EN PRUEBA";
+                const etapaCompleta = estadoPP === "CERRADO" && aptitud === "APTO";
+
+                return etapaBasica || etapaCompleta;
+            })
             .forEach(c => {
 
                 const row = document.createElement("tr");
@@ -103,7 +146,9 @@ function cargarDotacion() {
                 row.dataset.cedula = c.cedula;
 
                 const aptitud = c.periodoAptitudFinal || "";
-                const estadoPP = c.periodoEstado;
+                const estadoPP = String(c.periodoEstado || "ABIERTO").toUpperCase();
+                const puedeRegistrarBasica = estadoPP === "ABIERTO" || estadoPP === "EN PRUEBA";
+                const puedeRegistrarCompleta = estadoPP === "CERRADO" && String(aptitud).toUpperCase() === "APTO";
 
                 let disableBasica = "";
                 let disableCompleta = "";
@@ -113,10 +158,13 @@ function cargarDotacion() {
                 const bloqueoCompleta = c.bloqueoCompleta === true;
 
                 // ENTREGAR BÁSICA BLOQUEADA PERMANENTE
-                if (bloqueoBasica) disableBasica = "disabled";
+                if (!puedeRegistrarBasica || bloqueoBasica) disableBasica = "disabled";
 
                 // APTO = puede tener entrega completa; NO APTO no puede
                 if (aptitud === "NO APTO") {
+                    disableCompleta = "disabled";
+                }
+                if (!puedeRegistrarCompleta) {
                     disableCompleta = "disabled";
                 }
 
@@ -128,6 +176,9 @@ function cargarDotacion() {
 
                 if (aptitud === "NO APTO") {
                     opcionesEntregaCompleta = `<option value="">No disponible</option>`;
+                }
+                else if (!puedeRegistrarCompleta && !c.entregaCompleta) {
+                    opcionesEntregaCompleta = `<option value="">Disponible al cerrar periodo APTO</option>`;
                 }
 
                 else if (c.entregaBasica === "NO APLICA") {

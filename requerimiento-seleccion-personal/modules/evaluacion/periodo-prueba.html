@@ -243,6 +243,64 @@ function renderDias(fechaIngreso) {
   return { texto: `${dias} dias`, clase: "verde" };
 }
 
+function induccionCompletaCandidato(candidato) {
+  // Compatibilidad: si ya esta en prueba/cerrado, no bloquear por induccion.
+  const estadoPeriodo = String(candidato?.periodoEstado || "").toUpperCase();
+  if (estadoPeriodo === "EN PRUEBA" || estadoPeriodo === "CERRADO") return true;
+
+  if (candidato?.induccionCompleta === true) return true;
+
+  const induccion = candidato?.induccion;
+  if (!induccion || typeof induccion !== "object") return false;
+
+  const completo = modulo => {
+    if (!modulo || typeof modulo !== "object") return false;
+    if (modulo.completada === true) return true;
+    return Array.isArray(modulo.items) && modulo.items.length > 0;
+  };
+
+  return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
+}
+
+function esSi(valor) {
+  return normalizarTexto(valor) === "si";
+}
+
+function tieneTextoValido(valor) {
+  const texto = normalizarTexto(valor);
+  return !!texto && !texto.includes("no aplica");
+}
+
+function requiereEquiposAccesos(sol) {
+  if (esSi(sol?.requiereComp) || esSi(sol?.requiereTel) || esSi(sol?.requiereCel) || esSi(sol?.requiereAccesos)) {
+    return true;
+  }
+
+  const detalle = Array.isArray(sol?.manualCargoDetalle?.ficha?.equiposAccesosDetalle)
+    ? sol.manualCargoDetalle.ficha.equiposAccesosDetalle
+    : [];
+
+  if (detalle.length > 0) return true;
+  if (tieneTextoValido(sol?.manualCargoDetalle?.ficha?.equiposAccesos)) return true;
+  if (tieneTextoValido(sol?.equiposAccesos)) return true;
+  return false;
+}
+
+function requiereDotacion(sol) {
+  if (esSi(sol?.requiereDotacion) || esSi(sol?.requiereEpp) || esSi(sol?.requiereUniforme) || esSi(sol?.requiereEppsUniformes)) {
+    return true;
+  }
+
+  const detalle = Array.isArray(sol?.manualCargoDetalle?.ficha?.eppsUniformesDetalle)
+    ? sol.manualCargoDetalle.ficha.eppsUniformesDetalle
+    : [];
+
+  if (detalle.length > 0) return true;
+  if (tieneTextoValido(sol?.manualCargoDetalle?.ficha?.eppsUniformes)) return true;
+  if (tieneTextoValido(sol?.eppsUniformes)) return true;
+  return false;
+}
+
 function registrarEtapa(sol, candidato, etapa) {
   const fechaLocalEcuador = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
 
@@ -282,8 +340,9 @@ function cargarPeriodoPrueba() {
 
         const mostrar = operativoSeleccionado || administrativoAprobadoIngreso;
         const noCerrado = c.periodoEstado !== "CERRADO";
+        const induccionCompleta = induccionCompletaCandidato(c);
 
-        return mostrar && noCerrado;
+        return mostrar && noCerrado && induccionCompleta;
       })
       .forEach(c => {
         if (!c.periodoEstado) {
@@ -399,6 +458,24 @@ function confirmarModalPeriodo() {
   candidato.fechaIngreso = fechaIngreso;
 
   if (contextoModal.modo === "iniciar") {
+    if (requiereEquiposAccesos(sol)) {
+      const estadoEntrega = String(candidato.estadoEntrega || "").toUpperCase();
+      const equiposListos = estadoEntrega === "ENTREGADO" || estadoEntrega === "ENTREGA INCOMPLETA";
+      if (!equiposListos) {
+        alert("Antes de iniciar periodo de prueba, registra equipos/accesos del candidato.");
+        return;
+      }
+    }
+
+    if (requiereDotacion(sol)) {
+      const basica = String(candidato.entregaBasica || "").toUpperCase();
+      const dotacionBasicaLista = basica === "ENTREGADO" || basica === "NO APLICA";
+      if (!dotacionBasicaLista) {
+        alert("Antes de iniciar periodo de prueba, registra la dotacion basica.");
+        return;
+      }
+    }
+
     candidato.periodoEstado = "EN PRUEBA";
     registrarEtapa(sol, candidato, "Periodo de prueba iniciado");
     guardarSolicitudes(solicitudes);
