@@ -1,0 +1,224 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>6.1. Pre-ingreso</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  table th, table td { text-align: center; vertical-align: middle; }
+  .readonly { background: #ececec !important; }
+</style>
+<link rel="stylesheet" href="../../assets/css/global-theme.css">
+<link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body class="bg-light p-4">
+
+<div class="container">
+  <h3 class="mb-4">Pre-ingreso (Codigo y Fecha)</h3>
+
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-secondary">
+      <tr>
+        <th>N Solicitud</th>
+        <th>Fecha Solicitud</th>
+        <th>Solicitante</th>
+        <th>Area</th>
+        <th>Cargo</th>
+        <th>Nombre</th>
+        <th>Cedula</th>
+        <th>Estado PP</th>
+        <th>Codigo Trabajador (5)</th>
+        <th>Fecha Ingreso</th>
+        <th>Guardar</th>
+      </tr>
+    </thead>
+    <tbody id="tablaPreIngreso"></tbody>
+  </table>
+</div>
+
+<script>
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function soloDigitos(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function validarCodigoUnico(valor) {
+  return /^\d{5}$/.test(String(valor || ""));
+}
+
+function obtenerSolicitudes() {
+  return JSON.parse(localStorage.getItem("solicitudes") || "[]");
+}
+
+function guardarSolicitudes(lista) {
+  localStorage.setItem("solicitudes", JSON.stringify(lista));
+}
+
+function induccionCompletaCandidato(candidato) {
+  if (candidato?.induccionCompleta === true) return true;
+
+  const induccion = candidato?.induccion;
+  if (!induccion || typeof induccion !== "object") return false;
+
+  const completo = modulo => {
+    if (!modulo || typeof modulo !== "object") return false;
+    if (modulo.completada === true) return true;
+    return Array.isArray(modulo.items) && modulo.items.length > 0;
+  };
+
+  return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
+}
+
+function preIngresoCompleto(candidato) {
+  const codigo = soloDigitos(candidato?.codigoUnico || "");
+  const fecha = String(candidato?.fechaIngreso || "").trim();
+  return validarCodigoUnico(codigo) && !!fecha;
+}
+
+function candidatoEnFlujoPreIngreso(sol, candidato) {
+  const tipoCargo = normalizarTexto(sol?.tipoCargo);
+  const estadoCandidato = normalizarTexto(candidato?.estado);
+
+  const esOperativo = tipoCargo.includes("operativo");
+  const esAdministrativo = tipoCargo.includes("administrativo");
+
+  const operativoSeleccionado = esOperativo && estadoCandidato === "seleccionado_oficial";
+  const administrativoAprobadoIngreso = esAdministrativo && estadoCandidato === "aprobado_ingreso";
+
+  if (!(operativoSeleccionado || administrativoAprobadoIngreso)) return false;
+  if (induccionCompletaCandidato(candidato)) return false;
+  if (preIngresoCompleto(candidato)) return false;
+
+  const estadoPP = String(candidato?.periodoEstado || "ABIERTO").toUpperCase();
+  if (estadoPP === "CERRADO") return false;
+
+  return true;
+}
+
+function cargarPreIngreso() {
+  const tabla = document.getElementById("tablaPreIngreso");
+  tabla.innerHTML = "";
+
+  const solicitudes = obtenerSolicitudes();
+  let total = 0;
+
+  solicitudes.forEach((sol, solIndex) => {
+    (Array.isArray(sol.candidatos) ? sol.candidatos : [])
+      .filter(c => candidatoEnFlujoPreIngreso(sol, c))
+      .forEach(c => {
+        const estadoPP = String(c.periodoEstado || "ABIERTO").toUpperCase();
+
+        const row = document.createElement("tr");
+        row.dataset.solIndex = String(solIndex);
+        row.dataset.cedula = String(c.cedula || "");
+
+        row.innerHTML = `
+          <td class="readonly">${sol.numero || ""}</td>
+          <td class="readonly">${sol.fechaSolicitud || ""}</td>
+          <td class="readonly">${sol.solicitante || ""}</td>
+          <td class="readonly">${sol.area || ""}</td>
+          <td class="readonly">${sol.cargoSolicitado || ""}</td>
+          <td class="readonly">${c.nombre || ""}</td>
+          <td class="readonly">${c.cedula || ""}</td>
+          <td class="readonly">${estadoPP}</td>
+          <td>
+            <input class="form-control codigoTrabajador" inputmode="numeric" maxlength="5" value="${soloDigitos(c.codigoUnico || "").slice(0, 5)}" placeholder="00000">
+          </td>
+          <td>
+            <input type="date" class="form-control fechaIngreso" value="${c.fechaIngreso || ""}">
+          </td>
+          <td>
+            <button class="btn btn-success" onclick="guardarFilaPreIngreso(this)">Guardar</button>
+          </td>
+        `;
+
+        const inputCodigo = row.querySelector(".codigoTrabajador");
+        inputCodigo.addEventListener("input", () => {
+          inputCodigo.value = soloDigitos(inputCodigo.value).slice(0, 5);
+        });
+
+        tabla.appendChild(row);
+        total += 1;
+      });
+  });
+
+  if (total === 0) {
+    tabla.innerHTML = `
+      <tr>
+        <td colspan="11" class="text-center text-muted py-4">
+          No hay candidatos pendientes de pre-ingreso en esta etapa.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function guardarFilaPreIngreso(btn) {
+  const row = btn.closest("tr");
+  if (!row) return;
+
+  const solIndex = Number(row.dataset.solIndex);
+  const cedula = String(row.dataset.cedula || "");
+
+  const codigo = soloDigitos(row.querySelector(".codigoTrabajador")?.value || "").slice(0, 5);
+  const fechaIngreso = String(row.querySelector(".fechaIngreso")?.value || "").trim();
+
+  if (!validarCodigoUnico(codigo)) {
+    alert("El codigo de trabajador debe tener exactamente 5 digitos.");
+    return;
+  }
+
+  if (!fechaIngreso) {
+    alert("Debe registrar la fecha de ingreso.");
+    return;
+  }
+
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[solIndex];
+  if (!sol || !Array.isArray(sol.candidatos)) return;
+
+  const candidato = sol.candidatos.find(c => String(c.cedula || "") === cedula);
+  if (!candidato) return;
+
+  candidato.codigoUnico = codigo;
+  candidato.fechaIngreso = fechaIngreso;
+  candidato.preIngresoRegistrado = true;
+
+  if (!Array.isArray(candidato.historialEtapas)) candidato.historialEtapas = [];
+  candidato.historialEtapas.push({
+    etapa: "Pre-ingreso registrado",
+    fecha: new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" }),
+    usuario: "Nicolas Crisanto"
+  });
+
+  if (!Array.isArray(sol.historialEtapas)) sol.historialEtapas = [];
+  sol.historialEtapas.push({
+    etapa: `Pre-ingreso registrado - ${candidato.nombre || candidato.cedula || "candidato"}`,
+    fecha: new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" }),
+    usuario: "Nicolas Crisanto"
+  });
+
+  guardarSolicitudes(solicitudes);
+
+  if (preIngresoCompleto(candidato)) {
+    alert("Pre-ingreso guardado. Ya puedes continuar con Induccion.");
+  } else {
+    alert("Pre-ingreso guardado.");
+  }
+
+  cargarPreIngreso();
+}
+
+document.addEventListener("DOMContentLoaded", cargarPreIngreso);
+</script>
+
+<script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

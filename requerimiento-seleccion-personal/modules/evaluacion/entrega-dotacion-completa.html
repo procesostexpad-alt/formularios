@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>9.1. Entrega de Dotacion Basica</title>
+<title>9.2. Entrega de Dotacion Completa</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
   table th, table td { text-align: center; vertical-align: middle; }
   .readonly { background: #ececec !important; }
-  .dias-ok { background: #198754 !important; color: white !important; font-weight: bold; }
-  .dias-alerta { background: #dc3545 !important; color: white !important; font-weight: bold; }
+  .estado-ok { background: #198754 !important; color: white !important; font-weight: bold; }
+  .estado-alerta { background: #dc3545 !important; color: white !important; font-weight: bold; }
 </style>
   <link rel="stylesheet" href="../../assets/css/global-theme.css">
   <link rel="stylesheet" href="../../assets/css/ui-shell.css">
@@ -17,7 +17,7 @@
 <body class="bg-light p-4">
 
 <div class="container">
-  <h3 class="mb-4 text-center">Entrega de Dotacion Basica</h3>
+  <h3 class="mb-4 text-center">Entrega de Dotacion Completa</h3>
 
   <table class="table table-bordered table-hover align-middle">
     <thead class="table-secondary">
@@ -30,15 +30,15 @@
         <th>Nombre</th>
         <th>Cedula</th>
         <th>Codigo Trabajador</th>
-        <th>Fecha Ingreso</th>
         <th>Estado PP</th>
+        <th>Aptitud Medica</th>
         <th>Entrega Basica</th>
-        <th>Dias PP</th>
+        <th>Entrega Completa</th>
         <th>Guardar</th>
         <th>Ver</th>
       </tr>
     </thead>
-    <tbody id="tablaDotacionBasica"></tbody>
+    <tbody id="tablaDotacionCompleta"></tbody>
   </table>
 </div>
 
@@ -53,14 +53,6 @@ function normalizarTexto(valor) {
 
 function esSi(valor) {
   return normalizarTexto(valor) === "si";
-}
-
-function soloDigitos(valor) {
-  return String(valor || "").replace(/\D/g, "");
-}
-
-function validarCodigoUnico(valor) {
-  return /^\d{5}$/.test(String(valor || ""));
 }
 
 function tieneTextoValido(valor) {
@@ -111,14 +103,13 @@ function induccionCompletaCandidato(candidato) {
   return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
 }
 
-function preIngresoCompleto(candidato) {
-  const codigo = soloDigitos(candidato?.codigoUnico || "");
-  const fecha = String(candidato?.fechaIngreso || "").trim();
-  return validarCodigoUnico(codigo) && !!fecha;
+function aptitudMedicaAprobada(candidato) {
+  const aptitud = normalizarTexto(candidato?.aptitudMedica);
+  return aptitud === "apto" || aptitud === "apto con observacion";
 }
 
-function cargarDotacionBasica() {
-  const tabla = document.getElementById("tablaDotacionBasica");
+function cargarDotacionCompleta() {
+  const tabla = document.getElementById("tablaDotacionCompleta");
   tabla.innerHTML = "";
 
   const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
@@ -129,18 +120,34 @@ function cargarDotacionBasica() {
     (Array.isArray(sol.candidatos) ? sol.candidatos : [])
       .filter(candidato => {
         if (!induccionCompletaCandidato(candidato)) return false;
-        if (!preIngresoCompleto(candidato)) return false;
         const estadoPP = String(candidato.periodoEstado || "ABIERTO").toUpperCase();
-        return estadoPP === "ABIERTO" || estadoPP === "EN PRUEBA";
+        return estadoPP === "CERRADO" && aptitudMedicaAprobada(candidato) && !candidato.faseIngresoCompletada;
       })
       .forEach(candidato => {
-        const estadoPP = String(candidato.periodoEstado || "ABIERTO").toUpperCase();
-        const bloqueoBasica = candidato.bloqueoBasica === true;
-        const disableBasica = bloqueoBasica ? "disabled" : "";
+        const estadoPP = String(candidato.periodoEstado || "").toUpperCase();
+        const aptitudMedica = String(candidato.aptitudMedica || "");
+        const basica = String(candidato.entregaBasica || "").toUpperCase();
+
+        const tieneBasicaLista = basica === "ENTREGADO" || basica === "NO APLICA";
+        const bloqueoCompleta = candidato.bloqueoCompleta === true;
+        const disableCompleta = bloqueoCompleta || !tieneBasicaLista ? "disabled" : "";
+
+        let opcionesEntregaCompleta = "";
+        if (!tieneBasicaLista) {
+          opcionesEntregaCompleta = "<option value=\"\">Primero registrar entrega basica</option>";
+        } else {
+          opcionesEntregaCompleta = `
+            <option value="">Seleccione...</option>
+            <option ${candidato.entregaCompleta === "ENTREGADO" ? "selected" : ""}>ENTREGADO</option>
+            <option ${candidato.entregaCompleta === "ENTREGADO INCOMPLETO" ? "selected" : ""}>ENTREGADO INCOMPLETO</option>
+            <option ${candidato.entregaCompleta === "NO APLICA" ? "selected" : ""}>NO APLICA</option>
+          `;
+        }
 
         const row = document.createElement("tr");
         row.dataset.solIndex = String(solIndex);
         row.dataset.cedula = String(candidato.cedula || "");
+        row.dataset.puedeGuardar = String(tieneBasicaLista && !bloqueoCompleta);
 
         row.innerHTML = `
           <td class="readonly">${sol.numero || ""}</td>
@@ -151,73 +158,44 @@ function cargarDotacionBasica() {
           <td class="readonly">${candidato.nombre || ""}</td>
           <td class="readonly">${candidato.cedula || ""}</td>
           <td class="readonly">${candidato.codigoUnico || ""}</td>
-          <td class="readonly">${candidato.fechaIngreso || ""}</td>
           <td class="readonly">${estadoPP}</td>
+          <td class="readonly ${aptitudMedicaAprobada(candidato) ? "estado-ok" : "estado-alerta"}">${aptitudMedica || "PENDIENTE"}</td>
+          <td class="readonly ${tieneBasicaLista ? "estado-ok" : "estado-alerta"}">${basica || "SIN REGISTRO"}</td>
           <td>
-            <select class="form-select entregaBasica" ${disableBasica}>
-              <option value="">Seleccione...</option>
-              <option ${candidato.entregaBasica === "ENTREGADO" ? "selected" : ""}>ENTREGADO</option>
-              <option ${candidato.entregaBasica === "PENDIENTE" ? "selected" : ""}>PENDIENTE</option>
-              <option ${candidato.entregaBasica === "NO APLICA" ? "selected" : ""}>NO APLICA</option>
+            <select class="form-select entregaCompleta" ${disableCompleta}>
+              ${opcionesEntregaCompleta}
             </select>
           </td>
-          <td class="diasPP readonly"></td>
-          <td><button class="btn btn-success" onclick="guardarFilaBasica(this)">Guardar</button></td>
+          <td><button class="btn btn-success" onclick="guardarFilaCompleta(this)">Guardar</button></td>
           <td><button class="btn btn-info" onclick="abrirInfoDotacion(${solIndex}, '${String(candidato.cedula || "")}')">Ver</button></td>
         `;
 
         tabla.appendChild(row);
-        mostrarDias(row);
       });
   });
 }
 
-function mostrarDias(row) {
-  const solIndex = Number(row.dataset.solIndex);
-  const cedula = String(row.dataset.cedula || "");
-
-  const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
-  const sol = solicitudes[solIndex];
-  if (!sol || !Array.isArray(sol.candidatos)) return;
-
-  const candidato = sol.candidatos.find(c => String(c.cedula || "") === cedula);
-  if (!candidato) return;
-
-  const diasCell = row.querySelector(".diasPP");
-  if (!diasCell) return;
-
-  const fechaIngreso = candidato.fechaIngreso || "";
-  const inicio = fechaIngreso ? new Date(`${fechaIngreso}T00:00:00`) : null;
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-
-  let diff = 0;
-  if (inicio && !Number.isNaN(inicio.getTime())) {
-    diff = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24));
-    if (!Number.isFinite(diff) || diff < 0) diff = 0;
-  }
-
-  diasCell.innerText = `${diff} dias`;
-  diasCell.classList.remove("dias-ok", "dias-alerta");
-  diasCell.classList.add(diff < 90 ? "dias-ok" : "dias-alerta");
-}
-
-function guardarFilaBasica(btn) {
+function guardarFilaCompleta(btn) {
   const row = btn.closest("tr");
   if (!row) return;
 
-  const solIndex = Number(row.dataset.solIndex);
-  const cedula = String(row.dataset.cedula || "");
-
-  const selectorBasica = row.querySelector(".entregaBasica");
-  if (!selectorBasica || selectorBasica.disabled) {
-    alert("La entrega basica ya se encuentra bloqueada para este candidato.");
+  if (row.dataset.puedeGuardar !== "true") {
+    alert("Para entrega completa primero se requiere entrega basica (ENTREGADO o NO APLICA).");
     return;
   }
 
-  const entregaBasica = selectorBasica.value;
-  if (!entregaBasica) {
-    alert("Seleccione un estado para la entrega basica.");
+  const solIndex = Number(row.dataset.solIndex);
+  const cedula = String(row.dataset.cedula || "");
+
+  const selectorCompleta = row.querySelector(".entregaCompleta");
+  if (!selectorCompleta || selectorCompleta.disabled) {
+    alert("La entrega completa ya se encuentra bloqueada para este candidato.");
+    return;
+  }
+
+  const entregaCompleta = selectorCompleta.value;
+  if (!entregaCompleta) {
+    alert("Seleccione un estado para la entrega completa.");
     return;
   }
 
@@ -228,33 +206,40 @@ function guardarFilaBasica(btn) {
   const candidato = sol.candidatos.find(c => String(c.cedula || "") === cedula);
   if (!candidato) return;
 
-  if (!preIngresoCompleto(candidato)) {
-    alert("Primero registra pre-ingreso (codigo de trabajador y fecha de ingreso).");
-    return;
-  }
+  candidato.entregaCompleta = entregaCompleta;
 
-  candidato.entregaBasica = entregaBasica;
-
-  if (entregaBasica === "ENTREGADO") {
-    candidato.bloqueoBasica = true;
-    alert("Entrega basica registrada. Notificacion enviada a solicitante y Talento Humano.");
-  } else if (entregaBasica === "NO APLICA") {
-    candidato.bloqueoBasica = true;
-    alert("Entrega basica marcada como NO APLICA. Notificacion enviada a solicitante y Talento Humano.");
+  if (
+    entregaCompleta === "ENTREGADO" ||
+    entregaCompleta === "ENTREGADO INCOMPLETO" ||
+    entregaCompleta === "NO APLICA"
+  ) {
+    candidato.bloqueoCompleta = true;
   }
 
   localStorage.setItem("solicitudes", JSON.stringify(solicitudes));
+
+  if (entregaCompleta === "ENTREGADO") {
+    alert("Entrega completa registrada. Notificacion enviada a solicitante y Talento Humano.");
+  } else if (entregaCompleta === "ENTREGADO INCOMPLETO") {
+    alert("Entrega completa registrada como incompleta. Notificacion enviada.");
+  } else {
+    alert("Entrega completa marcada como NO APLICA.");
+  }
+
   alert("Informacion guardada correctamente.");
-  cargarDotacionBasica();
+  cargarDotacionCompleta();
 }
 
 function abrirInfoDotacion(solIndex, cedula) {
   window.location.href = `../gestion/solicitudes/ver-solicitud-ssoma.html?sol=${solIndex}&ced=${cedula}`;
 }
 
-document.addEventListener("DOMContentLoaded", cargarDotacionBasica);
+document.addEventListener("DOMContentLoaded", cargarDotacionCompleta);
 </script>
 
 <script src="../../assets/js/ui-shell.js"></script>
 </body>
 </html>
+
+
+

@@ -80,6 +80,14 @@ function esSi(valor) {
   return normalizarTexto(valor) === "si";
 }
 
+function soloDigitos(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function validarCodigoUnico(valor) {
+  return /^\d{5}$/.test(String(valor || ""));
+}
+
 function tieneTextoValido(valor) {
   const texto = normalizarTexto(valor);
   return !!texto && !texto.includes("no aplica");
@@ -130,6 +138,12 @@ function induccionCompletaCandidato(candidato) {
   return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
 }
 
+function preIngresoCompleto(candidato) {
+  const codigo = soloDigitos(candidato?.codigoUnico || "");
+  const fecha = String(candidato?.fechaIngreso || "").trim();
+  return validarCodigoUnico(codigo) && !!fecha;
+}
+
 // ==========================================================
 // CARGAR
 // - Requiere equipos/accesos segun solicitud
@@ -147,6 +161,7 @@ function cargarSistemas() {
 
     sol.candidatos?.forEach(c => {
       if (!induccionCompletaCandidato(c)) return;
+      if (!preIngresoCompleto(c)) return;
       if (String(c.periodoEstado || "").toUpperCase() === "CERRADO") return;
 
       const estadoEntrega = c.estadoEntrega || "PENDIENTE";

@@ -157,16 +157,6 @@
           <input id="mdNombre" class="form-control" readonly>
         </div>
 
-        <div class="col-md-6">
-          <label class="form-label">Codigo unico (5 digitos)</label>
-          <input id="mdCodigoUnico" type="text" class="form-control" inputmode="numeric" maxlength="5" placeholder="00000">
-        </div>
-
-        <div class="col-md-6">
-          <label class="form-label">Fecha de ingreso</label>
-          <input id="mdFechaIngreso" type="date" class="form-control">
-        </div>
-
         <div class="col-12">
           <label class="form-label">Aptitud del cargo</label>
           <select id="mdAptitudCargo" class="form-select">
@@ -195,14 +185,6 @@ function normalizarTexto(valor) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
-}
-
-function soloDigitos(valor) {
-  return String(valor || "").replace(/\D/g, "");
-}
-
-function validarCodigoUnico(valor) {
-  return /^\d{5}$/.test(String(valor || ""));
 }
 
 function obtenerSolicitudes() {
@@ -301,6 +283,28 @@ function requiereDotacion(sol) {
   return false;
 }
 
+function entregaEquiposAccesosLista(sol, candidato) {
+  if (!requiereEquiposAccesos(sol)) return true;
+  const estadoEntrega = String(candidato?.estadoEntrega || "").toUpperCase();
+  return estadoEntrega === "ENTREGADO" || estadoEntrega === "ENTREGA INCOMPLETA";
+}
+
+function entregaDotacionBasicaLista(sol, candidato) {
+  if (!requiereDotacion(sol)) return true;
+  const basica = String(candidato?.entregaBasica || "").toUpperCase();
+  return basica === "ENTREGADO" || basica === "NO APLICA";
+}
+
+function candidatoListoParaIniciarPeriodo(sol, candidato) {
+  return preIngresoCompleto(candidato) && entregaEquiposAccesosLista(sol, candidato) && entregaDotacionBasicaLista(sol, candidato);
+}
+
+function preIngresoCompleto(candidato) {
+  const codigo = String(candidato?.codigoUnico || "").replace(/\D/g, "");
+  const fecha = String(candidato?.fechaIngreso || "").trim();
+  return /^\d{5}$/.test(codigo) && !!fecha;
+}
+
 function registrarEtapa(sol, candidato, etapa) {
   const fechaLocalEcuador = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
 
@@ -339,10 +343,19 @@ function cargarPeriodoPrueba() {
         const administrativoAprobadoIngreso = esAdministrativo && estadoCandidato === "aprobado_ingreso";
 
         const mostrar = operativoSeleccionado || administrativoAprobadoIngreso;
-        const noCerrado = c.periodoEstado !== "CERRADO";
+        const estadoPeriodo = String(c.periodoEstado || "ABIERTO").toUpperCase();
+        const noCerrado = estadoPeriodo !== "CERRADO";
         const induccionCompleta = induccionCompletaCandidato(c);
 
-        return mostrar && noCerrado && induccionCompleta;
+        if (!mostrar || !noCerrado || !induccionCompleta) return false;
+
+        // Solo mostrar en PENDIENTE cuando ya cumpla entregas previas (si aplican).
+        if (estadoPeriodo === "ABIERTO") {
+          return candidatoListoParaIniciarPeriodo(sol, c);
+        }
+
+        // Si ya esta EN PRUEBA, siempre se mantiene visible para poder finalizar.
+        return true;
       })
       .forEach(c => {
         if (!c.periodoEstado) {
@@ -364,7 +377,7 @@ function cargarPeriodoPrueba() {
           <td class="readonly">${sol.cargoSolicitado || "-"}</td>
           <td class="readonly">${c.nombre || "-"}</td>
           <td class="readonly">${c.cedula || "-"}</td>
-          <td class="readonly">${sol.fechaIngreso || "N/A"}</td>
+          <td class="readonly">${c.fechaIngreso || sol.fechaIngreso || "N/A"}</td>
           <td class="readonly">${formatearEstadoPeriodo(c.periodoEstado)}</td>
           <td class="${dias.clase}">${dias.texto}</td>
           <td>
@@ -396,17 +409,12 @@ function abrirModalPeriodo(solIndex, cedula) {
 
   const titulo = document.getElementById("modalPeriodoTitulo");
   const nombre = document.getElementById("mdNombre");
-  const codigo = document.getElementById("mdCodigoUnico");
-  const fecha = document.getElementById("mdFechaIngreso");
   const aptitud = document.getElementById("mdAptitudCargo");
   const hint = document.getElementById("mdAptitudHint");
   const btnConfirmar = document.getElementById("btnConfirmarModal");
 
   titulo.textContent = modo === "iniciar" ? "Iniciar periodo de prueba" : "Finalizar periodo de prueba";
   nombre.value = `${candidato.nombre || "-"} - CI ${candidato.cedula || "-"}`;
-
-  codigo.value = soloDigitos(candidato.codigoUnico || "").slice(0, 5);
-  fecha.value = candidato.fechaIngreso || sol.fechaIngreso || "";
   aptitud.value = candidato.periodoAptitudFinal || "";
 
   aptitud.disabled = modo === "iniciar";
@@ -428,24 +436,7 @@ function cerrarModalPeriodo() {
 function confirmarModalPeriodo() {
   if (!contextoModal) return;
 
-  const codigoInput = document.getElementById("mdCodigoUnico");
-  const fechaInput = document.getElementById("mdFechaIngreso");
   const aptitudInput = document.getElementById("mdAptitudCargo");
-
-  const codigo = soloDigitos(codigoInput.value).slice(0, 5);
-  const fechaIngreso = fechaInput.value || "";
-
-  if (!validarCodigoUnico(codigo)) {
-    alert("El codigo unico debe tener exactamente 5 digitos numericos.");
-    codigoInput.focus();
-    return;
-  }
-
-  if (!fechaIngreso) {
-    alert("Debe ingresar la fecha de ingreso.");
-    fechaInput.focus();
-    return;
-  }
 
   const solicitudes = obtenerSolicitudes();
   const sol = solicitudes[contextoModal.solIndex];
@@ -454,26 +445,20 @@ function confirmarModalPeriodo() {
   const candidato = (sol.candidatos || []).find(c => String(c.cedula) === contextoModal.cedula);
   if (!candidato) return;
 
-  candidato.codigoUnico = codigo;
-  candidato.fechaIngreso = fechaIngreso;
-
   if (contextoModal.modo === "iniciar") {
-    if (requiereEquiposAccesos(sol)) {
-      const estadoEntrega = String(candidato.estadoEntrega || "").toUpperCase();
-      const equiposListos = estadoEntrega === "ENTREGADO" || estadoEntrega === "ENTREGA INCOMPLETA";
-      if (!equiposListos) {
-        alert("Antes de iniciar periodo de prueba, registra equipos/accesos del candidato.");
+    if (!preIngresoCompleto(candidato)) {
+        alert("Antes de iniciar periodo de prueba, registra codigo de trabajador (5 digitos) y fecha de ingreso en Pre-ingreso.");
         return;
-      }
     }
 
-    if (requiereDotacion(sol)) {
-      const basica = String(candidato.entregaBasica || "").toUpperCase();
-      const dotacionBasicaLista = basica === "ENTREGADO" || basica === "NO APLICA";
-      if (!dotacionBasicaLista) {
+    if (!entregaEquiposAccesosLista(sol, candidato)) {
+        alert("Antes de iniciar periodo de prueba, registra equipos/accesos del candidato.");
+        return;
+    }
+
+    if (!entregaDotacionBasicaLista(sol, candidato)) {
         alert("Antes de iniciar periodo de prueba, registra la dotacion basica.");
         return;
-      }
     }
 
     candidato.periodoEstado = "EN PRUEBA";
@@ -509,10 +494,6 @@ function confirmarModalPeriodo() {
     alert("Periodo de prueba finalizado. Resultado: NO APTO.");
   }
 }
-
-document.getElementById("mdCodigoUnico").addEventListener("input", (e) => {
-  e.target.value = soloDigitos(e.target.value).slice(0, 5);
-});
 
 document.getElementById("btnConfirmarModal").addEventListener("click", confirmarModalPeriodo);
 

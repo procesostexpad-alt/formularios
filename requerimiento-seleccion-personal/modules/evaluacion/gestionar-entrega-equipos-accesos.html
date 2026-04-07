@@ -69,6 +69,14 @@ function esSi(valor) {
   return normalizarTexto(valor) === "si";
 }
 
+function soloDigitos(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function validarCodigoUnico(valor) {
+  return /^\d{5}$/.test(String(valor || ""));
+}
+
 function tieneTextoValido(valor) {
   const texto = normalizarTexto(valor);
   return !!texto && !texto.includes("no aplica");
@@ -116,6 +124,12 @@ function induccionCompletaCandidato(candidato) {
   return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
 }
 
+function preIngresoCompleto(candidato) {
+  const codigo = soloDigitos(candidato?.codigoUnico || "");
+  const fecha = String(candidato?.fechaIngreso || "").trim();
+  return validarCodigoUnico(codigo) && !!fecha;
+}
+
 // ======================================================
 // Obtener parÃ¡metros enviados desde Sistemas
 // ======================================================
@@ -146,6 +160,12 @@ if (!induccionCompletaCandidato(candidato)) {
   alert("La induccion no esta completa para este candidato.");
   window.location.href = "ver-entrega-equipos-accesos.html";
   throw new Error("Induccion incompleta");
+}
+
+if (!preIngresoCompleto(candidato)) {
+  alert("Primero registra pre-ingreso (codigo de trabajador y fecha de ingreso).");
+  window.location.href = "pre-ingreso.html";
+  throw new Error("Pre-ingreso incompleto");
 }
 
 if (String(candidato.periodoEstado || "").toUpperCase() === "CERRADO") {

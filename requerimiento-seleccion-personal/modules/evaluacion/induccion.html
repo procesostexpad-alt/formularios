@@ -84,6 +84,7 @@
           <th>Tipo cargo</th>
           <th>Candidato</th>
           <th>Cedula</th>
+          <th>Codigo trabajador</th>
           <th>Estado induccion</th>
           <th>Acciones</th>
         </tr>
@@ -159,6 +160,14 @@
       return JSON.parse(localStorage.getItem("solicitudes") || "[]");
     }
 
+    function soloDigitos(valor) {
+      return String(valor || "").replace(/\D/g, "");
+    }
+
+    function validarCodigoUnico(valor) {
+      return /^\d{5}$/.test(String(valor || ""));
+    }
+
     function guardarSolicitudes(lista) {
       localStorage.setItem("solicitudes", JSON.stringify(lista));
     }
@@ -180,6 +189,12 @@
 
       sol.historialEtapas.push({ ...evento });
       candidato.historialEtapas.push({ ...evento });
+    }
+
+    function preIngresoCompleto(candidato) {
+      const codigo = soloDigitos(candidato?.codigoUnico || "");
+      const fecha = String(candidato?.fechaIngreso || "").trim();
+      return validarCodigoUnico(codigo) && !!fecha;
     }
 
     function asegurarInduccion(candidato) {
@@ -236,7 +251,7 @@
       const administrativo = tipoCargo.includes("administrativo") && estadoCandidato === "aprobado_ingreso";
       const noCerrado = String(candidato?.periodoEstado || "").toUpperCase() !== "CERRADO";
 
-      return (operativo || administrativo) && noCerrado;
+      return (operativo || administrativo) && noCerrado && preIngresoCompleto(candidato);
     }
 
     function cargarInduccion() {
@@ -264,6 +279,7 @@
             <td>${sol.tipoCargo || "-"}</td>
             <td>${candidato.nombre || "-"}</td>
             <td>${candidato.cedula || "-"}</td>
+            <td>${candidato.codigoUnico || "-"}</td>
             <td><span class="estado-chip ${estado.clase}">${estado.label}</span></td>
             <td class="cell-actions">
               <div class="d-flex flex-wrap gap-2">
@@ -281,7 +297,7 @@
       if (!tabla.children.length) {
         tabla.innerHTML = `
           <tr>
-            <td colspan="9" class="text-center text-muted py-4">
+            <td colspan="10" class="text-center text-muted py-4">
               No hay candidatos pendientes de induccion.
             </td>
           </tr>
@@ -304,7 +320,8 @@
       contextoModal = { solIndex: Number(solIndex), candIndex: Number(candIndex), tipo };
 
       document.getElementById("modalInduccionTitulo").textContent = LABEL_TIPO[tipo] || "Induccion";
-      document.getElementById("modalInduccionInfo").textContent = `Solicitud ${sol.numero || "-"} - ${candidato.nombre || "-"}`;
+      document.getElementById("modalInduccionInfo").textContent =
+        `Solicitud ${sol.numero || "-"} - ${candidato.nombre || "-"} - Codigo ${candidato.codigoUnico || "-"}`;
 
       const cont = document.getElementById("checksContenedor");
       cont.innerHTML = "";

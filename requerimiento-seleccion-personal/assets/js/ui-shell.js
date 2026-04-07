@@ -53,11 +53,13 @@
       key: "evaluacion",
       label: "Evaluacion",
       items: [
+        { label: "Pre-ingreso", path: "modules/evaluacion/pre-ingreso.html" },
         { label: "Induccion", path: "modules/evaluacion/induccion.html" },
-        { label: "Periodo prueba", path: "modules/evaluacion/periodo-prueba.html" },
-        { label: "Entrega dotacion", path: "modules/evaluacion/entrega-dotacion.html" },
+        { label: "Entrega dotacion basica", path: "modules/evaluacion/entrega-dotacion.html" },
         { label: "Ver entrega equipos accesos", path: "modules/evaluacion/ver-entrega-equipos-accesos.html" },
+        { label: "Periodo prueba", path: "modules/evaluacion/periodo-prueba.html" },
         { label: "Aptitud medica", path: "modules/evaluacion/aptitud-medica.html" },
+        { label: "Entrega dotacion completa", path: "modules/evaluacion/entrega-dotacion-completa.html" },
         { label: "Ingreso personal", path: "modules/evaluacion/ingreso-personal.html" },
         { label: "Gestionar entrega equipos accesos", path: "modules/evaluacion/gestionar-entrega-equipos-accesos.html" }
       ]

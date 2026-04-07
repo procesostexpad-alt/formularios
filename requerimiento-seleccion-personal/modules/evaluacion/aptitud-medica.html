@@ -191,7 +191,7 @@ function guardarNotificacion(btn, solIndex, cedula) {
   if (!candidato) return;
 
   let mensaje = "";
-  let enviarAPeriodo = false;
+  let aptitudAprobada = false;
 
   // ⭐ APTO
   if (select.value === "apto") {
@@ -203,7 +203,7 @@ function guardarNotificacion(btn, solIndex, cedula) {
       `🟢 Postulante ${candidato.nombre} marcado como APTO.\n\n` +
       "📧 Notificado a TH.\n📧 Notificado SSOMA.\n📧 Notificado al Postulante.";
 
-    enviarAPeriodo = true;
+    aptitudAprobada = true;
   }
 
   // ⭐ APTO CON OBSERVACIÓN
@@ -216,7 +216,7 @@ function guardarNotificacion(btn, solIndex, cedula) {
       `🟡 Postulante ${candidato.nombre} marcado como APTO CON OBSERVACIÓN.\n\n` +
       "📧 Notificado a TH.\n📧 Notificado SSOMA.\n📧 Notificado al Postulante.";
 
-    enviarAPeriodo = true;
+    aptitudAprobada = true;
   }
 
   // ⭐ NO APTO → vuelve a 2.2
@@ -229,7 +229,7 @@ function guardarNotificacion(btn, solIndex, cedula) {
       `🔴 Postulante ${candidato.nombre} marcado como NO APTO.\n\n` +
       "📧 Notificado al Postulante.\n📧 Notificado a TH.\n📧 Notificado SSOMA.";
 
-    enviarAPeriodo = false;
+    aptitudAprobada = false;
   }
 
   // Agregar al historial de etapas de la solicitud
@@ -266,32 +266,9 @@ function guardarNotificacion(btn, solIndex, cedula) {
   // ❗ SIEMPRE remover visualmente
   row.remove();
 
-  // ⭐ Si es APTO → enviar al módulo de 4. Ingreso Personal
-  if (enviarAPeriodo) {
-    agregarAIngresoPersonal(candidato);
+  if (aptitudAprobada) {
+    alert("Continua con Entrega de Dotacion Completa si aplica; luego pasa a Ingreso de Personal.");
   }
-}
-
-
-
-
-// ⭐ Guardar candidato en módulo 4 (Ingreso Personal)
-function agregarAIngresoPersonal(candidato) {
-
-  let ingreso = JSON.parse(localStorage.getItem("ingresoPersonal") || "[]");
-
-  ingreso.push({
-    cedula: candidato.cedula,
-    nombre: candidato.nombre,
-    correo: candidato.correo,
-    telefono: candidato.telefono,
-    aptitudMedica: candidato.aptitudMedica,
-    estado: candidato.estado,
-    fechaIngreso: "",
-    contratoGenerado: false
-  });
-
-  localStorage.setItem("ingresoPersonal", JSON.stringify(ingreso));
 }
 
 

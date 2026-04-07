@@ -768,11 +768,11 @@
       if (!requiereDotacionOperativa()) return null;
 
       const periodo = String(candidato?.periodoEstado || "").toUpperCase();
-      const aptitud = String(candidato?.periodoAptitudFinal || "").toUpperCase();
+      const aptitudMedica = normalizarTexto(candidato?.aptitudMedica);
 
-      // Esta etapa solo aparece cuando ya paso el periodo y quedo APTO.
+      // Esta etapa solo aparece despues del periodo cerrado y de aptitud medica aprobada.
       if (periodo !== "CERRADO") return null;
-      if (aptitud !== "APTO") return null;
+      if (aptitudMedica !== "apto" && aptitudMedica !== "apto con observacion") return null;
 
       const completa = normalizarTexto(candidato?.entregaCompleta);
       if (completa === "entregado" || completa === "no aplica") return { estado: "ok", etiqueta: "Completada" };
@@ -919,27 +919,27 @@
         estadoPP === "ok" ? ultimaFechaPorTerminos(["periodo de prueba finalizado"]) : null
       );
 
-      const estadoDotCompleta = estadoDotacionCompleta();
-      if (estadoDotCompleta) {
-        agregarPaso(
-          "8",
-          "Dotacion completa",
-          `Entrega final post periodo: <strong>${estadoDotCompleta.etiqueta}</strong>`,
-          estadoDotCompleta.estado,
-          primeraFechaPorTerminos(["entrega dotacion completa", "dotacion completa", "entrega dotacion"]),
-          estadoDotCompleta.estado === "ok" ? ultimaFechaPorTerminos(["entrega dotacion completa", "dotacion completa", "entrega de dotacion"]) : null
-        );
-      }
-
       const estadoApt = estadoAptitud();
       agregarPaso(
-        "9",
+        "8",
         "Aptitud medica",
         `Revision medica: <strong>${estadoApt === "ok" ? "Completada" : estadoApt === "progress" ? "En progreso" : "Pendiente"}</strong>`,
         estadoApt,
         primeraFechaPorTerminos(["aptitud-medica", "apto-con-observacion", "no apto"]),
         estadoApt === "ok" ? ultimaFechaPorTerminos(["aptitud-medica", "apto-con-observacion", "no apto"]) : null
       );
+
+      const estadoDotCompleta = estadoDotacionCompleta();
+      if (estadoDotCompleta) {
+        agregarPaso(
+          "9",
+          "Dotacion completa",
+          `Entrega final post aptitud medica: <strong>${estadoDotCompleta.etiqueta}</strong>`,
+          estadoDotCompleta.estado,
+          primeraFechaPorTerminos(["entrega dotacion completa", "dotacion completa", "entrega dotacion"]),
+          estadoDotCompleta.estado === "ok" ? ultimaFechaPorTerminos(["entrega dotacion completa", "dotacion completa", "entrega de dotacion"]) : null
+        );
+      }
 
       const estadoIng = estadoIngresoPersonal();
       agregarPaso(

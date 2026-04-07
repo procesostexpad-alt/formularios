@@ -82,6 +82,49 @@
 
 <script>
 
+function normalizarTexto(valor) {
+    return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toUpperCase();
+}
+
+function esSi(valor) {
+    return normalizarTexto(valor) === "SI";
+}
+
+function tieneTextoValido(valor) {
+    const texto = normalizarTexto(valor);
+    return !!texto && !texto.includes("NO APLICA");
+}
+
+function requiereDotacionEpp(sol) {
+    const flagExplicito =
+        esSi(sol?.requiereDotacion) ||
+        esSi(sol?.requiereEpp) ||
+        esSi(sol?.requiereUniforme) ||
+        esSi(sol?.requiereDotacionEpp) ||
+        esSi(sol?.requiereEppsUniformes);
+
+    if (flagExplicito) return true;
+
+    const detalleFicha = Array.isArray(sol?.manualCargoDetalle?.ficha?.eppsUniformesDetalle)
+        ? sol.manualCargoDetalle.ficha.eppsUniformesDetalle
+        : [];
+
+    if (detalleFicha.length > 0) return true;
+    if (tieneTextoValido(sol?.manualCargoDetalle?.ficha?.eppsUniformes)) return true;
+    if (tieneTextoValido(sol?.eppsUniformes)) return true;
+
+    return false;
+}
+
+function entregaCompletaLista(candidato) {
+    const entrega = normalizarTexto(candidato?.entregaCompleta);
+    return entrega === "ENTREGADO" || entrega === "ENTREGADO INCOMPLETO" || entrega === "NO APLICA";
+}
+
 // ======================================================
 //   CARGAR SOLO APTO y APTO CON OBSERVACIÓN
 // ======================================================
@@ -91,17 +134,27 @@ function cargarIngresoPersonal() {
     tabla.innerHTML = "";
 
     const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    let totalFilas = 0;
 
     lista.forEach(sol => {
 
         if (!sol.candidatos) return;
 
         sol.candidatos
-            .filter(c =>
-                (c.aptitudMedica === "APTO" || c.aptitudMedica === "APTO CON OBSERVACIÓN") &&
-                !c.faseIngresoCompletada
-            )
+            .filter(c => {
+                const aptitud = normalizarTexto(c.aptitudMedica);
+                const aptitudAprobada = aptitud === "APTO" || aptitud === "APTO CON OBSERVACION";
+                if (!aptitudAprobada || c.faseIngresoCompletada) return false;
+
+                const periodoCerrado = String(c.periodoEstado || "").toUpperCase() === "CERRADO";
+                if (!periodoCerrado) return false;
+
+                if (requiereDotacionEpp(sol) && !entregaCompletaLista(c)) return false;
+
+                return true;
+            })
             .forEach(c => {
+                totalFilas += 1;
 
                 let colorClass = (c.aptitudMedica === "APTO") ? "verde" : "amarillo";
 
@@ -161,6 +214,16 @@ function cargarIngresoPersonal() {
                 controlarCampos(row.querySelector(".postulante"));
             });
     });
+
+    if (totalFilas === 0) {
+        tabla.innerHTML = `
+            <tr>
+              <td colspan="15" class="text-center text-muted py-4">
+                No hay candidatos listos para ingreso. Deben tener periodo cerrado, aptitud medica aprobada y, si aplica, dotacion completa registrada.
+              </td>
+            </tr>
+        `;
+    }
 }
 
 
