@@ -2,71 +2,168 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>9.3. Solicitudes de Equipos / Accesos - Sistemas</title>
+<title>9.3. Equipos/Accesos - Sistemas</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-  table th, table td { 
-    text-align: center; 
-    vertical-align: middle; 
-  }
-  .readonly {
-    background: #f2f2f2 !important;
-  }
-  .acciones-btn {
-    cursor: pointer;
-    font-size: 20px;
-  }
+  table th, table td { text-align: center; vertical-align: middle; }
+  .readonly { background: #ececec !important; }
 
-  /* 🎨 COLORES ESTADO ENTREGA */
-  .estado-pendiente {
-    background: #fff3cd !important; /* Amarillo suave */
-    font-weight: bold;
+  .estado-chip {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
   }
-  .estado-entregado {
-    background: #d4edda !important; /* Verde suave */
-    font-weight: bold;
+  .estado-pendiente { background: #fff3cd; color: #7a4b00; }
+  .estado-incompleta { background: #f8d7da; color: #842029; }
+  .estado-entregado { background: #d1e7dd; color: #0f5132; }
+  .estado-noaplica { background: #e2e3e5; color: #41464b; }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 3000;
   }
-  .estado-incompleto {
-    background: #f8d7da !important; /* Rojo suave */
-    font-weight: bold;
+  .modal-overlay.show { display: flex; }
+  .modal-card {
+    width: min(980px, 100%);
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #d6dee8;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .2);
+    overflow: hidden;
   }
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e6edf5;
+    background: #f8fbff;
+  }
+  .modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #0d5f6f;
+    font-weight: 700;
+  }
+  .btn-close-modal {
+    border: 0;
+    background: transparent;
+    font-size: 28px;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+  }
+  .modal-body-custom { padding: 16px; max-height: 70vh; overflow: auto; }
+  .modal-footer-custom {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid #e6edf5;
+    background: #fafcff;
+  }
+  .helper-text { font-size: 12px; color: #64748b; text-align: left; }
 </style>
-  <link rel="stylesheet" href="../../assets/css/global-theme.css">
-  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+<link rel="stylesheet" href="../../assets/css/global-theme.css">
+<link rel="stylesheet" href="../../assets/css/ui-shell.css">
 </head>
 
 <body class="bg-light p-4">
 
 <div class="container">
-
-  <h3 class="mb-4">Solicitudes de Equipos / Accesos - Sistemas</h3>
+  <h3 class="mb-4 text-center">Equipos/Accesos - Sistemas</h3>
 
   <table class="table table-bordered table-hover align-middle">
     <thead class="table-secondary">
       <tr>
-        <th>N° de Solicitud</th>
-        <th>Tipo de Contratación</th>
+        <th>N° Solicitud</th>
         <th>Solicitante</th>
-        <th>Área</th>
+        <th>Area</th>
+        <th>Departamento</th>
         <th>Cargo</th>
-        <th>Nombre del Trabajador</th>
-        <th>Código Único</th>
-        <th>Fecha de Ingreso</th>
+        <th>Trabajador</th>
+        <th>Codigo trabajador</th>
+        <th>Fecha ingreso</th>
         <th>Estado PP</th>
-        <th>Requiere Computador</th>
-        <th>Requiere Teléfono</th>
-        <th>Estado Entrega</th>
-        <th>Acciones</th>
+        <th>Estado equipos/accesos</th>
+        <th>Entregar</th>
       </tr>
     </thead>
-
     <tbody id="tablaSistemas"></tbody>
-
   </table>
+</div>
 
+<div id="modalEntregaEquipos" class="modal-overlay" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalEntregaEquiposTitulo">
+    <div class="modal-head">
+      <h4 id="modalEntregaEquiposTitulo" class="modal-title">Entrega de Equipos/Accesos</h4>
+      <button type="button" class="btn-close-modal" onclick="cerrarModalEntregaEquipos()">&times;</button>
+    </div>
+
+    <div class="modal-body-custom">
+      <div class="row g-2 mb-3">
+        <div class="col-md-3">
+          <label class="form-label">Trabajador</label>
+          <input id="mdTrabajador" class="form-control" readonly>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Codigo</label>
+          <input id="mdCodigo" class="form-control" readonly>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Cargo</label>
+          <input id="mdCargo" class="form-control" readonly>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Area</label>
+          <input id="mdArea" class="form-control" readonly>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Departamento</label>
+          <input id="mdDepartamento" class="form-control" readonly>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Tipo</th>
+              <th>Recurso</th>
+              <th>Observacion</th>
+              <th>Entregado</th>
+            </tr>
+          </thead>
+          <tbody id="modalDetalleEquipos"></tbody>
+        </table>
+      </div>
+
+      <div id="mdResumen" class="helper-text mb-2"></div>
+
+      <div id="bloqueMotivoEntrega" class="mb-0">
+        <label id="lblMotivoEntrega" class="form-label">Motivo</label>
+        <textarea id="txtMotivoEntrega" class="form-control" rows="3" placeholder="Detalle por que falta entregar items"></textarea>
+        <div id="mdHintMotivo" class="helper-text mt-1"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button type="button" class="btn btn-outline-secondary" onclick="cerrarModalEntregaEquipos()">Cancelar</button>
+      <button type="button" class="btn btn-success" onclick="guardarEntregaEquiposModal()">Entregar</button>
+    </div>
+  </div>
 </div>
 
 <script>
+let contextoModalEquipos = null;
 
 function normalizarTexto(valor) {
   return String(valor || "")
@@ -93,8 +190,15 @@ function tieneTextoValido(valor) {
   return !!texto && !texto.includes("no aplica");
 }
 
+function obtenerSolicitudes() {
+  return JSON.parse(localStorage.getItem("solicitudes") || "[]");
+}
+
+function guardarSolicitudes(lista) {
+  localStorage.setItem("solicitudes", JSON.stringify(lista));
+}
+
 function requiereEquiposAccesos(sol) {
-  // Banderas derivadas en solicitud.
   const porBanderas =
     esSi(sol?.requiereComp) ||
     esSi(sol?.requiereTel) ||
@@ -103,7 +207,6 @@ function requiereEquiposAccesos(sol) {
 
   if (porBanderas) return true;
 
-  // Detalle de ficha (nuevo flujo por manual de funciones).
   const detalleFicha = Array.isArray(sol?.manualCargoDetalle?.ficha?.equiposAccesosDetalle)
     ? sol.manualCargoDetalle.ficha.equiposAccesosDetalle
     : [];
@@ -116,7 +219,6 @@ function requiereEquiposAccesos(sol) {
     });
   }
 
-  // Resumen textual de ficha.
   if (tieneTextoValido(sol?.manualCargoDetalle?.ficha?.equiposAccesos)) return true;
   if (tieneTextoValido(sol?.equiposAccesos)) return true;
   if (tieneTextoValido(sol?.adicional)) return true;
@@ -144,84 +246,359 @@ function preIngresoCompleto(candidato) {
   return validarCodigoUnico(codigo) && !!fecha;
 }
 
-// ==========================================================
-// CARGAR
-// - Requiere equipos/accesos segun solicitud
-// - Solo candidatos con induccion completa y no cerrados
-// ==========================================================
-function cargarSistemas() {
+function parsearEquiposAccesosTexto(texto) {
+  const limpio = String(texto || "").trim();
+  if (!limpio) return [];
 
+  return limpio
+    .split("|")
+    .map(parte => String(parte || "").trim())
+    .filter(Boolean)
+    .map(parte => {
+      const [izquierda, ...resto] = parte.split(":");
+      const detalle = resto.join(":").trim();
+      const base = String(izquierda || "").trim();
+
+      let tipo = "Acceso";
+      let recurso = base || "Recurso";
+
+      if (base.includes("/")) {
+        const secciones = base.split("/").map(x => x.trim()).filter(Boolean);
+        if (secciones.length > 1) {
+          tipo = secciones[0];
+          recurso = secciones.slice(1).join(" / ");
+        }
+      }
+
+      return { tipo, recurso, observacion: detalle };
+    })
+    .filter(item => {
+      const tipo = normalizarTexto(item.tipo);
+      const recurso = normalizarTexto(item.recurso);
+      return !!tipo && !!recurso && !tipo.includes("no aplica") && !recurso.includes("no aplica");
+    });
+}
+
+function deduplicarDetalle(lista) {
+  const mapa = new Map();
+  (Array.isArray(lista) ? lista : []).forEach(item => {
+    const tipo = String(item?.tipo || "").trim();
+    const recurso = String(item?.recurso || "").trim();
+    const observacion = String(item?.observacion || "").trim();
+    if (!tipo || !recurso) return;
+    const clave = `${normalizarTexto(tipo)}|${normalizarTexto(recurso)}|${normalizarTexto(observacion)}`;
+    if (!mapa.has(clave)) {
+      mapa.set(clave, { tipo, recurso, observacion });
+    }
+  });
+  return Array.from(mapa.values());
+}
+
+function detalleDesdeBanderas(sol) {
+  const lista = [];
+
+  if (Array.isArray(sol?.accesosPC)) {
+    sol.accesosPC.forEach(item => {
+      if (!tieneTextoValido(item)) return;
+      lista.push({ tipo: "Acceso PC", recurso: String(item).trim(), observacion: "" });
+    });
+  }
+
+  if (Array.isArray(sol?.accesosTel)) {
+    sol.accesosTel.forEach(item => {
+      if (!tieneTextoValido(item)) return;
+      lista.push({ tipo: "Acceso Telefonico", recurso: String(item).trim(), observacion: "" });
+    });
+  }
+
+  if (Array.isArray(sol?.accesosCel)) {
+    sol.accesosCel.forEach(item => {
+      if (!tieneTextoValido(item)) return;
+      lista.push({ tipo: "Acceso Celular", recurso: String(item).trim(), observacion: "" });
+    });
+  }
+
+  if (esSi(sol?.requiereComp)) {
+    lista.push({ tipo: "Equipo", recurso: "Computador", observacion: "" });
+  }
+  if (esSi(sol?.requiereTel)) {
+    lista.push({ tipo: "Equipo", recurso: "Telefono", observacion: "" });
+  }
+  if (esSi(sol?.requiereCel)) {
+    lista.push({ tipo: "Equipo", recurso: "Celular", observacion: "" });
+  }
+
+  return deduplicarDetalle(lista);
+}
+
+function obtenerDetalleEquiposAccesos(sol) {
+  const detalleFicha = Array.isArray(sol?.manualCargoDetalle?.ficha?.equiposAccesosDetalle)
+    ? sol.manualCargoDetalle.ficha.equiposAccesosDetalle
+    : [];
+
+  const listaFicha = deduplicarDetalle(
+    detalleFicha.map(item => ({
+      tipo: String(item?.tipo || "").trim(),
+      recurso: String(item?.recurso || "").trim(),
+      observacion: String(item?.observacion || "").trim()
+    }))
+  );
+
+  if (listaFicha.length > 0) return listaFicha;
+
+  const textoManual =
+    sol?.manualCargoDetalle?.ficha?.equiposAccesos ||
+    sol?.equiposAccesos ||
+    sol?.adicional ||
+    "";
+
+  const listaTexto = deduplicarDetalle(parsearEquiposAccesosTexto(textoManual));
+  if (listaTexto.length > 0) return listaTexto;
+
+  return detalleDesdeBanderas(sol);
+}
+
+function estadoEquiposAccesos(candidato, detalleRequerido) {
+  const estado = String(candidato?.estadoEntrega || "").toUpperCase();
+
+  if (detalleRequerido.length === 0 || estado === "NO APLICA") {
+    return { texto: "NO APLICA", clase: "estado-noaplica" };
+  }
+  if (estado === "ENTREGADO") {
+    return { texto: "ENTREGADO", clase: "estado-entregado" };
+  }
+  if (estado === "ENTREGA INCOMPLETA") {
+    return { texto: "ENTREGA INCOMPLETA", clase: "estado-incompleta" };
+  }
+
+  const detalleHistorico = Array.isArray(candidato?.estadoEntregaDetalle)
+    ? candidato.estadoEntregaDetalle
+    : [];
+  if (detalleHistorico.some(item => item?.entregado === true)) {
+    return { texto: "ENTREGA INCOMPLETA", clase: "estado-incompleta" };
+  }
+
+  return { texto: "PENDIENTE", clase: "estado-pendiente" };
+}
+
+function entregaEquiposAccesosFinalizada(candidato) {
+  const estado = String(candidato?.estadoEntrega || "").toUpperCase();
+  return estado === "NO APLICA";
+}
+
+function abrirModalEntregaEquipos(solIndex, cedula) {
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[Number(solIndex)];
+  if (!sol || !Array.isArray(sol.candidatos)) return;
+
+  const candidato = sol.candidatos.find(c => String(c.cedula || "") === String(cedula));
+  if (!candidato) return;
+
+  if (!preIngresoCompleto(candidato)) {
+    alert("Primero registra pre-ingreso (codigo de trabajador y fecha de ingreso).");
+    return;
+  }
+
+  if (!induccionCompletaCandidato(candidato)) {
+    alert("La induccion no esta completa para este candidato.");
+    return;
+  }
+
+  const detalleRequerido = obtenerDetalleEquiposAccesos(sol);
+  if (detalleRequerido.length === 0) {
+    alert("No hay equipos/accesos configurados en el manual para esta solicitud.");
+    return;
+  }
+
+  contextoModalEquipos = { solIndex: Number(solIndex), cedula: String(cedula) };
+
+  document.getElementById("mdTrabajador").value = candidato.nombre || "-";
+  document.getElementById("mdCodigo").value = candidato.codigoUnico || "-";
+  document.getElementById("mdCargo").value = sol.cargoSolicitado || "-";
+  document.getElementById("mdArea").value = sol.area || "-";
+  document.getElementById("mdDepartamento").value = sol.departamento || "-";
+
+  const cuerpo = document.getElementById("modalDetalleEquipos");
+  cuerpo.innerHTML = "";
+
+  const historico = Array.isArray(candidato.estadoEntregaDetalle) ? candidato.estadoEntregaDetalle : [];
+  const historicoMap = new Map(
+    historico.map(item => [`${normalizarTexto(item.tipo)}|${normalizarTexto(item.recurso)}`, item])
+  );
+
+  detalleRequerido.forEach((item, idx) => {
+    const key = `${normalizarTexto(item.tipo)}|${normalizarTexto(item.recurso)}`;
+    const previo = historicoMap.get(key);
+    const checked = previo?.entregado === true;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.tipo}</td>
+      <td>${item.recurso}</td>
+      <td>${item.observacion || "-"}</td>
+      <td><input type="checkbox" class="chk-entregado" data-idx="${idx}" ${checked ? "checked" : ""}></td>
+    `;
+    cuerpo.appendChild(tr);
+  });
+
+  document.getElementById("txtMotivoEntrega").value = String(candidato.estadoEntregaMotivo || "");
+  actualizarEstadoMotivoModal();
+
+  const modal = document.getElementById("modalEntregaEquipos");
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function cerrarModalEntregaEquipos() {
+  contextoModalEquipos = null;
+  const modal = document.getElementById("modalEntregaEquipos");
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+function actualizarEstadoMotivoModal() {
+  const checks = Array.from(document.querySelectorAll("#modalDetalleEquipos .chk-entregado"));
+  const total = checks.length;
+  const entregados = checks.filter(chk => chk.checked).length;
+  const completa = total > 0 && entregados === total;
+
+  document.getElementById("mdResumen").textContent = `Items entregados: ${entregados} de ${total}.`;
+
+  if (completa) {
+    document.getElementById("bloqueMotivoEntrega").style.display = "none";
+    document.getElementById("txtMotivoEntrega").value = "";
+  } else {
+    document.getElementById("bloqueMotivoEntrega").style.display = "block";
+    document.getElementById("lblMotivoEntrega").textContent = "Motivo de entrega incompleta (obligatorio)";
+    document.getElementById("mdHintMotivo").textContent = "Indica por que faltan recursos por entregar.";
+  }
+}
+
+function guardarEntregaEquiposModal() {
+  if (!contextoModalEquipos) return;
+
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[contextoModalEquipos.solIndex];
+  if (!sol || !Array.isArray(sol.candidatos)) return;
+
+  const candidato = sol.candidatos.find(c => String(c.cedula || "") === contextoModalEquipos.cedula);
+  if (!candidato) return;
+
+  const detalleRequerido = obtenerDetalleEquiposAccesos(sol);
+  if (detalleRequerido.length === 0) {
+    alert("No hay equipos/accesos requeridos para registrar.");
+    return;
+  }
+
+  const checks = Array.from(document.querySelectorAll("#modalDetalleEquipos .chk-entregado"));
+  const entregados = checks.filter(chk => chk.checked).length;
+  const total = checks.length;
+  const completa = total > 0 && entregados === total;
+  const motivo = String(document.getElementById("txtMotivoEntrega").value || "").trim();
+
+  if (!completa && !motivo) {
+    alert("Debe ingresar el motivo de la entrega incompleta.");
+    return;
+  }
+
+  candidato.estadoEntregaDetalle = detalleRequerido.map((item, idx) => {
+    const chk = checks.find(x => Number(x.dataset.idx) === idx);
+    return {
+      tipo: item.tipo,
+      recurso: item.recurso,
+      observacion: item.observacion || "",
+      entregado: chk ? chk.checked : false
+    };
+  });
+
+  candidato.estadoEntregaMotivo = completa ? "" : motivo;
+  candidato.estadoEntregaFechaRegistro = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
+  candidato.estadoEntrega = completa ? "ENTREGADO" : "ENTREGA INCOMPLETA";
+
+  guardarSolicitudes(solicitudes);
+  cerrarModalEntregaEquipos();
+  cargarSistemas();
+}
+
+function cargarSistemas() {
   const tabla = document.getElementById("tablaSistemas");
   tabla.innerHTML = "";
 
-  const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+  const solicitudes = obtenerSolicitudes();
+  let totalFilas = 0;
 
-  solicitudes.forEach(sol => {
+  solicitudes.forEach((sol, solIndex) => {
     if (!requiereEquiposAccesos(sol)) return;
 
-    sol.candidatos?.forEach(c => {
-      if (!induccionCompletaCandidato(c)) return;
-      if (!preIngresoCompleto(c)) return;
-      if (String(c.periodoEstado || "").toUpperCase() === "CERRADO") return;
+    const detalleRequerido = obtenerDetalleEquiposAccesos(sol);
 
-      const estadoEntrega = c.estadoEntrega || "PENDIENTE";
+    (Array.isArray(sol.candidatos) ? sol.candidatos : [])
+      .filter(c => {
+        if (!induccionCompletaCandidato(c)) return false;
+        if (!preIngresoCompleto(c)) return false;
+        if (entregaEquiposAccesosFinalizada(c)) return false;
+        if (String(c.periodoEstado || "").toUpperCase() === "CERRADO") return false;
+        return true;
+      })
+      .forEach(c => {
+        const estado = estadoEquiposAccesos(c, detalleRequerido);
+        const estadoPP = String(c.periodoEstado || "ABIERTO").toUpperCase();
+        const disableBtn = detalleRequerido.length === 0 ? "disabled" : "";
 
-      // 🎨 DEFINIR CLASE SEGÚN EL ESTADO
-      let claseEstado = "";
-      if (estadoEntrega === "PENDIENTE") claseEstado = "estado-pendiente";
-      if (estadoEntrega === "ENTREGADO") claseEstado = "estado-entregado";
-      if (estadoEntrega === "ENTREGA INCOMPLETA") claseEstado = "estado-incompleto";
-
-      const row = document.createElement("tr");
-
-      row.innerHTML = `
-        <td class="readonly">${sol.numero}</td>
-        <td class="readonly">${sol.tipoContratacion || "-"}</td>
-        <td class="readonly">${sol.solicitante}</td>
-        <td class="readonly">${sol.area}</td>
-        <td class="readonly">${sol.cargoSolicitado}</td>
-
-        <td class="readonly">${c.nombre}</td>
-        <td class="readonly">${c.codigoUnico || ""}</td>
-        <td class="readonly">${c.fechaIngreso || ""}</td>
-
-        <td class="readonly">${c.periodoEstado || "ABIERTO"}</td>
-
-        <td class="readonly">${sol.requiereComp || "no"}</td>
-        <td class="readonly">${sol.requiereTel || "no"}</td>
-
-        <!-- 🎨 ESTADO CON COLOR -->
-        <td class="${claseEstado}">${estadoEntrega}</td>
-
-        <td>
-          <span class="acciones-btn" onclick="accion('${c.cedula}', '${sol.numero}')">🛠️</span>
-        </td>
-      `;
-
-      tabla.appendChild(row);
-    });
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="readonly">${sol.numero || ""}</td>
+          <td class="readonly">${sol.solicitante || ""}</td>
+          <td class="readonly">${sol.area || ""}</td>
+          <td class="readonly">${sol.departamento || ""}</td>
+          <td class="readonly">${sol.cargoSolicitado || ""}</td>
+          <td class="readonly">${c.nombre || ""}</td>
+          <td class="readonly">${c.codigoUnico || ""}</td>
+          <td class="readonly">${c.fechaIngreso || ""}</td>
+          <td class="readonly">${estadoPP}</td>
+          <td><span class="estado-chip ${estado.clase}">${estado.texto}</span></td>
+          <td><button type="button" class="btn btn-success btn-sm btn-entregar" data-sol-index="${solIndex}" data-cedula="${String(c.cedula || "")}" ${disableBtn}>Entregar</button></td>
+        `;
+        tabla.appendChild(row);
+        totalFilas += 1;
+      });
   });
+
+  if (totalFilas === 0) {
+    tabla.innerHTML = '<tr><td colspan="11" class="text-center text-muted">No hay registros para entregar equipos/accesos.</td></tr>';
+  }
 }
 
-
-
-// ==========================================================
-// ACCIÓN DEL BOTÓN 🛠️
-// ==========================================================
-function accion(cedula, numeroSolicitud) {
-  window.location.href = 
-    `gestionar-entrega-equipos-accesos.html?ced=${cedula}&sol=${numeroSolicitud}`;
-}
-
-
-
-// ==========================================================
 document.addEventListener("DOMContentLoaded", cargarSistemas);
-// ==========================================================
 
+document.addEventListener("click", ev => {
+  if (ev.target && ev.target.classList.contains("btn-entregar")) {
+    const solIndex = Number(ev.target.dataset.solIndex);
+    const cedula = String(ev.target.dataset.cedula || "");
+    abrirModalEntregaEquipos(solIndex, cedula);
+  }
+
+  if (ev.target && ev.target.id === "modalEntregaEquipos") {
+    cerrarModalEntregaEquipos();
+  }
+});
+
+document.addEventListener("change", ev => {
+  if (ev.target && ev.target.classList.contains("chk-entregado")) {
+    actualizarEstadoMotivoModal();
+  }
+});
+
+window.addEventListener("keydown", ev => {
+  if (ev.key === "Escape") {
+    const modal = document.getElementById("modalEntregaEquipos");
+    if (modal && modal.classList.contains("show")) {
+      cerrarModalEntregaEquipos();
+    }
+  }
+});
 </script>
 
-  <script src="../../assets/js/ui-shell.js"></script>
+<script src="../../assets/js/ui-shell.js"></script>
 </body>
 </html>
-

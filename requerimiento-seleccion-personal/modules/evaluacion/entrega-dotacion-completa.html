@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -7,11 +7,76 @@
 <style>
   table th, table td { text-align: center; vertical-align: middle; }
   .readonly { background: #ececec !important; }
-  .estado-ok { background: #198754 !important; color: white !important; font-weight: bold; }
-  .estado-alerta { background: #dc3545 !important; color: white !important; font-weight: bold; }
+
+  .estado-chip {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .estado-pendiente { background: #fff3cd; color: #7a4b00; }
+  .estado-incompleta { background: #f8d7da; color: #842029; }
+  .estado-entregado { background: #d1e7dd; color: #0f5132; }
+  .estado-noaplica { background: #e2e3e5; color: #41464b; }
+
+  .estado-ok { background: #d1e7dd !important; color: #0f5132; font-weight: 700; }
+  .estado-alerta { background: #f8d7da !important; color: #842029; font-weight: 700; }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 3000;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-card {
+    width: min(980px, 100%);
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #d6dee8;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .2);
+    overflow: hidden;
+  }
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e6edf5;
+    background: #f8fbff;
+  }
+  .modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #0d5f6f;
+    font-weight: 700;
+  }
+  .btn-close-modal {
+    border: 0;
+    background: transparent;
+    font-size: 28px;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+  }
+  .modal-body-custom { padding: 16px; max-height: 70vh; overflow: auto; }
+  .modal-footer-custom {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid #e6edf5;
+    background: #fafcff;
+  }
+  .helper-text { font-size: 12px; color: #64748b; text-align: left; }
 </style>
-  <link rel="stylesheet" href="../../assets/css/global-theme.css">
-  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+<link rel="stylesheet" href="../../assets/css/global-theme.css">
+<link rel="stylesheet" href="../../assets/css/ui-shell.css">
 </head>
 
 <body class="bg-light p-4">
@@ -26,6 +91,7 @@
         <th>Fecha Solicitud</th>
         <th>Solicitante</th>
         <th>Area</th>
+        <th>Departamento</th>
         <th>Cargo</th>
         <th>Nombre</th>
         <th>Cedula</th>
@@ -34,15 +100,77 @@
         <th>Aptitud Medica</th>
         <th>Entrega Basica</th>
         <th>Entrega Completa</th>
-        <th>Guardar</th>
-        <th>Ver</th>
+        <th>Entregar</th>
       </tr>
     </thead>
     <tbody id="tablaDotacionCompleta"></tbody>
   </table>
 </div>
 
+<div id="modalDotacionCompleta" class="modal-overlay" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalDotacionCompletaTitulo">
+    <div class="modal-head">
+      <h4 id="modalDotacionCompletaTitulo" class="modal-title">Entrega Completa de Dotacion</h4>
+      <button type="button" class="btn-close-modal" onclick="cerrarModalDotacionCompleta()">&times;</button>
+    </div>
+
+    <div class="modal-body-custom">
+      <div class="row g-2 mb-3">
+        <div class="col-md-3">
+          <label class="form-label">Trabajador</label>
+          <input id="mdTrabajador" class="form-control" readonly>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Codigo</label>
+          <input id="mdCodigo" class="form-control" readonly>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Cargo</label>
+          <input id="mdCargo" class="form-control" readonly>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Area</label>
+          <input id="mdArea" class="form-control" readonly>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Departamento</label>
+          <input id="mdDepartamento" class="form-control" readonly>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Tipo</th>
+              <th>Elemento</th>
+              <th>Cantidad requerida</th>
+              <th>Entregado</th>
+            </tr>
+          </thead>
+          <tbody id="modalDetalleDotacion"></tbody>
+        </table>
+      </div>
+
+      <div id="mdResumen" class="helper-text mb-2"></div>
+
+      <div id="bloqueMotivoEntrega" class="mb-0">
+        <label id="lblMotivoEntrega" class="form-label">Motivo</label>
+        <textarea id="txtMotivoEntrega" class="form-control" rows="3" placeholder="Detalle de la entrega incompleta"></textarea>
+        <div id="mdHintMotivo" class="helper-text mt-1"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button type="button" class="btn btn-outline-secondary" onclick="cerrarModalDotacionCompleta()">Cancelar</button>
+      <button type="button" class="btn btn-success" onclick="guardarEntregaCompletaModal()">Entregar</button>
+    </div>
+  </div>
+</div>
+
 <script>
+let contextoModalCompleta = null;
+
 function normalizarTexto(valor) {
   return String(valor || "")
     .normalize("NFD")
@@ -55,9 +183,25 @@ function esSi(valor) {
   return normalizarTexto(valor) === "si";
 }
 
+function soloDigitos(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function validarCodigoUnico(valor) {
+  return /^\d{5}$/.test(String(valor || ""));
+}
+
 function tieneTextoValido(valor) {
   const texto = normalizarTexto(valor);
   return !!texto && !texto.includes("no aplica");
+}
+
+function obtenerSolicitudes() {
+  return JSON.parse(localStorage.getItem("solicitudes") || "[]");
+}
+
+function guardarSolicitudes(lista) {
+  localStorage.setItem("solicitudes", JSON.stringify(lista));
 }
 
 function requiereDotacionEpp(sol) {
@@ -85,8 +229,58 @@ function requiereDotacionEpp(sol) {
 
   if (tieneTextoValido(sol?.manualCargoDetalle?.ficha?.eppsUniformes)) return true;
   if (tieneTextoValido(sol?.eppsUniformes)) return true;
-
   return false;
+}
+
+function parsearDotacionTexto(texto) {
+  const limpio = String(texto || "").trim();
+  if (!limpio) return [];
+
+  return limpio
+    .split("|")
+    .map(parte => String(parte || "").trim())
+    .filter(Boolean)
+    .map(parte => {
+      const seccion = parte.split(":")[0]?.trim() || parte;
+      const match = seccion.match(/^([^\/]+)\/([^x]+)x\s*(\d+)/i);
+      if (match) {
+        return {
+          tipo: match[1].trim(),
+          elemento: match[2].trim(),
+          cantidad: Number.parseInt(match[3], 10) || 1
+        };
+      }
+      return {
+        tipo: "Dotacion",
+        elemento: seccion,
+        cantidad: 1
+      };
+    });
+}
+
+function obtenerDetalleDotacion(sol) {
+  const detalleFicha = Array.isArray(sol?.manualCargoDetalle?.ficha?.eppsUniformesDetalle)
+    ? sol.manualCargoDetalle.ficha.eppsUniformesDetalle
+    : [];
+
+  const listaFicha = detalleFicha
+    .map(item => ({
+      tipo: String(item?.tipo || "").trim(),
+      elemento: String(item?.elemento || "").trim(),
+      cantidad: Number.parseInt(String(item?.cantidad ?? "").trim(), 10) || 1
+    }))
+    .filter(item => item.tipo && item.elemento && item.cantidad > 0 && !normalizarTexto(item.tipo).includes("no aplica") && !normalizarTexto(item.elemento).includes("no aplica"));
+
+  if (listaFicha.length > 0) return listaFicha;
+
+  const textoResumen =
+    sol?.manualCargoDetalle?.ficha?.eppsUniformes ||
+    sol?.eppsUniformes ||
+    "";
+
+  return parsearDotacionTexto(textoResumen).filter(item => {
+    return item.tipo && item.elemento && item.cantidad > 0;
+  });
 }
 
 function induccionCompletaCandidato(candidato) {
@@ -103,143 +297,269 @@ function induccionCompletaCandidato(candidato) {
   return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
 }
 
+function preIngresoCompleto(candidato) {
+  const codigo = soloDigitos(candidato?.codigoUnico || "");
+  const fecha = String(candidato?.fechaIngreso || "").trim();
+  return validarCodigoUnico(codigo) && !!fecha;
+}
+
 function aptitudMedicaAprobada(candidato) {
   const aptitud = normalizarTexto(candidato?.aptitudMedica);
   return aptitud === "apto" || aptitud === "apto con observacion";
+}
+
+function entregaBasicaLista(candidato) {
+  const basica = String(candidato?.entregaBasica || "").toUpperCase();
+  return basica === "ENTREGADO" || basica === "NO APLICA";
+}
+
+function estadoCompleta(candidato, detalleRequerido) {
+  const valor = String(candidato?.entregaCompleta || "").toUpperCase();
+
+  if (detalleRequerido.length === 0 || valor === "NO APLICA") {
+    return { texto: "NO APLICA", clase: "estado-noaplica" };
+  }
+  if (valor === "ENTREGADO") {
+    return { texto: "ENTREGADO", clase: "estado-entregado" };
+  }
+  if (valor === "ENTREGADO INCOMPLETO") {
+    return { texto: "ENTREGA INCOMPLETA", clase: "estado-incompleta" };
+  }
+
+  const historial = Array.isArray(candidato?.entregaCompletaDetalle) ? candidato.entregaCompletaDetalle : [];
+  const huboParcial = historial.some(item => item.entregado === true);
+  if (huboParcial) {
+    return { texto: "ENTREGA INCOMPLETA", clase: "estado-incompleta" };
+  }
+
+  return { texto: "PENDIENTE", clase: "estado-pendiente" };
+}
+
+function entregaCompletaFinalizada(candidato) {
+  const valor = String(candidato?.entregaCompleta || "").toUpperCase();
+  return valor === "ENTREGADO" || valor === "NO APLICA" || candidato?.bloqueoCompleta === true;
+}
+
+function abrirModalEntregaCompleta(solIndex, cedula) {
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[Number(solIndex)];
+  if (!sol || !Array.isArray(sol.candidatos)) return;
+
+  const candidato = sol.candidatos.find(c => String(c.cedula || "") === String(cedula));
+  if (!candidato) return;
+
+  if (!entregaBasicaLista(candidato)) {
+    alert("Para entrega completa primero se requiere entrega basica (ENTREGADO o NO APLICA).");
+    return;
+  }
+
+  const detalleRequerido = obtenerDetalleDotacion(sol);
+  if (detalleRequerido.length === 0) {
+    candidato.entregaCompleta = "NO APLICA";
+    candidato.bloqueoCompleta = true;
+    guardarSolicitudes(solicitudes);
+    cargarDotacionCompleta();
+    return;
+  }
+
+  contextoModalCompleta = { solIndex: Number(solIndex), cedula: String(cedula) };
+
+  document.getElementById("mdTrabajador").value = candidato.nombre || "-";
+  document.getElementById("mdCodigo").value = candidato.codigoUnico || "-";
+  document.getElementById("mdCargo").value = sol.cargoSolicitado || "-";
+  document.getElementById("mdArea").value = sol.area || "-";
+  document.getElementById("mdDepartamento").value = sol.departamento || "-";
+
+  const cuerpo = document.getElementById("modalDetalleDotacion");
+  cuerpo.innerHTML = "";
+
+  const historico = Array.isArray(candidato.entregaCompletaDetalle) ? candidato.entregaCompletaDetalle : [];
+  const historicoMap = new Map(
+    historico.map(item => [`${normalizarTexto(item.tipo)}|${normalizarTexto(item.elemento)}`, item])
+  );
+
+  detalleRequerido.forEach((item, idx) => {
+    const key = `${normalizarTexto(item.tipo)}|${normalizarTexto(item.elemento)}`;
+    const previo = historicoMap.get(key);
+    const checked = previo?.entregado === true;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.tipo}</td>
+      <td>${item.elemento}</td>
+      <td>${item.cantidad}</td>
+      <td><input type="checkbox" class="chk-entregado" data-idx="${idx}" ${checked ? "checked" : ""}></td>
+    `;
+    cuerpo.appendChild(tr);
+  });
+
+  document.getElementById("txtMotivoEntrega").value = String(candidato.entregaCompletaMotivo || "");
+  actualizarEstadoMotivoModal();
+
+  document.getElementById("modalDotacionCompleta").classList.add("show");
+  document.getElementById("modalDotacionCompleta").setAttribute("aria-hidden", "false");
+}
+
+function cerrarModalDotacionCompleta() {
+  contextoModalCompleta = null;
+  document.getElementById("modalDotacionCompleta").classList.remove("show");
+  document.getElementById("modalDotacionCompleta").setAttribute("aria-hidden", "true");
+}
+
+function actualizarEstadoMotivoModal() {
+  const checks = Array.from(document.querySelectorAll("#modalDetalleDotacion .chk-entregado"));
+  const total = checks.length;
+  const entregados = checks.filter(chk => chk.checked).length;
+  const completa = total > 0 && entregados === total;
+
+  document.getElementById("mdResumen").textContent = `Items entregados: ${entregados} de ${total}.`;
+
+  if (completa) {
+    document.getElementById("bloqueMotivoEntrega").style.display = "none";
+    document.getElementById("txtMotivoEntrega").value = "";
+  } else {
+    document.getElementById("bloqueMotivoEntrega").style.display = "block";
+    document.getElementById("lblMotivoEntrega").textContent = "Motivo de entrega incompleta (obligatorio)";
+    document.getElementById("mdHintMotivo").textContent = "Indica por que faltan items y que queda pendiente.";
+  }
+}
+
+function guardarEntregaCompletaModal() {
+  if (!contextoModalCompleta) return;
+
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[contextoModalCompleta.solIndex];
+  if (!sol || !Array.isArray(sol.candidatos)) return;
+
+  const candidato = sol.candidatos.find(c => String(c.cedula || "") === contextoModalCompleta.cedula);
+  if (!candidato) return;
+
+  const detalleRequerido = obtenerDetalleDotacion(sol);
+  if (detalleRequerido.length === 0) return;
+
+  const checks = Array.from(document.querySelectorAll("#modalDetalleDotacion .chk-entregado"));
+  const entregados = checks.filter(chk => chk.checked).length;
+  const total = checks.length;
+  const completa = total > 0 && entregados === total;
+
+  const motivo = String(document.getElementById("txtMotivoEntrega").value || "").trim();
+  if (!completa && !motivo) {
+    alert("Debe ingresar el motivo de la entrega incompleta.");
+    return;
+  }
+
+  candidato.entregaCompletaDetalle = detalleRequerido.map((item, idx) => {
+    const chk = checks.find(x => Number(x.dataset.idx) === idx);
+    return {
+      tipo: item.tipo,
+      elemento: item.elemento,
+      cantidad: item.cantidad,
+      entregado: chk ? chk.checked : false
+    };
+  });
+
+  candidato.entregaCompletaMotivo = completa ? "" : motivo;
+  candidato.entregaCompletaFechaRegistro = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
+
+  if (completa) {
+    candidato.entregaCompleta = "ENTREGADO";
+    candidato.bloqueoCompleta = true;
+  } else {
+    candidato.entregaCompleta = "ENTREGADO INCOMPLETO";
+    candidato.bloqueoCompleta = false;
+  }
+
+  guardarSolicitudes(solicitudes);
+  cerrarModalDotacionCompleta();
+  cargarDotacionCompleta();
 }
 
 function cargarDotacionCompleta() {
   const tabla = document.getElementById("tablaDotacionCompleta");
   tabla.innerHTML = "";
 
-  const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+  const solicitudes = obtenerSolicitudes();
+  let totalFilas = 0;
 
   solicitudes.forEach((sol, solIndex) => {
     if (!requiereDotacionEpp(sol)) return;
 
+    const detalleRequerido = obtenerDetalleDotacion(sol);
+
     (Array.isArray(sol.candidatos) ? sol.candidatos : [])
       .filter(candidato => {
         if (!induccionCompletaCandidato(candidato)) return false;
+        if (!preIngresoCompleto(candidato)) return false;
+        if (!aptitudMedicaAprobada(candidato)) return false;
+        if (!entregaBasicaLista(candidato)) return false;
+        if (entregaCompletaFinalizada(candidato)) return false;
         const estadoPP = String(candidato.periodoEstado || "ABIERTO").toUpperCase();
-        return estadoPP === "CERRADO" && aptitudMedicaAprobada(candidato) && !candidato.faseIngresoCompletada;
+        return estadoPP === "CERRADO" && !candidato.faseIngresoCompletada;
       })
       .forEach(candidato => {
         const estadoPP = String(candidato.periodoEstado || "").toUpperCase();
-        const aptitudMedica = String(candidato.aptitudMedica || "");
-        const basica = String(candidato.entregaBasica || "").toUpperCase();
-
-        const tieneBasicaLista = basica === "ENTREGADO" || basica === "NO APLICA";
-        const bloqueoCompleta = candidato.bloqueoCompleta === true;
-        const disableCompleta = bloqueoCompleta || !tieneBasicaLista ? "disabled" : "";
-
-        let opcionesEntregaCompleta = "";
-        if (!tieneBasicaLista) {
-          opcionesEntregaCompleta = "<option value=\"\">Primero registrar entrega basica</option>";
-        } else {
-          opcionesEntregaCompleta = `
-            <option value="">Seleccione...</option>
-            <option ${candidato.entregaCompleta === "ENTREGADO" ? "selected" : ""}>ENTREGADO</option>
-            <option ${candidato.entregaCompleta === "ENTREGADO INCOMPLETO" ? "selected" : ""}>ENTREGADO INCOMPLETO</option>
-            <option ${candidato.entregaCompleta === "NO APLICA" ? "selected" : ""}>NO APLICA</option>
-          `;
-        }
+        const aptitudMedica = String(candidato.aptitudMedica || "PENDIENTE");
+        const basica = String(candidato.entregaBasica || "PENDIENTE").toUpperCase();
+        const estado = estadoCompleta(candidato, detalleRequerido);
+        const disabled = detalleRequerido.length === 0 ? "disabled" : "";
 
         const row = document.createElement("tr");
-        row.dataset.solIndex = String(solIndex);
-        row.dataset.cedula = String(candidato.cedula || "");
-        row.dataset.puedeGuardar = String(tieneBasicaLista && !bloqueoCompleta);
-
         row.innerHTML = `
           <td class="readonly">${sol.numero || ""}</td>
           <td class="readonly">${sol.fechaSolicitud || ""}</td>
           <td class="readonly">${sol.solicitante || ""}</td>
           <td class="readonly">${sol.area || ""}</td>
+          <td class="readonly">${sol.departamento || ""}</td>
           <td class="readonly">${sol.cargoSolicitado || ""}</td>
           <td class="readonly">${candidato.nombre || ""}</td>
           <td class="readonly">${candidato.cedula || ""}</td>
           <td class="readonly">${candidato.codigoUnico || ""}</td>
           <td class="readonly">${estadoPP}</td>
-          <td class="readonly ${aptitudMedicaAprobada(candidato) ? "estado-ok" : "estado-alerta"}">${aptitudMedica || "PENDIENTE"}</td>
-          <td class="readonly ${tieneBasicaLista ? "estado-ok" : "estado-alerta"}">${basica || "SIN REGISTRO"}</td>
-          <td>
-            <select class="form-select entregaCompleta" ${disableCompleta}>
-              ${opcionesEntregaCompleta}
-            </select>
-          </td>
-          <td><button class="btn btn-success" onclick="guardarFilaCompleta(this)">Guardar</button></td>
-          <td><button class="btn btn-info" onclick="abrirInfoDotacion(${solIndex}, '${String(candidato.cedula || "")}')">Ver</button></td>
+          <td class="readonly ${aptitudMedicaAprobada(candidato) ? "estado-ok" : "estado-alerta"}">${aptitudMedica}</td>
+          <td class="readonly ${entregaBasicaLista(candidato) ? "estado-ok" : "estado-alerta"}">${basica}</td>
+          <td><span class="estado-chip ${estado.clase}">${estado.texto}</span></td>
+          <td><button type="button" class="btn btn-success btn-sm btn-entregar" data-sol-index="${solIndex}" data-cedula="${String(candidato.cedula || "")}" ${disabled}>Entregar</button></td>
         `;
-
         tabla.appendChild(row);
+        totalFilas += 1;
       });
   });
-}
 
-function guardarFilaCompleta(btn) {
-  const row = btn.closest("tr");
-  if (!row) return;
-
-  if (row.dataset.puedeGuardar !== "true") {
-    alert("Para entrega completa primero se requiere entrega basica (ENTREGADO o NO APLICA).");
-    return;
+  if (totalFilas === 0) {
+    tabla.innerHTML = '<tr><td colspan="14" class="text-center text-muted">No hay registros pendientes para entrega de dotacion completa.</td></tr>';
   }
-
-  const solIndex = Number(row.dataset.solIndex);
-  const cedula = String(row.dataset.cedula || "");
-
-  const selectorCompleta = row.querySelector(".entregaCompleta");
-  if (!selectorCompleta || selectorCompleta.disabled) {
-    alert("La entrega completa ya se encuentra bloqueada para este candidato.");
-    return;
-  }
-
-  const entregaCompleta = selectorCompleta.value;
-  if (!entregaCompleta) {
-    alert("Seleccione un estado para la entrega completa.");
-    return;
-  }
-
-  const solicitudes = JSON.parse(localStorage.getItem("solicitudes") || "[]");
-  const sol = solicitudes[solIndex];
-  if (!sol || !Array.isArray(sol.candidatos)) return;
-
-  const candidato = sol.candidatos.find(c => String(c.cedula || "") === cedula);
-  if (!candidato) return;
-
-  candidato.entregaCompleta = entregaCompleta;
-
-  if (
-    entregaCompleta === "ENTREGADO" ||
-    entregaCompleta === "ENTREGADO INCOMPLETO" ||
-    entregaCompleta === "NO APLICA"
-  ) {
-    candidato.bloqueoCompleta = true;
-  }
-
-  localStorage.setItem("solicitudes", JSON.stringify(solicitudes));
-
-  if (entregaCompleta === "ENTREGADO") {
-    alert("Entrega completa registrada. Notificacion enviada a solicitante y Talento Humano.");
-  } else if (entregaCompleta === "ENTREGADO INCOMPLETO") {
-    alert("Entrega completa registrada como incompleta. Notificacion enviada.");
-  } else {
-    alert("Entrega completa marcada como NO APLICA.");
-  }
-
-  alert("Informacion guardada correctamente.");
-  cargarDotacionCompleta();
-}
-
-function abrirInfoDotacion(solIndex, cedula) {
-  window.location.href = `../gestion/solicitudes/ver-solicitud-ssoma.html?sol=${solIndex}&ced=${cedula}`;
 }
 
 document.addEventListener("DOMContentLoaded", cargarDotacionCompleta);
+
+document.addEventListener("click", ev => {
+  if (ev.target && ev.target.classList.contains("btn-entregar")) {
+    const solIndex = Number(ev.target.dataset.solIndex);
+    const cedula = String(ev.target.dataset.cedula || "");
+    abrirModalEntregaCompleta(solIndex, cedula);
+  }
+
+  if (ev.target && ev.target.id === "modalDotacionCompleta") {
+    cerrarModalDotacionCompleta();
+  }
+});
+
+document.addEventListener("change", ev => {
+  if (ev.target && ev.target.classList.contains("chk-entregado")) {
+    actualizarEstadoMotivoModal();
+  }
+});
+
+window.addEventListener("keydown", ev => {
+  if (ev.key === "Escape") {
+    const modal = document.getElementById("modalDotacionCompleta");
+    if (modal && modal.classList.contains("show")) {
+      cerrarModalDotacionCompleta();
+    }
+  }
+});
 </script>
 
 <script src="../../assets/js/ui-shell.js"></script>
 </body>
 </html>
-
-
-

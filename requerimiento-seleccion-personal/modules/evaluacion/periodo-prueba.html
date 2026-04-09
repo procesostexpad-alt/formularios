@@ -166,6 +166,12 @@
           </select>
           <div id="mdAptitudHint" class="helper-text"></div>
         </div>
+
+        <div id="bloqueMotivoNoApto" class="col-12" style="display:none;">
+          <label class="form-label">Motivo NO APTO</label>
+          <textarea id="mdMotivoNoApto" class="form-control" rows="3" placeholder="Ingrese el motivo por el cual no es apto"></textarea>
+          <div class="helper-text">Este campo es obligatorio cuando la aptitud final es NO APTO.</div>
+        </div>
       </div>
     </div>
 
@@ -410,12 +416,14 @@ function abrirModalPeriodo(solIndex, cedula) {
   const titulo = document.getElementById("modalPeriodoTitulo");
   const nombre = document.getElementById("mdNombre");
   const aptitud = document.getElementById("mdAptitudCargo");
+  const motivoNoApto = document.getElementById("mdMotivoNoApto");
   const hint = document.getElementById("mdAptitudHint");
   const btnConfirmar = document.getElementById("btnConfirmarModal");
 
   titulo.textContent = modo === "iniciar" ? "Iniciar periodo de prueba" : "Finalizar periodo de prueba";
   nombre.value = `${candidato.nombre || "-"} - CI ${candidato.cedula || "-"}`;
   aptitud.value = candidato.periodoAptitudFinal || "";
+  motivoNoApto.value = String(candidato.periodoNoAptoMotivo || "");
 
   aptitud.disabled = modo === "iniciar";
   hint.textContent = modo === "iniciar"
@@ -425,6 +433,7 @@ function abrirModalPeriodo(solIndex, cedula) {
   btnConfirmar.textContent = modo === "iniciar" ? "Iniciar" : "Finalizar";
   btnConfirmar.className = modo === "iniciar" ? "btn btn-primary" : "btn btn-success";
 
+  actualizarVisibilidadMotivoNoApto();
   document.getElementById("modalPeriodo").classList.add("show");
 }
 
@@ -433,10 +442,21 @@ function cerrarModalPeriodo() {
   document.getElementById("modalPeriodo").classList.remove("show");
 }
 
+function actualizarVisibilidadMotivoNoApto() {
+  const bloque = document.getElementById("bloqueMotivoNoApto");
+  const aptitud = document.getElementById("mdAptitudCargo");
+  if (!bloque || !aptitud) return;
+
+  const modoFinalizar = contextoModal && contextoModal.modo === "finalizar";
+  const esNoApto = String(aptitud.value || "").toUpperCase() === "NO APTO";
+  bloque.style.display = modoFinalizar && esNoApto ? "block" : "none";
+}
+
 function confirmarModalPeriodo() {
   if (!contextoModal) return;
 
   const aptitudInput = document.getElementById("mdAptitudCargo");
+  const motivoNoAptoInput = document.getElementById("mdMotivoNoApto");
 
   const solicitudes = obtenerSolicitudes();
   const sol = solicitudes[contextoModal.solIndex];
@@ -466,7 +486,6 @@ function confirmarModalPeriodo() {
     guardarSolicitudes(solicitudes);
     cerrarModalPeriodo();
     cargarPeriodoPrueba();
-    alert("Periodo de prueba iniciado correctamente.");
     return;
   }
 
@@ -476,8 +495,17 @@ function confirmarModalPeriodo() {
     return;
   }
 
+  const esNoApto = String(aptitudInput.value || "").toUpperCase() === "NO APTO";
+  const motivoNoApto = String(motivoNoAptoInput?.value || "").trim();
+  if (esNoApto && !motivoNoApto) {
+    alert("Debe ingresar el motivo por el cual el candidato es NO APTO.");
+    motivoNoAptoInput.focus();
+    return;
+  }
+
   candidato.periodoEstado = "CERRADO";
   candidato.periodoAptitudFinal = aptitudInput.value;
+  candidato.periodoNoAptoMotivo = esNoApto ? motivoNoApto : "";
   // La aptitud medica se evalua despues del periodo de prueba.
   // Si existia un valor antiguo, lo limpiamos para que aparezca en Revision de Aptitud Medica.
   candidato.aptitudMedica = "";
@@ -487,15 +515,10 @@ function confirmarModalPeriodo() {
   guardarSolicitudes(solicitudes);
   cerrarModalPeriodo();
   cargarPeriodoPrueba();
-
-  if (aptitudInput.value === "APTO") {
-    alert("Periodo de prueba finalizado. Resultado: APTO.");
-  } else {
-    alert("Periodo de prueba finalizado. Resultado: NO APTO.");
-  }
 }
 
 document.getElementById("btnConfirmarModal").addEventListener("click", confirmarModalPeriodo);
+document.getElementById("mdAptitudCargo").addEventListener("change", actualizarVisibilidadMotivoNoApto);
 
 document.getElementById("modalPeriodo").addEventListener("click", (ev) => {
   if (ev.target.id === "modalPeriodo") cerrarModalPeriodo();

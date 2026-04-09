@@ -95,6 +95,60 @@
       });
     }
 
+    function obtenerCandidatoReferenciaProceso(sol) {
+      const candidatoTimeline = resolverCandidatoTimeline(sol);
+      if (candidatoTimeline) return candidatoTimeline;
+      const candidatos = Array.isArray(sol?.candidatos) ? sol.candidatos : [];
+      return candidatos[0] || null;
+    }
+
+    function resultadoAptitudCandidato(candidato) {
+      const aptitud = normalizarTexto(candidato?.aptitudMedica);
+      if (aptitud === "apto") return "apto";
+      if (aptitud === "apto con observacion" || aptitud === "apto con observación") return "apto_obs";
+      if (aptitud === "no apto") return "no_apto";
+
+      // Compatibilidad con datos antiguos donde solo se guardaba "ingreso / no ingreso".
+      const ingreso = normalizarTexto(candidato?.ingreso);
+      if (ingreso === "ingreso") return "apto";
+      if (ingreso === "no ingreso") return "no_apto";
+
+      return "";
+    }
+
+    function tieneTextoValidoProceso(valor) {
+      const texto = normalizarTexto(valor);
+      return !!texto && !texto.includes("no aplica");
+    }
+
+    function solicitudRequiereDotacionCompleta(sol) {
+      const porBanderas =
+        normalizarTexto(sol?.requiereDotacion) === "si" ||
+        normalizarTexto(sol?.requiereEpp) === "si" ||
+        normalizarTexto(sol?.requiereUniforme) === "si" ||
+        normalizarTexto(sol?.requiereDotacionEpp) === "si" ||
+        normalizarTexto(sol?.requiereEppsUniformes) === "si";
+      if (porBanderas) return true;
+
+      const detalle = Array.isArray(sol?.manualCargoDetalle?.ficha?.eppsUniformesDetalle)
+        ? sol.manualCargoDetalle.ficha.eppsUniformesDetalle
+        : [];
+      if (detalle.length > 0) return true;
+      if (tieneTextoValidoProceso(sol?.manualCargoDetalle?.ficha?.eppsUniformes)) return true;
+      if (tieneTextoValidoProceso(sol?.eppsUniformes)) return true;
+      return false;
+    }
+
+    function dotacionCompletaFinalizada(candidato) {
+      const entregaCompleta = normalizarTexto(candidato?.entregaCompleta);
+      return entregaCompleta === "entregado" || entregaCompleta === "no aplica" || candidato?.bloqueoCompleta === true;
+    }
+
+    function etiquetaAptitudProceso(resultadoAptitud) {
+      if (resultadoAptitud === "apto_obs") return "Apto con observacion";
+      return "Apto medico";
+    }
+
     function tieneIngresoRegistrado(sol) {
       const candidatos = Array.isArray(sol?.candidatos) ? sol.candidatos : [];
       return candidatos.some(c => {
@@ -157,8 +211,24 @@
       if (estadoBase === "anulado") return "Anulado";
       if (estadoBase === "rechazado") return "Rechazado";
 
-      if (tieneIngresoRegistrado(sol)) return "Ingreso de personal";
+      const candidatoProceso = obtenerCandidatoReferenciaProceso(sol);
+      const resultadoAptitud = resultadoAptitudCandidato(candidatoProceso);
+
+      if (resultadoAptitud === "no_apto") return "Cerrado - No apto medico";
+      if (resultadoAptitud === "apto" || resultadoAptitud === "apto_obs") {
+        const etiquetaAptitud = etiquetaAptitudProceso(resultadoAptitud);
+        if (solicitudRequiereDotacionCompleta(sol)) {
+          if (dotacionCompletaFinalizada(candidatoProceso)) {
+            return `${etiquetaAptitud} - Dotacion completa finalizada`;
+          }
+          return `${etiquetaAptitud} - Pendiente dotacion completa`;
+        }
+        return `${etiquetaAptitud} - Proceso finalizado`;
+      }
+
+      // Compatibilidad de lectura para solicitudes antiguas.
       if (tieneAptitudMedicaRegistrada(sol)) return "Aptitud medica";
+      if (tieneIngresoRegistrado(sol)) return "Ingreso de personal";
       if (tieneGestionEquiposAccesos(sol)) return "Gestion de equipos y accesos";
       if (tienePeriodo(sol, "EN PRUEBA")) return "En periodo de prueba";
       if (tienePeriodo(sol, "CERRADO")) return "Periodo de prueba finalizado";
@@ -204,6 +274,11 @@
 
       if (normal.includes("rechazado")) return "danger";
       if (normal.includes("anulado")) return "secondary";
+      if (normal.includes("no apto medico")) return "danger";
+      if (normal.includes("pendiente dotacion completa")) return "warning text-dark";
+      if (normal.includes("dotacion completa finalizada") || normal.includes("proceso finalizado")) return "success";
+      if (normal.includes("apto con observacion")) return "info text-dark";
+      if (normal.includes("apto medico")) return "success";
       if (normal.includes("ingreso de personal")) return "success";
       if (normal.includes("aptitud medica")) return "info text-dark";
       if (normal.includes("periodo de prueba")) return "warning text-dark";
@@ -234,6 +309,13 @@
       "En periodo de prueba",
       "Periodo de prueba finalizado",
       "Gestion de equipos y accesos",
+      "Apto medico - Pendiente dotacion completa",
+      "Apto con observacion - Pendiente dotacion completa",
+      "Apto medico - Dotacion completa finalizada",
+      "Apto con observacion - Dotacion completa finalizada",
+      "Apto medico - Proceso finalizado",
+      "Apto con observacion - Proceso finalizado",
+      "Cerrado - No apto medico",
       "Aptitud medica",
       "Ingreso de personal",
       "Rechazado",
@@ -588,6 +670,63 @@
       abrirPdfEnModal(doc, nombreArchivoPdf(sol));
     }
 
+    function puntajeCandidatoTimeline(candidato) {
+      const estado = normalizarTexto(candidato?.estado);
+      const periodo = normalizarTexto(candidato?.periodoEstado);
+      const aptitudMedica = normalizarTexto(candidato?.aptitudMedica);
+      const ingreso = normalizarTexto(candidato?.ingreso);
+
+      let puntaje = 0;
+
+      if (estado === "seleccionado_oficial") puntaje += 100;
+      else if (estado === "aprobado_ingreso") puntaje += 90;
+      else if (estado === "terna") puntaje += 80;
+      else if (estado === "apto") puntaje += 70;
+      else if (estado === "apto_observacion") puntaje += 65;
+
+      if (periodo === "cerrado") puntaje += 55;
+      else if (periodo === "en prueba") puntaje += 50;
+
+      if (aptitudMedica === "apto") puntaje += 45;
+      else if (aptitudMedica === "apto con observacion" || aptitudMedica === "apto con observación") puntaje += 40;
+      else if (aptitudMedica === "no apto") puntaje += 30;
+
+      if (ingreso === "ingreso" || ingreso === "no ingreso") puntaje += 25;
+
+      return puntaje;
+    }
+
+    function resolverCandidatoTimeline(solicitud) {
+      const candidatos = Array.isArray(solicitud?.candidatos)
+        ? solicitud.candidatos.filter(c => String(c?.cedula || "").trim() !== "")
+        : [];
+
+      if (candidatos.length === 0) return null;
+      if (candidatos.length === 1) return candidatos[0];
+
+      const ordenados = candidatos
+        .map(c => ({ candidato: c, puntaje: puntajeCandidatoTimeline(c) }))
+        .sort((a, b) => b.puntaje - a.puntaje);
+
+      return ordenados[0]?.candidato || candidatos[0];
+    }
+
+    function verTimelineSolicitud(indice) {
+      const lista = obtenerSolicitudes();
+      const sol = lista[indice];
+      if (!sol) return;
+
+      const candidato = resolverCandidatoTimeline(sol);
+      if (!candidato) {
+        alert("Esta solicitud no tiene candidatos con cedula para mostrar timeline.");
+        return;
+      }
+
+      const numero = encodeURIComponent(String(sol.numero || ""));
+      const cedula = encodeURIComponent(String(candidato.cedula || ""));
+      window.location.href = `../../postulacion/timeline-postulante.html?sol=${numero}&ced=${cedula}`;
+    }
+
     window.addEventListener("keydown", event => {
       if (event.key === "Escape") {
         const modal = document.getElementById("pdfModal");
@@ -661,7 +800,7 @@
         const attrMotivo = esRechazada ? "" : " disabled title=\"Disponible solo para solicitudes rechazadas\"";
         const estadoProceso = obtenerEstadoProcesoSolicitud(sol);
 
-        const fila =
+          const fila =
           "<tr>" +
           "<td>" + (sol.numero || "-") + "</td>" +
           "<td>" + (sol.fechaSolicitud || "-") + "</td>" +
@@ -671,6 +810,7 @@
           "<td>" + (sol.cargoSolicitado || "-") + "</td>" +
           "<td><span class=\"badge bg-" + colorEstado(estadoProceso) + "\">" + estadoProceso + "</span></td>" +
           "<td class=\"actions\">" +
+          "<button class=\"btn btn-primary btn-sm\" onclick=\"verTimelineSolicitud(" + indiceReal + ")\">🔎 Ver Timeline</button>" +
           "<button class=\"btn btn-outline-danger btn-sm\" onclick=\"verSolicitudPdf(" + indiceReal + ")\">PDF</button>" +
           "<button class=\"btn btn-warning btn-sm\" onclick=\"editarSolicitud(" + indiceReal + ")\"" + attrEditar + ">Editar</button>" +
           "<button class=\"btn btn-outline-dark btn-sm\" onclick=\"verMotivoRechazo(" + indiceReal + ")\"" + attrMotivo + ">Motivo rechazo</button>" +

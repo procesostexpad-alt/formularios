@@ -2,49 +2,140 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>7. Revisión de Aptitud Médica</title>
+<title>7. Revision de Aptitud Medica</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
   table th, table td {
     text-align: center;
     vertical-align: middle;
   }
-  .verde { background-color: #d4f5d2 !important; }
-  .amarillo { background-color: #fff7c2 !important; }
-  .rojo { background-color: #ffd6d6 !important; }
+  .readonly { background-color: #e9ecef !important; }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 2200;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-card {
+    width: min(620px, 100%);
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #d6dee8;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .2);
+    overflow: hidden;
+  }
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e6edf5;
+    background: #f8fbff;
+  }
+  .modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #0d5f6f;
+    font-weight: 700;
+  }
+  .btn-close-modal {
+    border: 0;
+    background: transparent;
+    font-size: 28px;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+  }
+  .modal-body-custom { padding: 16px; }
+  .modal-footer-custom {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid #e6edf5;
+    background: #fafcff;
+  }
+  .helper-text {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+    text-align: left;
+  }
 </style>
-  <link rel="stylesheet" href="../../assets/css/global-theme.css">
-  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+<link rel="stylesheet" href="../../assets/css/global-theme.css">
+<link rel="stylesheet" href="../../assets/css/ui-shell.css">
 </head>
 
 <body class="bg-light p-4">
 
 <div class="container">
-  <h3 class="mb-4">Revisión de Aptitud Médica</h3>
+  <h3 class="mb-4">Revision de Aptitud Medica</h3>
 
   <table class="table table-bordered table-hover align-middle">
     <thead class="table-secondary">
       <tr>
         <th>N° Solicitud</th>
-        <th>Fecha de Solicitud</th>
+        <th>Fecha Solicitud</th>
         <th>Solicitante</th>
-        <th>Área</th>
+        <th>Area</th>
         <th>Cargo</th>
-        <th>Nombre de Postulante</th>
-        <th>Cédula</th>
-        <th>Fecha Estimada de Ingreso</th>
-        <th>Estado Actual</th>
-        <th>Aptitud Médica</th>
+        <th>Nombre postulante</th>
+        <th>Cedula</th>
+        <th>Fecha ingreso</th>
+        <th>Estado actual</th>
+        <th>Aptitud medica</th>
         <th>Guardar</th>
       </tr>
     </thead>
-
     <tbody id="tablaAptitud"></tbody>
-
   </table>
 </div>
 
+<div id="modalAptitudMedica" class="modal-overlay" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalAptitudTitulo">
+    <div class="modal-head">
+      <h4 id="modalAptitudTitulo" class="modal-title">Registrar aptitud medica</h4>
+      <button type="button" class="btn-close-modal" onclick="cerrarModalAptitud()">&times;</button>
+    </div>
+
+    <div class="modal-body-custom">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">Trabajador</label>
+          <input id="mdTrabajador" class="form-control" readonly>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Aptitud medica</label>
+          <select id="mdAptitudSelect" class="form-select">
+            <option value="">Seleccione...</option>
+            <option value="apto">APTO</option>
+            <option value="apto_observacion">APTO CON OBSERVACION</option>
+            <option value="no_apto">NO APTO</option>
+          </select>
+        </div>
+        <div id="bloqueMotivoAptitud" class="col-12" style="display:none;">
+          <label class="form-label">Motivo</label>
+          <textarea id="mdMotivoAptitud" class="form-control" rows="3" placeholder="Ingrese observacion o motivo"></textarea>
+          <div class="helper-text">Obligatorio para APTO CON OBSERVACION y NO APTO.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button type="button" class="btn btn-outline-secondary" onclick="cerrarModalAptitud()">Cancelar</button>
+      <button type="button" class="btn btn-success" onclick="guardarAptitudModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script>
+let contextoModalAptitud = null;
 
 function normalizarTexto(valor) {
   return String(valor || "")
@@ -52,6 +143,14 @@ function normalizarTexto(valor) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toUpperCase();
+}
+
+function obtenerSolicitudes() {
+  return JSON.parse(localStorage.getItem("solicitudes") || "[]");
+}
+
+function guardarSolicitudes(lista) {
+  localStorage.setItem("solicitudes", JSON.stringify(lista));
 }
 
 function obtenerEstadoPeriodo(candidato) {
@@ -76,209 +175,208 @@ function aptitudMedicaFinalizada(candidato, enFlujoDesdePeriodo = false) {
   const estado = normalizarTexto(candidato?.estado);
   if (estado === "APTO" || estado === "APTO_OBSERVACION" || estado === "NO_APTO") return true;
 
-  // Si viene de periodo de prueba cerrado + apto, mostramos la fila
-  // aunque exista un texto antiguo en aptitudMedica.
   if (enFlujoDesdePeriodo) return false;
 
   const aptitud = normalizarTexto(candidato?.aptitudMedica);
   return aptitud === "APTO" || aptitud === "APTO CON OBSERVACION" || aptitud === "NO APTO";
 }
 
-// ⭐ Cargar candidatos oficializados desde localStorage
 function cargarAptitudes() {
+  const tabla = document.getElementById("tablaAptitud");
+  tabla.innerHTML = "";
 
-    const tabla = document.getElementById("tablaAptitud");
-    tabla.innerHTML = "";
+  const lista = obtenerSolicitudes();
+  let totalFilas = 0;
 
-    const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
-    let totalFilas = 0;
+  lista.forEach((sol, solIndex) => {
+    const candidatosAptosPeriodo = (sol.candidatos || []).filter(c => {
+      const estadoPeriodo = obtenerEstadoPeriodo(c);
+      const periodoCerrado = estadoPeriodo === "CERRADO" || estadoPeriodo === "FINALIZADO";
 
-    lista.forEach((sol, solIndex) => {
-        const candidatosAptosPeriodo = (sol.candidatos || []).filter(c => {
-            const estadoPeriodo = obtenerEstadoPeriodo(c);
-            const periodoCerrado =
-              estadoPeriodo === "CERRADO" ||
-              estadoPeriodo === "FINALIZADO";
+      const resultadoPeriodo = obtenerResultadoPeriodo(c);
+      const estadoCandidato = normalizarTexto(c?.estado);
+      const aptoPeriodo =
+        resultadoPeriodo === "APTO" ||
+        resultadoPeriodo === "APTO CON OBSERVACION" ||
+        estadoCandidato === "APROBADO_PERIODO_PRUEBA";
 
-            const resultadoPeriodo = obtenerResultadoPeriodo(c);
-            const estadoCandidato = normalizarTexto(c?.estado);
-            const aptoPeriodo =
-              resultadoPeriodo === "APTO" ||
-              resultadoPeriodo === "APTO CON OBSERVACION" ||
-              estadoCandidato === "APROBADO_PERIODO_PRUEBA";
-
-            const enFlujoDesdePeriodo = periodoCerrado && aptoPeriodo;
-            return enFlujoDesdePeriodo && !aptitudMedicaFinalizada(c, enFlujoDesdePeriodo);
-        });
-
-        if (candidatosAptosPeriodo.length === 0) return;
-
-        candidatosAptosPeriodo.forEach(c => {
-            totalFilas += 1;
-
-            const row = document.createElement("tr");
-
-            row.innerHTML = `
-                <td>${sol.numero}</td>
-                <td>${sol.fechaSolicitud}</td>
-                <td>${sol.solicitante}</td>
-                <td>${sol.area}</td>
-                <td>${sol.cargoSolicitado}</td>
-                <td>${c.nombre}</td>
-                <td>${c.cedula}</td>
-                <td>${c.fechaIngreso || sol.fechaIngreso || "N/A"}</td>
-
-                <td><strong>APROBO PERIODO DE PRUEBA</strong></td>
-
-                <td>
-                  <select class="form-select aptitud" onchange="colorearFila(this)">
-                    <option value="">Seleccione...</option>
-                    <option value="apto">APTO</option>
-                    <option value="apto_observacion">APTO CON OBSERVACIÓN</option>
-                    <option value="no_apto">NO APTO</option>
-                  </select>
-                </td>
-
-                <td>
-                  <button class="btn btn-success" onclick="guardarNotificacion(this, ${solIndex}, '${c.cedula}')">💾</button>
-                </td>
-            `;
-
-            tabla.appendChild(row);
-        });
+      const enFlujoDesdePeriodo = periodoCerrado && aptoPeriodo;
+      return enFlujoDesdePeriodo && !aptitudMedicaFinalizada(c, enFlujoDesdePeriodo);
     });
 
-    if (totalFilas === 0) {
-      tabla.innerHTML = `
-        <tr>
-          <td colspan="11" class="text-center text-muted py-4">
-            No hay candidatos listos para revision de aptitud medica. Deben estar en periodo de prueba: CERRADO y APTO.
-          </td>
-        </tr>
+    candidatosAptosPeriodo.forEach(c => {
+      totalFilas += 1;
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td>${sol.numero || "-"}</td>
+        <td>${sol.fechaSolicitud || "-"}</td>
+        <td>${sol.solicitante || "-"}</td>
+        <td>${sol.area || "-"}</td>
+        <td>${sol.cargoSolicitado || "-"}</td>
+        <td>${c.nombre || "-"}</td>
+        <td>${c.cedula || "-"}</td>
+        <td>${c.fechaIngreso || sol.fechaIngreso || "N/A"}</td>
+        <td><strong>APROBO PERIODO DE PRUEBA</strong></td>
+        <td>PENDIENTE</td>
+        <td>
+          <button type="button" class="btn btn-success btn-sm" onclick="abrirModalAptitud(${solIndex}, '${String(c.cedula || "").replace(/'/g, "\\'")}')">Guardar</button>
+        </td>
       `;
-    }
+
+      tabla.appendChild(row);
+    });
+  });
+
+  if (totalFilas === 0) {
+    tabla.innerHTML = `
+      <tr>
+        <td colspan="11" class="text-center text-muted py-4">
+          No hay candidatos listos para revision de aptitud medica. Deben estar en periodo de prueba cerrado y apto.
+        </td>
+      </tr>
+    `;
+  }
 }
 
+function abrirModalAptitud(solIndex, cedula) {
+  const lista = obtenerSolicitudes();
+  const solicitud = lista[Number(solIndex)];
+  if (!solicitud) return;
 
-// ⭐ Cambiar color al seleccionar
-function colorearFila(select) {
-  const row = select.closest("tr");
+  const candidato = (solicitud.candidatos || []).find(c => String(c.cedula) === String(cedula));
+  if (!candidato) return;
 
-  row.classList.remove("verde", "amarillo", "rojo");
+  contextoModalAptitud = { solIndex: Number(solIndex), cedula: String(cedula) };
 
-  if (select.value === "apto") row.classList.add("verde");
-  else if (select.value === "apto_observacion") row.classList.add("amarillo");
-  else if (select.value === "no_apto") row.classList.add("rojo");
+  document.getElementById("mdTrabajador").value = `${candidato.nombre || "-"} - CI ${candidato.cedula || "-"}`;
+
+  const aptitudActual = normalizarTexto(candidato.aptitudMedica);
+  let valor = "";
+  if (aptitudActual === "APTO") valor = "apto";
+  if (aptitudActual === "APTO CON OBSERVACION") valor = "apto_observacion";
+  if (aptitudActual === "NO APTO") valor = "no_apto";
+  document.getElementById("mdAptitudSelect").value = valor;
+
+  document.getElementById("mdMotivoAptitud").value = String(candidato.aptitudMedicaMotivo || "");
+  actualizarVisibilidadMotivoAptitud();
+
+  const modal = document.getElementById("modalAptitudMedica");
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
 }
 
+function cerrarModalAptitud() {
+  contextoModalAptitud = null;
+  const modal = document.getElementById("modalAptitudMedica");
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+}
 
-// ⭐ Guardar Aptitud + mover de etapa
-function guardarNotificacion(btn, solIndex, cedula) {
+function actualizarVisibilidadMotivoAptitud() {
+  const select = document.getElementById("mdAptitudSelect");
+  const bloque = document.getElementById("bloqueMotivoAptitud");
+  if (!select || !bloque) return;
 
-  const row = btn.closest("tr");
-  const select = row.querySelector(".aptitud");
+  const valor = String(select.value || "").toLowerCase();
+  const requiereMotivo = valor === "apto_observacion" || valor === "no_apto";
 
-  if (!select.value) {
-    alert("⚠ Debe seleccionar una opción de Aptitud Médica.");
+  bloque.style.display = requiereMotivo ? "block" : "none";
+  if (!requiereMotivo) {
+    document.getElementById("mdMotivoAptitud").value = "";
+  }
+}
+
+function guardarAptitudModal() {
+  if (!contextoModalAptitud) return;
+
+  const select = document.getElementById("mdAptitudSelect");
+  const motivoInput = document.getElementById("mdMotivoAptitud");
+
+  const valor = String(select.value || "");
+  if (!valor) {
+    alert("Debe seleccionar una opcion de aptitud medica.");
     return;
   }
 
-  let lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
-  let solicitud = lista[solIndex];
+  const requiereMotivo = valor === "apto_observacion" || valor === "no_apto";
+  const motivo = String(motivoInput.value || "").trim();
+  if (requiereMotivo && !motivo) {
+    alert("Debe ingresar el motivo para esta opcion de aptitud medica.");
+    motivoInput.focus();
+    return;
+  }
+
+  const lista = obtenerSolicitudes();
+  const solicitud = lista[contextoModalAptitud.solIndex];
   if (!solicitud) return;
 
-  let candidato = solicitud.candidatos.find(c => String(c.cedula) === String(cedula));
+  const candidato = (solicitud.candidatos || []).find(c => String(c.cedula) === contextoModalAptitud.cedula);
   if (!candidato) return;
 
-  let mensaje = "";
-  let aptitudAprobada = false;
-
-  // ⭐ APTO
-  if (select.value === "apto") {
+  let etapaActual = "";
+  if (valor === "apto") {
     candidato.estado = "apto";
     candidato.aptitudMedica = "APTO";
-    candidato.aptitudMedicaProcesada = true;
-
-    mensaje =
-      `🟢 Postulante ${candidato.nombre} marcado como APTO.\n\n` +
-      "📧 Notificado a TH.\n📧 Notificado SSOMA.\n📧 Notificado al Postulante.";
-
-    aptitudAprobada = true;
-  }
-
-  // ⭐ APTO CON OBSERVACIÓN
-  if (select.value === "apto_observacion") {
+    candidato.ingreso = "INGRESO";
+    etapaActual = "Aptitud-Medica-Apto";
+  } else if (valor === "apto_observacion") {
     candidato.estado = "apto_observacion";
-    candidato.aptitudMedica = "APTO CON OBSERVACIÓN";
-    candidato.aptitudMedicaProcesada = true;
-
-    mensaje =
-      `🟡 Postulante ${candidato.nombre} marcado como APTO CON OBSERVACIÓN.\n\n` +
-      "📧 Notificado a TH.\n📧 Notificado SSOMA.\n📧 Notificado al Postulante.";
-
-    aptitudAprobada = true;
-  }
-
-  // ⭐ NO APTO → vuelve a 2.2
-  if (select.value === "no_apto") {
-    candidato.estado = "postulado"; // vuelve a 2.2
+    candidato.aptitudMedica = "APTO CON OBSERVACION";
+    candidato.ingreso = "INGRESO";
+    etapaActual = "Aptitud-Medica-Apto-con-observacion";
+  } else {
+    candidato.estado = "no_apto";
     candidato.aptitudMedica = "NO APTO";
-    candidato.aptitudMedicaProcesada = true;
-
-    mensaje =
-      `🔴 Postulante ${candidato.nombre} marcado como NO APTO.\n\n` +
-      "📧 Notificado al Postulante.\n📧 Notificado a TH.\n📧 Notificado SSOMA.";
-
-    aptitudAprobada = false;
+    candidato.ingreso = "NO INGRESO";
+    etapaActual = "Aptitud-Medica-No-Apto";
   }
 
-  // Agregar al historial de etapas de la solicitud
-  const fechaLocalEcuador = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
-  const etapaActual = select.value === "apto" ? "Aptitud-Medica-Apto" : (select.value === "apto_observacion" ? "Apto-con-observación" : "No Apto");
+  candidato.aptitudMedicaMotivo = requiereMotivo ? motivo : "";
+  candidato.aptitudMedicaProcesada = true;
 
-  // Registrar la etapa en el historial de la solicitud
-  if (!solicitud.historialEtapas) {
-    solicitud.historialEtapas = []; // Crear historial si no existe
-  }
+  const fechaLocal = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
+  const detalleEtapa = requiereMotivo ? `${etapaActual} - Motivo: ${motivo}` : etapaActual;
 
+  if (!solicitud.historialEtapas) solicitud.historialEtapas = [];
   solicitud.historialEtapas.push({
-    etapa: etapaActual,
-    fecha: fechaLocalEcuador,
-    usuario: "Nicolás Crisanto" // O cualquier variable que contenga el nombre del usuario
+    etapa: detalleEtapa,
+    fecha: fechaLocal,
+    usuario: "Nicolas Crisanto"
   });
 
-  // **Guardar el historial de etapas a nivel de Candidato**
-  if (!candidato.historialEtapas) {
-    candidato.historialEtapas = []; // Crear historial si no existe
-  }
-
+  if (!candidato.historialEtapas) candidato.historialEtapas = [];
   candidato.historialEtapas.push({
-    etapa: etapaActual,
-    fecha: fechaLocalEcuador,
-    usuario: "Nicolás Crisanto" // O cualquier variable que contenga el nombre del usuario
+    etapa: detalleEtapa,
+    fecha: fechaLocal,
+    usuario: "Nicolas Crisanto"
   });
 
-  // Guardar la solicitud con el historial actualizado
-  localStorage.setItem("solicitudes", JSON.stringify(lista));
-
-  alert(mensaje);
-
-  // ❗ SIEMPRE remover visualmente
-  row.remove();
-
-  if (aptitudAprobada) {
-    alert("Continua con Entrega de Dotacion Completa si aplica; luego pasa a Ingreso de Personal.");
-  }
+  guardarSolicitudes(lista);
+  cerrarModalAptitud();
+  cargarAptitudes();
 }
 
+document.addEventListener("DOMContentLoaded", cargarAptitudes);
 
-// Inicializar
-cargarAptitudes();
+document.getElementById("mdAptitudSelect").addEventListener("change", actualizarVisibilidadMotivoAptitud);
 
+document.getElementById("modalAptitudMedica").addEventListener("click", ev => {
+  if (ev.target && ev.target.id === "modalAptitudMedica") {
+    cerrarModalAptitud();
+  }
+});
+
+window.addEventListener("keydown", ev => {
+  if (ev.key === "Escape") {
+    const modal = document.getElementById("modalAptitudMedica");
+    if (modal && modal.classList.contains("show")) {
+      cerrarModalAptitud();
+    }
+  }
+});
 </script>
 
-  <script src="../../assets/js/ui-shell.js"></script>
+<script src="../../assets/js/ui-shell.js"></script>
 </body>
-</html>  
-
-
+</html>

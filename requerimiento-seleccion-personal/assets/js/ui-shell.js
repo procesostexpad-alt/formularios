@@ -15,53 +15,46 @@
       ]
     },
     {
-      key: "gestion",
-      label: "Gestion",
+      key: "requerimiento-personal",
+      label: "Requerimiento de personal",
       items: [
-        { label: "Solicitud de Requerimiento de Personal", path: "modules/gestion/solicitudes/listado-solicitudes.html" },
-        { label: "Formulario de Requerimiento de Personal", path: "modules/gestion/solicitudes/formulario-solicitud.html" },
-        { label: "Ver solicitud", path: "modules/gestion/solicitudes/ver-solicitud.html" },
-        { label: "Ver solicitud SSOMA", path: "modules/gestion/solicitudes/ver-solicitud-ssoma.html" },
-        { label: "Estado general", path: "modules/gestion/estado-general.html" },
-        { label: "Form gestionar", path: "modules/gestion/form-gestionar.html" },
-        { label: "Info SSOMA", path: "modules/gestion/info-ssoma.html" }
+        { label: "Paso 1 - Solicitud requerimiento", path: "modules/gestion/solicitudes/listado-solicitudes.html" },
+        { label: "Paso 2 - Aprobacion requerimiento", path: "modules/postulacion/aprobacion-postulacion.html" },
+        {
+          label: "Aprobacion de requerimiento",
+          children: [
+            { label: "Paso 2.1 - Activacion postulacion", path: "modules/postulacion/activacion-postulacion.html" },
+            { label: "Paso 2.2 - Registro postulacion", path: "modules/postulacion/registro-postulacion.html" }
+          ]
+        }
       ]
     },
     {
-      key: "postulacion",
-      label: "Postulacion",
+      key: "seleccion-personal",
+      label: "Seleccion de personal",
       items: [
-        { label: "Aprobacion postulacion", path: "modules/postulacion/aprobacion-postulacion.html" },
-        { label: "Activacion postulacion", path: "modules/postulacion/activacion-postulacion.html" },
-        { label: "Registro postulacion", path: "modules/postulacion/registro-postulacion.html" },
-        { label: "Visualizacion solicitante", path: "modules/postulacion/visualizacion-solicitante.html" },
-        { label: "Timeline postulante", path: "modules/postulacion/timeline-postulante.html" }
+        { label: "Paso 3 - Preseleccion", path: "modules/seleccion/visualizacion-preseleccion.html" },
+        { label: "Paso 4 - Seleccion oficial", path: "modules/postulacion/visualizacion-solicitante.html" },
+        { label: "Paso 5 - Aprobacion ingreso", path: "modules/seleccion/lista-candidatos-aptos.html" }
       ]
     },
     {
-      key: "seleccion",
-      label: "Seleccion",
-      items: [
-        { label: "Visualizacion preseleccion", path: "modules/seleccion/visualizacion-preseleccion.html" },
-        { label: "Preseleccion postulantes", path: "modules/seleccion/preseleccion-postulantes.html" },
-        { label: "Seleccion postulantes oficiales", path: "modules/seleccion/seleccion-postulantes-oficiales.html" },
-        { label: "Lista candidatos aptos", path: "modules/seleccion/lista-candidatos-aptos.html" },
-        { label: "Confirmacion postulantes seleccionados", path: "modules/seleccion/confirmacion-postulantes-seleccionados.html" }
-      ]
-    },
-    {
-      key: "evaluacion",
+      key: "evaluacion-personal",
       label: "Evaluacion",
       items: [
-        { label: "Pre-ingreso", path: "modules/evaluacion/pre-ingreso.html" },
-        { label: "Induccion", path: "modules/evaluacion/induccion.html" },
-        { label: "Entrega dotacion basica", path: "modules/evaluacion/entrega-dotacion.html" },
-        { label: "Ver entrega equipos accesos", path: "modules/evaluacion/ver-entrega-equipos-accesos.html" },
-        { label: "Periodo prueba", path: "modules/evaluacion/periodo-prueba.html" },
+        { label: "Paso 6 - Pre-ingreso", path: "modules/evaluacion/pre-ingreso.html" },
+        { label: "Paso 6.1 - Induccion", path: "modules/evaluacion/induccion.html" },
+        { label: "Paso 7 - Dotacion basica", path: "modules/evaluacion/entrega-dotacion.html" },
+        { label: "Paso 8 - Equipos y accesos", path: "modules/evaluacion/ver-entrega-equipos-accesos.html" },
+        { label: "Paso 9 - Periodo de prueba", path: "modules/evaluacion/periodo-prueba.html" }
+      ]
+    },
+    {
+      key: "ingreso-personal",
+      label: "Ingreso personal",
+      items: [
         { label: "Aptitud medica", path: "modules/evaluacion/aptitud-medica.html" },
-        { label: "Entrega dotacion completa", path: "modules/evaluacion/entrega-dotacion-completa.html" },
-        { label: "Ingreso personal", path: "modules/evaluacion/ingreso-personal.html" },
-        { label: "Gestionar entrega equipos accesos", path: "modules/evaluacion/gestionar-entrega-equipos-accesos.html" }
+        { label: "Dotacion completa", path: "modules/evaluacion/entrega-dotacion-completa.html" }
       ]
     }
   ];
@@ -123,11 +116,11 @@
     const body = document.createElement("div");
     body.className = "app-menu-body";
 
-    const homeHref = new URL("menu.html", rootUrl).href;
+    const homeHref = new URL("modules/gestion/solicitudes/listado-solicitudes.html", rootUrl).href;
     const homeLink = document.createElement("a");
     homeLink.className = "app-menu-home";
     homeLink.href = homeHref;
-    homeLink.innerHTML = "<span>Principal</span><small>Menu general</small>";
+    homeLink.innerHTML = "<span>Inicio flujo</span><small>Solicitud de requerimiento</small>";
     homeLink.addEventListener("click", () => setOpen(false));
     body.appendChild(homeLink);
 
@@ -173,7 +166,98 @@
       const groupContent = document.createElement("div");
       groupContent.className = "app-menu-group-content";
 
+      function syncGroupHeight() {
+        if (groupWrap.classList.contains("is-open")) {
+          groupContent.style.maxHeight = groupContent.scrollHeight + "px";
+        }
+      }
+
       groupItems.forEach(route => {
+        const children = Array.isArray(route.children) ? route.children : [];
+
+        if (children.length > 0) {
+          const subgroup = document.createElement("div");
+          subgroup.className = "app-menu-subgroup";
+
+          const subBtn = document.createElement("button");
+          subBtn.type = "button";
+          subBtn.className = "app-menu-sub-toggle";
+          subBtn.innerHTML =
+            "<span>" + route.label + "</span>" +
+            "<span class=\"app-menu-sub-caret\"></span>";
+          subBtn.setAttribute("aria-expanded", "false");
+
+          const subContent = document.createElement("div");
+          subContent.className = "app-menu-sub-content";
+
+          let subgroupHasActive = false;
+
+          if (route.path) {
+            const parentLink = document.createElement("a");
+            parentLink.className = "app-menu-link app-menu-link-sub app-menu-link-sub-main";
+            parentLink.textContent = route.pathLabel || route.label;
+            const parentHref = new URL(route.path, rootUrl).href;
+            parentLink.href = parentHref;
+
+            if (normalizePath(parentHref) === currentPath) {
+              parentLink.classList.add("is-active");
+              current.textContent = "Pantalla actual: " + (route.pathLabel || route.label);
+              activeFound = true;
+              subgroupHasActive = true;
+            }
+
+            parentLink.addEventListener("click", () => setOpen(false));
+            subContent.appendChild(parentLink);
+          }
+
+          children.forEach(child => {
+            const link = document.createElement("a");
+            link.className = "app-menu-link app-menu-link-sub";
+            link.textContent = child.label;
+            const href = new URL(child.path, rootUrl).href;
+            link.href = href;
+
+            if (normalizePath(href) === currentPath) {
+              link.classList.add("is-active");
+              current.textContent = "Pantalla actual: " + child.label;
+              activeFound = true;
+              subgroupHasActive = true;
+            }
+
+            link.addEventListener("click", () => setOpen(false));
+            subContent.appendChild(link);
+          });
+
+          function setSubgroupOpen(value) {
+            const openSub = Boolean(value);
+            subgroup.classList.toggle("is-open", openSub);
+            subBtn.setAttribute("aria-expanded", openSub ? "true" : "false");
+            if (openSub) {
+              subContent.style.maxHeight = "none";
+              const alto = subContent.scrollHeight;
+              subContent.style.maxHeight = alto + "px";
+            } else {
+              subContent.style.maxHeight = "0px";
+            }
+            requestAnimationFrame(syncGroupHeight);
+          }
+
+          subBtn.addEventListener("click", () => {
+            const isOpen = subgroup.classList.contains("is-open");
+            setSubgroupOpen(!isOpen);
+          });
+
+          subgroup.appendChild(subBtn);
+          subgroup.appendChild(subContent);
+          groupContent.appendChild(subgroup);
+
+          if (subgroupHasActive) {
+            setSubgroupOpen(true);
+          }
+
+          return;
+        }
+
         const link = document.createElement("a");
         link.className = "app-menu-link";
         link.textContent = route.label;
@@ -197,7 +281,7 @@
 
     if (normalizePath(homeHref) === currentPath) {
       homeLink.classList.add("is-active");
-      current.textContent = "Pantalla actual: Menu general";
+      current.textContent = "Pantalla actual: Inicio flujo";
       activeFound = true;
     }
 

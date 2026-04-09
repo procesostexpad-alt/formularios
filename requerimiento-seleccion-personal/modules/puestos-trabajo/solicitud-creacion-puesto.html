@@ -447,9 +447,6 @@
 
       const ficha = sol.ficha || {};
       const personaSolicita = textoSeguro(sol.personaSolicita) || textoSeguro(sol.solicitante) || textoSeguro(sol.usuarioSolicitante) || usuarioSesionActual();
-      const estadoNormalizado = textoSeguro(sol.estadoSolicitud).toLowerCase();
-      const esAprobada = estadoNormalizado === "aprobada";
-      const esRechazada = estadoNormalizado === "rechazada";
 
       function asegurarEspacio(altoNecesario) {
         if (y + altoNecesario > pageH - 12) {
@@ -554,14 +551,33 @@
         y += 2;
       }
 
-      function normalizarFilasTabla(filas, totalColumnas) {
+      function normalizarFilasTabla(filas, columnas) {
+        const totalColumnas = Array.isArray(columnas) ? columnas.length : 0;
+        if (!totalColumnas) return [];
+
+        const normalizar = valor => String(valor || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .trim();
+
+        const esFilaCabecera = (fila) => fila.every((celda, index) => {
+          const actual = normalizar(celda);
+          const esperado = normalizar(columnas[index]);
+          return actual && esperado && actual === esperado;
+        });
+
         if (Array.isArray(filas) && filas.length > 0) {
-          return filas.map(fila => {
+          const filasNormalizadas = filas.map(fila => {
             const base = Array.isArray(fila) ? fila.slice(0, totalColumnas) : [];
             while (base.length < totalColumnas) base.push("-");
             return base;
           });
+
+          const filasSinCabeceraDuplicada = filasNormalizadas.filter(fila => !esFilaCabecera(fila));
+          if (filasSinCabeceraDuplicada.length > 0) return filasSinCabeceraDuplicada;
         }
+
         const filaVacia = Array.from({ length: totalColumnas }, (_, index) => (index === 0 ? "Sin registros" : "-"));
         return [filaVacia];
       }
@@ -576,7 +592,7 @@
           : Array.from({ length: totalCols }, () => 1);
         const sumaPesos = pesosBase.reduce((acc, item) => acc + Number(item || 0), 0) || totalCols;
         const colW = pesosBase.map(p => areaW * (Number(p || 0) / sumaPesos));
-        const filasTabla = normalizarFilasTabla(filas, totalCols);
+        const filasTabla = normalizarFilasTabla(filas, columnas);
         const alturaLinea = 3.7;
         const padX = 1.6;
         const padTop = 3.6;
@@ -608,8 +624,7 @@
           if (y + altoFila > pageH - 12) {
             doc.addPage();
             y = 14;
-            dibujarTituloTabla(titulo + " (continuacion)");
-            dibujarFila(columnas, true);
+            if (!esHeader) dibujarFila(columnas, true);
           }
 
           let x = margin;
@@ -631,6 +646,12 @@
 
           y += altoFila;
         }
+
+        const altoHeaderEstimado = calcularAltoFila(construirLineasFila(columnas));
+        const altoPrimeraFila = filasTabla.length > 0
+          ? calcularAltoFila(construirLineasFila(filasTabla[0]))
+          : 6.2;
+        asegurarEspacio(8 + altoHeaderEstimado + altoPrimeraFila);
 
         dibujarTituloTabla(titulo);
         dibujarFila(columnas, true);
@@ -723,21 +744,6 @@
       agregarSeccionVertical("Justificacion de Creacion de Cargo", [
         ["Justificacion", sol.justificacionCreacionCargo]
       ]);
-
-      const bloquesDecision = [];
-      if (esAprobada) {
-        bloquesDecision.push(["Estado final", "Aprobada"]);
-        bloquesDecision.push(["Fecha de aprobacion", formatearFechaISO(sol.fechaAprobacion)]);
-        bloquesDecision.push(["Aprobado por", textoSeguro(sol.aprobadoPor) || "-"]);
-      } else if (esRechazada) {
-        bloquesDecision.push(["Estado final", "Rechazada"]);
-        bloquesDecision.push(["Fecha de rechazo", formatearFechaISO(sol.fechaRechazo)]);
-        bloquesDecision.push(["Rechazado por", textoSeguro(sol.rechazadoPor) || "-"]);
-        bloquesDecision.push(["Motivo de rechazo", textoSeguro(sol.motivoRechazo) || "-"]);
-      } else {
-        bloquesDecision.push(["Estado final", "Pendiente"]);
-      }
-      agregarSeccionVertical("Resultado de Aprobacion", bloquesDecision);
 
       return doc;
     }

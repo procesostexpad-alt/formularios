@@ -101,7 +101,21 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
-          <p id="modalInduccionInfo" class="mb-3 text-muted"></p>
+          <p id="modalInduccionInfo" class="mb-2 text-muted"></p>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label mb-1">Trabajador</label>
+              <input id="modalInduccionTrabajador" class="form-control" readonly>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label mb-1">Area</label>
+              <input id="modalInduccionArea" class="form-control" readonly>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label mb-1">Departamento</label>
+              <input id="modalInduccionDepartamento" class="form-control" readonly>
+            </div>
+          </div>
           <div id="checksContenedor" class="modal-checks"></div>
         </div>
         <div class="modal-footer">
@@ -321,7 +335,11 @@
 
       document.getElementById("modalInduccionTitulo").textContent = LABEL_TIPO[tipo] || "Induccion";
       document.getElementById("modalInduccionInfo").textContent =
-        `Solicitud ${sol.numero || "-"} - ${candidato.nombre || "-"} - Codigo ${candidato.codigoUnico || "-"}`;
+        `Solicitud ${sol.numero || "-"}`;
+      document.getElementById("modalInduccionTrabajador").value =
+        `${candidato.nombre || "-"} - Codigo ${candidato.codigoUnico || "-"}`;
+      document.getElementById("modalInduccionArea").value = sol.area || "-";
+      document.getElementById("modalInduccionDepartamento").value = sol.departamento || "-";
 
       const cont = document.getElementById("checksContenedor");
       cont.innerHTML = "";

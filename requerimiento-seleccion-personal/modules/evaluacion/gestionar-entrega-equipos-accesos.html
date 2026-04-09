@@ -443,17 +443,6 @@ function guardar() {
   // Actualizar localStorage
   localStorage.setItem("solicitudes", JSON.stringify(solicitudes));
 
-  // Mensajes por estado
-  if (estado === "ENTREGADO") {
-      alert("âœ” Equipos y accesos ENTREGADOS. Notificado a Talento Humano y solicitante.");
-  } 
-  else if (estado === "ENTREGA INCOMPLETA") {
-      alert("âš  Entrega INCOMPLETA. Notificado a Talento Humano y solicitante.");
-  }
-  else {
-      alert("â³ Pendiente de entrega. Notificado a Talento Humano y solicitante.");
-  }
-
   // ðŸ”¥ REDIRECCIÃ“N AUTOMÃTICA
   window.location.href = "ver-entrega-equipos-accesos.html";
 }

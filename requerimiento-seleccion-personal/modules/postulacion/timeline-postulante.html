@@ -456,7 +456,7 @@
       { a: "#2f7a55", b: "#52af78" }
     ];
 
-    const stepIcons = ["🧾", "📢", "🧲", "🤝", "✅", "🎓", "🧩", "⏱️", "🎒", "🩺", "🧑‍💼"];
+    const stepIcons = ["🧾", "📢", "🧲", "🤝", "✅", "🆔", "🎓", "🎒", "🪪", "⏱️", "🩺", "🧰"];
 
     function escapeHtml(valor) {
       return String(valor || "")
@@ -575,29 +575,22 @@
       }
     }
 
-    function estadoAptitud() {
-      const candidatos = solicitud?.candidatos || [];
-      if (!candidatos.length) return "pending";
-
-      const evaluados = candidatos.filter(c =>
-        c.aptitudMedica === "APTO" || c.aptitudMedica === "NO APTO" || c.aptitudMedica === "APTO CON OBSERVACION"
-      ).length;
-
-      return evaluados === candidatos.length ? "ok" : "progress";
+    function preIngresoCompleto() {
+      const codigo = String(candidato?.codigoUnico || "").replace(/\D/g, "");
+      const fecha = String(candidato?.fechaIngreso || "").trim();
+      return /^\d{5}$/.test(codigo) && !!fecha;
     }
 
-    function estadoIngresoPersonal() {
-      const candidatos = solicitud?.candidatos || [];
-      if (!candidatos.length) return "pending";
-      const evaluados = candidatos.filter(c => c.ingreso === "INGRESO" || c.ingreso === "NO INGRESO").length;
-      return evaluados === candidatos.length ? "ok" : "progress";
-    }
+    function estadoPreIngreso() {
+      if (!candidato) return { estado: "pending", etiqueta: "Pendiente" };
+      if (preIngresoCompleto()) return { estado: "ok", etiqueta: "Completado" };
 
-    function estadoPeriodoPrueba() {
-      const candidatos = solicitud?.candidatos || [];
-      if (!candidatos.length) return "pending";
-      const cerrados = candidatos.filter(c => c.periodoEstado === "CERRADO").length;
-      return cerrados === candidatos.length ? "ok" : "progress";
+      const tieneDatoParcial =
+        String(candidato?.codigoUnico || "").trim() !== "" ||
+        String(candidato?.fechaIngreso || "").trim() !== "";
+
+      if (tieneDatoParcial) return { estado: "progress", etiqueta: "En progreso" };
+      return { estado: "pending", etiqueta: "Pendiente" };
     }
 
     function estadoAprobacionIngreso() {
@@ -672,22 +665,29 @@
     }
 
     function requiereEquiposAccesosSolicitud() {
+      const detalleFicha = Array.isArray(solicitud?.manualCargoDetalle?.ficha?.equiposAccesosDetalle)
+        ? solicitud.manualCargoDetalle.ficha.equiposAccesosDetalle
+        : [];
+
+      const tieneDetalle = detalleFicha.some(item => {
+        const tipo = normalizarTexto(item?.tipo);
+        const recurso = normalizarTexto(item?.recurso);
+        return !!tipo && !!recurso && !tipo.includes("no aplica") && !recurso.includes("no aplica");
+      });
+
       return (
         normalizarTexto(solicitud?.requiereComp) === "si" ||
         normalizarTexto(solicitud?.requiereTel) === "si" ||
         normalizarTexto(solicitud?.requiereCel) === "si" ||
         normalizarTexto(solicitud?.requiereAccesos) === "si" ||
+        tieneDetalle ||
         tieneTextoValido(solicitud?.manualCargoDetalle?.ficha?.equiposAccesos) ||
         tieneTextoValido(solicitud?.equiposAccesos) ||
         tieneTextoValido(solicitud?.adicional)
       );
     }
 
-    function requiereDotacionOperativa() {
-      const tipoCargo = normalizarTexto(solicitud?.tipoCargo);
-      const esOperativo = tipoCargo.includes("operativo");
-      if (!esOperativo) return false;
-
+    function requiereDotacionSolicitud() {
       const porBanderas =
         normalizarTexto(solicitud?.requiereDotacion) === "si" ||
         normalizarTexto(solicitud?.requiereEpp) === "si" ||
@@ -721,7 +721,7 @@
 
     function estadoDotacionBasica() {
       if (!candidato) return { estado: "pending", etiqueta: "Pendiente" };
-      if (!requiereDotacionOperativa()) return { estado: "ok", etiqueta: "No aplica" };
+      if (!requiereDotacionSolicitud()) return { estado: "ok", etiqueta: "No aplica" };
 
       const basica = normalizarTexto(candidato?.entregaBasica);
       if (basica === "entregado" || basica === "no aplica") return { estado: "ok", etiqueta: "Completada" };
@@ -729,49 +729,71 @@
       return { estado: "pending", etiqueta: "Pendiente" };
     }
 
-    function estadoPreparacionIngreso() {
-      const aplicaEquipos = requiereEquiposAccesosSolicitud();
-      const aplicaDotacionBasica = requiereDotacionOperativa();
+    function cumpleEquiposAccesosParaPeriodo() {
+      if (!requiereEquiposAccesosSolicitud()) return true;
+      const estadoEntrega = normalizarTexto(candidato?.estadoEntrega);
+      return estadoEntrega === "entregado" || estadoEntrega === "entrega incompleta";
+    }
 
-      if (!aplicaEquipos && !aplicaDotacionBasica) return null;
+    function cumpleDotacionBasicaParaPeriodo() {
+      if (!requiereDotacionSolicitud()) return true;
+      const basica = normalizarTexto(candidato?.entregaBasica);
+      return basica === "entregado" || basica === "no aplica";
+    }
 
-      const eq = estadoEquiposAccesosPrevio();
-      const dot = estadoDotacionBasica();
+    function estadoPeriodoPrueba() {
+      if (!candidato) return { estado: "pending", etiqueta: "Pendiente" };
 
-      const estados = [];
-      const partes = [];
+      const estado = String(candidato?.periodoEstado || "").toUpperCase();
+      const aptitudFinal = normalizarTexto(candidato?.periodoAptitudFinal);
 
-      if (aplicaEquipos) {
-        estados.push(eq.estado);
-        partes.push(`Equipos y accesos: <strong>${eq.etiqueta}</strong>`);
-      }
-      if (aplicaDotacionBasica) {
-        estados.push(dot.estado);
-        partes.push(`Dotacion basica: <strong>${dot.etiqueta}</strong>`);
-      }
-
-      let estado = "pending";
-      if (estados.length && estados.every(s => s === "ok")) {
-        estado = "ok";
-      } else if (estados.some(s => s === "progress" || s === "ok")) {
-        estado = "progress";
+      if (estado === "CERRADO") {
+        if (aptitudFinal === "no apto") return { estado: "fail", etiqueta: "Finalizado - NO APTO" };
+        return { estado: "ok", etiqueta: "Finalizado" };
       }
 
-      return {
-        estado,
-        descripcion: partes.join(" | ")
-      };
+      if (estado === "EN PRUEBA") {
+        return { estado: "progress", etiqueta: "En progreso" };
+      }
+
+      const listoParaIniciar =
+        preIngresoCompleto() &&
+        cumpleEquiposAccesosParaPeriodo() &&
+        cumpleDotacionBasicaParaPeriodo();
+
+      if (listoParaIniciar) return { estado: "progress", etiqueta: "Listo para iniciar" };
+      return { estado: "pending", etiqueta: "Pendiente" };
+    }
+
+    function estadoAptitud() {
+      if (!candidato) return { estado: "pending", etiqueta: "Pendiente" };
+
+      const aptitud = normalizarTexto(candidato?.aptitudMedica);
+      if (aptitud === "apto" || aptitud === "apto con observacion") {
+        return { estado: "ok", etiqueta: "Completada" };
+      }
+      if (aptitud === "no apto") {
+        return { estado: "fail", etiqueta: "NO APTO" };
+      }
+
+      const periodo = String(candidato?.periodoEstado || "").toUpperCase();
+      const resultadoPeriodo = normalizarTexto(candidato?.periodoAptitudFinal);
+      if (periodo === "CERRADO" && resultadoPeriodo === "apto") {
+        return { estado: "progress", etiqueta: "Pendiente de revision" };
+      }
+
+      return { estado: "pending", etiqueta: "Pendiente" };
     }
 
     function estadoDotacionCompleta() {
       if (!candidato) return { estado: "pending", etiqueta: "Pendiente" };
-      if (!requiereDotacionOperativa()) return null;
+      if (!requiereDotacionSolicitud()) return null;
 
       const periodo = String(candidato?.periodoEstado || "").toUpperCase();
       const aptitudMedica = normalizarTexto(candidato?.aptitudMedica);
 
       // Esta etapa solo aparece despues del periodo cerrado y de aptitud medica aprobada.
-      if (periodo !== "CERRADO") return null;
+      if (periodo !== "CERRADO") return { estado: "pending", etiqueta: "Pendiente" };
       if (aptitudMedica !== "apto" && aptitudMedica !== "apto con observacion") return null;
 
       const completa = normalizarTexto(candidato?.entregaCompleta);
@@ -869,9 +891,19 @@
         aprobIngreso.estado === "ok" ? ultimaFechaPorTerminos(["aprobacion-ingreso-finalizada"]) : null
       );
 
-      const induccion = estadoInduccion();
+      const preIngreso = estadoPreIngreso();
       agregarPaso(
         "5",
+        "Pre-ingreso",
+        `Codigo de trabajador y fecha de ingreso: <strong>${preIngreso.etiqueta}</strong>`,
+        preIngreso.estado,
+        primeraFechaPorTerminos(["pre-ingreso registrado", "pre ingreso registrado"]),
+        preIngreso.estado === "ok" ? ultimaFechaPorTerminos(["pre-ingreso registrado", "pre ingreso registrado"]) : null
+      );
+
+      const induccion = estadoInduccion();
+      agregarPaso(
+        "6",
         "Induccion",
         `Induccion TH, SSOMA y Puesto: <strong>${induccion.etiqueta}</strong>`,
         induccion.estado,
@@ -879,60 +911,58 @@
         induccion.estado === "ok" ? ultimaFechaPorTerminos(["induccion-completa"]) : null
       );
 
-      const preparacionIngreso = estadoPreparacionIngreso();
-      if (preparacionIngreso) {
-        agregarPaso(
-          "6",
-          "Preparacion para ingreso",
-          preparacionIngreso.descripcion,
-          preparacionIngreso.estado,
-          primeraFechaPorTerminos([
-            "equipos y accesos",
-            "estado entrega",
-            "entrega incompleta",
-            "entregado",
-            "entrega dotacion basica",
-            "dotacion basica",
-            "entrega dotacion"
-          ]),
-          preparacionIngreso.estado === "ok"
-            ? ultimaFechaPorTerminos([
-                "equipos y accesos",
-                "estado entrega",
-                "entrega incompleta",
-                "entregado",
-                "entrega dotacion basica",
-                "dotacion basica",
-                "entrega dotacion"
-              ])
-            : null
-        );
-      }
+      const dotBasica = estadoDotacionBasica();
+      agregarPaso(
+        "7",
+        "Dotacion basica",
+        `Entrega de EPPs y uniformes: <strong>${dotBasica.etiqueta}</strong>`,
+        dotBasica.estado,
+        primeraFechaPorTerminos(["entrega de dotacion basica", "entrega dotacion basica", "dotacion basica"]),
+        dotBasica.estado === "ok"
+          ? ultimaFechaPorTerminos(["entrega de dotacion basica", "entrega dotacion basica", "dotacion basica"])
+          : null
+      );
+
+      const equiposAccesos = estadoEquiposAccesosPrevio();
+      agregarPaso(
+        "8",
+        "Equipos y accesos",
+        `Entrega de equipos/accesos de sistemas: <strong>${equiposAccesos.etiqueta}</strong>`,
+        equiposAccesos.estado,
+        primeraFechaPorTerminos(["equipos y accesos", "estado entrega", "entrega incompleta", "entregado"]),
+        equiposAccesos.estado === "ok"
+          ? ultimaFechaPorTerminos(["equipos y accesos", "estado entrega", "entrega incompleta", "entregado"])
+          : null
+      );
 
       const estadoPP = estadoPeriodoPrueba();
       agregarPaso(
-        "7",
+        "9",
         "Periodo de prueba",
-        `Cierre del periodo: <strong>${estadoPP === "ok" ? "Completado" : estadoPP === "progress" ? "En progreso" : "Pendiente"}</strong>`,
-        estadoPP,
+        `Evaluacion del periodo: <strong>${estadoPP.etiqueta}</strong>`,
+        estadoPP.estado,
         primeraFechaPorTerminos(["periodo de prueba iniciado"]),
-        estadoPP === "ok" ? ultimaFechaPorTerminos(["periodo de prueba finalizado"]) : null
+        (estadoPP.estado === "ok" || estadoPP.estado === "fail")
+          ? ultimaFechaPorTerminos(["periodo de prueba finalizado"])
+          : null
       );
 
       const estadoApt = estadoAptitud();
       agregarPaso(
-        "8",
+        "10",
         "Aptitud medica",
-        `Revision medica: <strong>${estadoApt === "ok" ? "Completada" : estadoApt === "progress" ? "En progreso" : "Pendiente"}</strong>`,
-        estadoApt,
-        primeraFechaPorTerminos(["aptitud-medica", "apto-con-observacion", "no apto"]),
-        estadoApt === "ok" ? ultimaFechaPorTerminos(["aptitud-medica", "apto-con-observacion", "no apto"]) : null
+        `Revision medica: <strong>${estadoApt.etiqueta}</strong>`,
+        estadoApt.estado,
+        primeraFechaPorTerminos(["aptitud-medica-apto", "aptitud-medica-apto-con-observacion", "aptitud-medica-no-apto", "aptitud-medica", "apto-con-observacion", "no apto"]),
+        (estadoApt.estado === "ok" || estadoApt.estado === "fail")
+          ? ultimaFechaPorTerminos(["aptitud-medica-apto", "aptitud-medica-apto-con-observacion", "aptitud-medica-no-apto", "aptitud-medica", "apto-con-observacion", "no apto"])
+          : null
       );
 
       const estadoDotCompleta = estadoDotacionCompleta();
       if (estadoDotCompleta) {
         agregarPaso(
-          "9",
+          "11",
           "Dotacion completa",
           `Entrega final post aptitud medica: <strong>${estadoDotCompleta.etiqueta}</strong>`,
           estadoDotCompleta.estado,
@@ -940,16 +970,6 @@
           estadoDotCompleta.estado === "ok" ? ultimaFechaPorTerminos(["entrega dotacion completa", "dotacion completa", "entrega de dotacion"]) : null
         );
       }
-
-      const estadoIng = estadoIngresoPersonal();
-      agregarPaso(
-        "10",
-        "Ingreso de personal",
-        `Resultado de ingreso: <strong>${estadoIng === "ok" ? "Completado" : estadoIng === "progress" ? "En progreso" : "Pendiente"}</strong>`,
-        estadoIng,
-        primeraFechaPorTerminos(["ingreso registrado", "ingreso no aceptado"]),
-        estadoIng === "ok" ? ultimaFechaPorTerminos(["ingreso registrado", "ingreso no aceptado"]) : null
-      );
 
       normalizarSecuencia();
     }
