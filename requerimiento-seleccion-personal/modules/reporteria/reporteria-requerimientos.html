@@ -1,0 +1,890 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporteria de Requerimientos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+  <style>
+    :root {
+      --bg-top: #eef7f3;
+      --bg-bottom: #d7ebe4;
+      --ink: #1f2a2b;
+      --muted: #5e7075;
+      --line: #cfdfd9;
+      --surface: #ffffff;
+      --brand: #0f5f4e;
+      --brand-2: #1a8e73;
+      --warning: #f2c94c;
+      --danger: #d6465f;
+      --ok: #1f9d72;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(26, 142, 115, 0.14), transparent 38%),
+        radial-gradient(circle at 90% 0%, rgba(15, 95, 78, 0.08), transparent 30%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .page-wrap {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 22px 14px 36px;
+    }
+
+    .hero {
+      background: linear-gradient(130deg, #ffffff 0%, #f4fbf8 65%, #e8f5ef 100%);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 18px 34px rgba(22, 52, 44, 0.11);
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      color: var(--brand);
+      font-weight: 800;
+    }
+
+    .hero p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .kpi-card {
+      border-radius: 16px;
+      border: 1px solid #cfe2db;
+      background: linear-gradient(150deg, #ffffff 0%, #f6fcf9 100%);
+      box-shadow: 0 10px 24px rgba(17, 48, 40, 0.08);
+      padding: 12px;
+      min-height: 118px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: "";
+      position: absolute;
+      right: -22px;
+      top: -22px;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(15, 95, 78, 0.07);
+      pointer-events: none;
+    }
+
+    .kpi-card[data-tone="brand"]::after {
+      background: rgba(15, 95, 78, 0.11);
+    }
+
+    .kpi-card[data-tone="ok"]::after {
+      background: rgba(31, 157, 114, 0.15);
+    }
+
+    .kpi-card[data-tone="warn"]::after {
+      background: rgba(242, 201, 76, 0.2);
+    }
+
+    .kpi-card[data-tone="danger"]::after {
+      background: rgba(214, 70, 95, 0.16);
+    }
+
+    .kpi-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      color: #4f6662;
+      font-weight: 700;
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-value {
+      font-size: 1.65rem;
+      font-weight: 800;
+      line-height: 1.1;
+      color: #173430;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-meta {
+      margin-top: 2px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-track {
+      margin-top: 10px;
+      height: 6px;
+      border-radius: 999px;
+      background: #e5efeb;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-track > span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #1a8e73 0%, #2cb88f 100%);
+      border-radius: inherit;
+      transition: width 320ms ease;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: 0 14px 30px rgba(20, 48, 40, 0.09);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f4faf7;
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1rem;
+      color: #1a4c41;
+      font-weight: 700;
+    }
+
+    .panel-sub {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.83rem;
+    }
+
+    .dist-wrap {
+      padding: 12px 14px 14px;
+    }
+
+    .dist-row {
+      display: grid;
+      grid-template-columns: 1fr 52px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 9px;
+    }
+
+    .dist-label {
+      font-size: 0.86rem;
+      color: #304845;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dist-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #e7f0ec;
+      overflow: hidden;
+    }
+
+    .dist-bar > span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #1a8e73, #3dc9a0);
+      transition: width 320ms ease;
+    }
+
+    .dist-val {
+      text-align: right;
+      font-weight: 700;
+      font-size: 0.86rem;
+      color: #1a4c41;
+    }
+
+    .toolbar {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 1.2fr 0.6fr auto;
+      gap: 9px;
+    }
+
+    .table-wrap {
+      padding: 10px 12px 14px;
+      overflow-x: auto;
+    }
+
+    .table {
+      margin: 0;
+      font-size: 0.88rem;
+      min-width: 1040px;
+    }
+
+    .table thead th {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.22px;
+      color: #48605c;
+      white-space: nowrap;
+    }
+
+    .badge-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border: 1px solid #bfd6cf;
+      background: #edf6f2;
+      color: #1b5b4e;
+      white-space: nowrap;
+    }
+
+    .badge-chip.warn {
+      border-color: #e6c791;
+      background: #fff4de;
+      color: #7d4a02;
+    }
+
+    .badge-chip.ok {
+      border-color: #9ed2ba;
+      background: #def4ea;
+      color: #0f5f4e;
+    }
+
+    .badge-chip.danger {
+      border-color: #e1a0aa;
+      background: #ffe8ec;
+      color: #8f1f35;
+    }
+
+    .badge-chip.dark {
+      border-color: #aebbc0;
+      background: #ebeff1;
+      color: #33474f;
+    }
+
+    .muted-small {
+      color: #6b7f84;
+      font-size: 0.8rem;
+    }
+
+    .empty {
+      text-align: center;
+      color: #607478;
+      padding: 22px 10px;
+    }
+
+    @media (max-width: 1080px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding: 14px;
+      }
+
+      .hero h1 {
+        font-size: 1.28rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-wrap">
+    <section class="hero">
+      <div>
+        <h1>Reporteria de requerimientos</h1>
+        <p>KPI dinamico del flujo: estado, acciones ejecutadas y solicitudes que requieren retorno al proceso anterior.</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-dark btn-sm" type="button" onclick="recargarReporte()">Actualizar</button>
+        <a class="btn btn-success btn-sm" href="../gestion/solicitudes/listado-solicitudes.html">Ver modulo origen</a>
+      </div>
+    </section>
+
+    <section id="kpiGrid" class="kpi-grid"></section>
+
+    <section class="grid-2">
+      <article class="panel">
+        <header class="panel-head">
+          <div>
+            <h2 class="panel-title">Distribucion por estado del proceso</h2>
+            <p class="panel-sub">Top de estados actuales en las solicitudes.</p>
+          </div>
+        </header>
+        <div id="distribucionEstados" class="dist-wrap"></div>
+      </article>
+
+      <article class="panel">
+        <header class="panel-head">
+          <div>
+            <h2 class="panel-title">Seguimiento detallado</h2>
+            <p class="panel-sub">Incluye si ya hubo gestion y si requiere regresar a una etapa previa.</p>
+          </div>
+        </header>
+        <div class="toolbar">
+          <input id="txtBuscar" class="form-control" type="text" placeholder="Buscar por numero, solicitante, cargo o estado">
+          <select id="selFiltro" class="form-select">
+            <option value="todos">Todos</option>
+            <option value="sin_accion">Sin accion</option>
+            <option value="con_accion">Con accion</option>
+            <option value="ejecutada">Ejecutada</option>
+            <option value="retorno">Con retorno</option>
+          </select>
+          <button class="btn btn-outline-secondary" type="button" onclick="limpiarFiltros()">Limpiar</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Solicitud</th>
+                <th>Fecha</th>
+                <th>Solicitante</th>
+                <th>Cargo</th>
+                <th>Estado proceso</th>
+                <th>Accion</th>
+                <th>Ultima gestion</th>
+                <th>Retorno</th>
+                <th>Observacion</th>
+              </tr>
+            </thead>
+            <tbody id="tablaBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "solicitudes";
+    const fmtFecha = new Intl.DateTimeFormat("es-CO", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    function txt(valor) {
+      return String(valor || "").trim();
+    }
+
+    function n(valor) {
+      return txt(valor).toLowerCase();
+    }
+
+    function arr(valor) {
+      return Array.isArray(valor) ? valor : [];
+    }
+
+    function parseFechaFlexible(valor) {
+      if (!valor) return null;
+      if (valor instanceof Date && !Number.isNaN(valor.getTime())) return valor;
+
+      const texto = txt(valor);
+      if (!texto) return null;
+
+      if (/^\d{4}-\d{2}-\d{2}/.test(texto)) {
+        const iso = new Date(texto);
+        return Number.isNaN(iso.getTime()) ? null : iso;
+      }
+
+      const dm = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (dm) {
+        const d = Number(dm[1]);
+        const m = Number(dm[2]) - 1;
+        let y = Number(dm[3]);
+        if (y < 100) y += 2000;
+        const hh = Number(dm[4] || 0);
+        const mm = Number(dm[5] || 0);
+        const ss = Number(dm[6] || 0);
+        const fecha = new Date(y, m, d, hh, mm, ss);
+        return Number.isNaN(fecha.getTime()) ? null : fecha;
+      }
+
+      const directo = new Date(texto);
+      return Number.isNaN(directo.getTime()) ? null : directo;
+    }
+
+    function formatearFecha(valor) {
+      const fecha = parseFechaFlexible(valor);
+      return fecha ? fmtFecha.format(fecha) : "-";
+    }
+
+    function porcentaje(valor, total) {
+      if (!total) return 0;
+      return Math.round((valor / total) * 100);
+    }
+
+    function tieneEstadoCandidato(sol, estados) {
+      const setEstados = new Set(estados.map(x => n(x)));
+      return arr(sol.candidatos).some(c => setEstados.has(n(c?.estado)));
+    }
+
+    function requiereDotacionCompleta(sol) {
+      return [
+        sol?.requiereDotacion,
+        sol?.requiereEpp,
+        sol?.requiereUniforme,
+        sol?.requiereDotacionEpp,
+        sol?.requiereEppsUniformes,
+        sol?.requiereComp
+      ].some(v => n(v) === "si");
+    }
+
+    function estadoAptitud(sol) {
+      const candidato = arr(sol.candidatos)[0] || null;
+      if (!candidato) return "";
+
+      const ingreso = n(candidato.ingreso);
+      if (ingreso === "no ingreso") return "no_ingreso";
+
+      const apt = n(candidato.aptitudMedica);
+      if (apt === "no apto") return "no_apto";
+      if (apt === "apto") return "apto";
+      if (apt === "apto con observacion" || apt === "apto con observación") return "apto_obs";
+
+      if (ingreso === "ingreso") return "apto";
+      return "";
+    }
+
+    function obtenerEstadoProceso(sol) {
+      const estadoBase = n(sol?.estado);
+      const etapaPre = n(sol?.etapaPreseleccion);
+      const etapaSel = n(sol?.etapaSeleccionOficial);
+      const etapaIngreso = n(sol?.etapaAprobacionIngreso);
+
+      if (estadoBase === "anulado") return "Anulado";
+      if (estadoBase === "rechazado") return "Rechazado";
+
+      const apt = estadoAptitud(sol);
+      if (apt === "no_ingreso") return "Cerrado - No ingreso";
+      if (apt === "no_apto") return "Cerrado - No apto medico";
+      if (apt === "apto" || apt === "apto_obs") {
+        const etiqueta = apt === "apto_obs" ? "Apto con observacion" : "Apto medico";
+        const candidato = arr(sol.candidatos)[0] || {};
+        const entregaCompleta = n(candidato.entregaCompleta) === "entregado" || n(candidato.entregaCompleta) === "no aplica";
+        if (requiereDotacionCompleta(sol) && !entregaCompleta) {
+          return etiqueta + " - Pendiente dotacion completa";
+        }
+        return etiqueta + " - Proceso finalizado";
+      }
+
+      if (etapaIngreso === "finalizada" || sol?.aprobacionIngresoFinalizada === true || tieneEstadoCandidato(sol, ["aprobado_ingreso"])) {
+        return "Aprobacion de ingreso finalizada";
+      }
+      if (etapaIngreso === "iniciada") return "En aprobacion de ingreso";
+
+      if (etapaSel === "finalizada" || sol?.seleccionOficialFinalizada === true || tieneEstadoCandidato(sol, ["seleccionado_oficial", "no_seleccionado"])) {
+        return "Seleccion oficial finalizada";
+      }
+      if (etapaSel === "iniciada") return "En seleccion oficial";
+
+      if (etapaPre === "finalizada" || sol?.preseleccionFinalizada === true || tieneEstadoCandidato(sol, ["terna"])) {
+        return "Preseleccion finalizada";
+      }
+      if (etapaPre === "iniciada") return "En preseleccion";
+
+      if (sol?.postulacionActiva === true && sol?.postulacionCerrada !== true) return "En postulacion";
+      if (sol?.postulacionCerrada === true) return "Postulacion cerrada";
+
+      if (estadoBase === "aprobado" || estadoBase === "solicitud aprobada") {
+        return "Aprobada - pendiente de postulacion";
+      }
+
+      if (estadoBase === "ingresado" || estadoBase === "ingresado para aprobar" || !estadoBase) {
+        return "Ingresado";
+      }
+
+      return txt(sol?.estado) || "Sin estado";
+    }
+
+    function claseEstado(estado) {
+      const normal = n(estado);
+      if (normal.includes("rechaz") || normal.includes("no apto")) return "danger";
+      if (normal.includes("no ingreso")) return "dark";
+      if (normal.includes("finalizada") || normal.includes("finalizado")) return "ok";
+      if (normal.includes("ingresado") || normal.includes("pendiente")) return "warn";
+      if (normal.includes("anulado") || normal.includes("postulacion cerrada")) return "dark";
+      return "";
+    }
+
+    function esEstadoFinal(sol) {
+      const estado = n(obtenerEstadoProceso(sol));
+      return (
+        estado.includes("proceso finalizado") ||
+        estado.includes("dotacion completa finalizada") ||
+        estado.includes("cerrado - no ingreso") ||
+        estado.includes("cerrado - no apto medico") ||
+        estado === "rechazado" ||
+        estado === "anulado"
+      );
+    }
+
+    function requiereRetorno(sol) {
+      const estado = n(sol?.estado);
+      if (estado === "rechazado" || estado === "anulado") return true;
+
+      if (arr(sol.candidatos).some(c => n(c?.estado) === "reproceso")) return true;
+
+      const historial = arr(sol.historialEtapas).map(h => n(h?.etapa)).join(" ");
+      return /(rechaz|devol|reproceso|correg|ajuste|anulad)/.test(historial);
+    }
+
+    function mensajeRetorno(sol) {
+      if (n(sol?.estado) === "rechazado") return "Si - volver a Paso 1 para correccion";
+      if (n(sol?.estado) === "anulado") return "Si - solicitud anulada";
+      if (arr(sol.candidatos).some(c => n(c?.estado) === "reproceso")) return "Si - candidato en reproceso";
+
+      const historial = arr(sol.historialEtapas).map(h => n(h?.etapa)).join(" ");
+      if (/(devol|reproceso|correg|ajuste)/.test(historial)) {
+        return "Si - historial con devolucion / ajuste";
+      }
+      return "No";
+    }
+
+    function accionTomada(sol) {
+      if (esEstadoFinal(sol)) return "Ejecutada";
+
+      const base = n(sol?.estado);
+      const hayHistorial = arr(sol.historialEtapas).length > 1;
+      const hayEtapas = [sol?.etapaPreseleccion, sol?.etapaSeleccionOficial, sol?.etapaAprobacionIngreso]
+        .some(v => {
+          const normal = n(v);
+          return normal && normal !== "no_iniciada";
+        });
+      const hayPostulacion = sol?.postulacionActiva === true || sol?.postulacionCerrada === true;
+      const cambioEstado = base && base !== "ingresado" && base !== "ingresado para aprobar";
+
+      if (hayHistorial || hayEtapas || hayPostulacion || cambioEstado) return "Con accion";
+      return "Sin accion";
+    }
+
+    function ultimaGestion(sol) {
+      const historial = arr(sol.historialEtapas);
+      if (!historial.length) {
+        if (txt(sol.ultimaActualizacion)) return "Actualizada - " + formatearFecha(sol.ultimaActualizacion);
+        return "Sin movimiento";
+      }
+
+      const ultimo = historial[historial.length - 1] || {};
+      const etapa = txt(ultimo.etapa) || "Gestion";
+      return etapa + " - " + formatearFecha(ultimo.fecha);
+    }
+
+    function fechaFinGestion(sol) {
+      const candidatas = [
+        sol?.fechaAprobacion,
+        sol?.fechaRechazo,
+        sol?.ultimaActualizacion,
+        (arr(sol.historialEtapas).slice(-1)[0] || {}).fecha
+      ].map(parseFechaFlexible).filter(Boolean);
+
+      if (!candidatas.length) return null;
+      return candidatas.sort((a, b) => b.getTime() - a.getTime())[0];
+    }
+
+    function promedioDiasGestion(lista) {
+      const difs = [];
+      lista.forEach(sol => {
+        const inicio = parseFechaFlexible(sol?.fechaSolicitud);
+        const fin = fechaFinGestion(sol);
+        if (!inicio || !fin) return;
+        const delta = (fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24);
+        if (Number.isFinite(delta) && delta >= 0) difs.push(delta);
+      });
+
+      if (!difs.length) return 0;
+      const total = difs.reduce((acc, v) => acc + v, 0);
+      return Math.round((total / difs.length) * 10) / 10;
+    }
+
+    function leerSolicitudes() {
+      try {
+        const lista = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        return Array.isArray(lista) ? lista : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    let estadoUI = {
+      texto: "",
+      filtro: "todos",
+      data: []
+    };
+
+    function renderKPIs(lista) {
+      const total = lista.length;
+      const gestionadas = lista.filter(sol => accionTomada(sol) !== "Sin accion").length;
+      const ejecutadas = lista.filter(sol => esEstadoFinal(sol)).length;
+      const conRetorno = lista.filter(sol => requiereRetorno(sol)).length;
+      const sinAccion = total - gestionadas;
+      const enFlujo = lista.filter(sol => !esEstadoFinal(sol) && accionTomada(sol) === "Con accion").length;
+      const promedio = promedioDiasGestion(lista);
+
+      const data = [
+        {
+          tone: "brand",
+          label: "Total solicitudes",
+          valor: total,
+          meta: "Base de requerimientos cargados",
+          avance: 100
+        },
+        {
+          tone: "ok",
+          label: "Con accion",
+          valor: gestionadas,
+          meta: porcentaje(gestionadas, total) + "% del total",
+          avance: porcentaje(gestionadas, total)
+        },
+        {
+          tone: "warn",
+          label: "Sin accion",
+          valor: sinAccion,
+          meta: "Pendientes de gestion inicial",
+          avance: porcentaje(sinAccion, total)
+        },
+        {
+          tone: "ok",
+          label: "Ejecutadas",
+          valor: ejecutadas,
+          meta: "Cerradas o finalizadas",
+          avance: porcentaje(ejecutadas, total)
+        },
+        {
+          tone: "danger",
+          label: "Con retorno",
+          valor: conRetorno,
+          meta: "Con devolucion o reproceso",
+          avance: porcentaje(conRetorno, total)
+        },
+        {
+          tone: "brand",
+          label: "Tiempo prom. gestion",
+          valor: promedio.toFixed(1) + " dias",
+          meta: "Entre fecha solicitud y ultima gestion",
+          avance: Math.min(100, Math.round(promedio * 10))
+        },
+        {
+          tone: "brand",
+          label: "En flujo activo",
+          valor: enFlujo,
+          meta: "Con acciones pero sin cierre final",
+          avance: porcentaje(enFlujo, total)
+        }
+      ];
+
+      const host = document.getElementById("kpiGrid");
+      host.innerHTML = data.map(item => `
+        <article class="kpi-card" data-tone="${item.tone}">
+          <div class="kpi-label">${item.label}</div>
+          <div class="kpi-value">${item.valor}</div>
+          <div class="kpi-meta">${item.meta}</div>
+          <div class="kpi-track"><span style="width:${item.avance}%;"></span></div>
+        </article>
+      `).join("");
+    }
+
+    function renderDistribucion(lista) {
+      const mapa = new Map();
+      lista.forEach(sol => {
+        const estado = obtenerEstadoProceso(sol);
+        mapa.set(estado, (mapa.get(estado) || 0) + 1);
+      });
+
+      const items = Array.from(mapa.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8);
+
+      const total = lista.length || 1;
+      const host = document.getElementById("distribucionEstados");
+
+      if (!items.length) {
+        host.innerHTML = '<div class="empty">No hay solicitudes para mostrar.</div>';
+        return;
+      }
+
+      host.innerHTML = items.map(([estado, cantidad]) => {
+        const pct = porcentaje(cantidad, total);
+        return `
+          <div class="dist-row">
+            <div>
+              <div class="dist-label">${estado}</div>
+              <div class="dist-bar"><span style="width:${pct}%;"></span></div>
+            </div>
+            <div class="dist-val">${cantidad}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function cumpleFiltro(sol) {
+      const filtro = estadoUI.filtro;
+      const accion = accionTomada(sol);
+
+      if (filtro === "sin_accion" && accion !== "Sin accion") return false;
+      if (filtro === "con_accion" && accion !== "Con accion") return false;
+      if (filtro === "ejecutada" && accion !== "Ejecutada") return false;
+      if (filtro === "retorno" && !requiereRetorno(sol)) return false;
+
+      const textoFiltro = n(estadoUI.texto);
+      if (!textoFiltro) return true;
+
+      const bolsa = [
+        sol?.numero,
+        sol?.solicitante,
+        sol?.cargoSolicitado,
+        sol?.estado,
+        obtenerEstadoProceso(sol),
+        ultimaGestion(sol)
+      ].map(txt).join(" ").toLowerCase();
+
+      return bolsa.includes(textoFiltro);
+    }
+
+    function badge(html, clase) {
+      return `<span class="badge-chip ${clase || ""}">${html}</span>`;
+    }
+
+    function renderTabla(lista) {
+      const tabla = document.getElementById("tablaBody");
+      const filtrada = [...lista]
+        .filter(cumpleFiltro)
+        .sort((a, b) => {
+          const fa = parseFechaFlexible(a?.fechaSolicitud)?.getTime() || 0;
+          const fb = parseFechaFlexible(b?.fechaSolicitud)?.getTime() || 0;
+          return fb - fa;
+        });
+
+      if (!filtrada.length) {
+        tabla.innerHTML = '<tr><td colspan="10" class="empty">No hay datos para el filtro seleccionado.</td></tr>';
+        return;
+      }
+
+      tabla.innerHTML = filtrada.map((sol, idx) => {
+        const estado = obtenerEstadoProceso(sol);
+        const claseEstadoActual = claseEstado(estado);
+
+        const accion = accionTomada(sol);
+        let claseAccion = "";
+        if (accion === "Sin accion") claseAccion = "warn";
+        if (accion === "Con accion") claseAccion = "ok";
+        if (accion === "Ejecutada") claseAccion = "dark";
+
+        const retorno = requiereRetorno(sol);
+        const obs = txt(sol?.motivoRechazo) || (retorno ? mensajeRetorno(sol) : "-");
+
+        return `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${txt(sol?.numero) || "-"}</td>
+            <td>${formatearFecha(sol?.fechaSolicitud)}</td>
+            <td>${txt(sol?.solicitante) || "-"}</td>
+            <td>${txt(sol?.cargoSolicitado) || "-"}</td>
+            <td>${badge(estado, claseEstadoActual)}</td>
+            <td>${badge(accion, claseAccion)}</td>
+            <td><span class="muted-small">${ultimaGestion(sol)}</span></td>
+            <td>${retorno ? badge("Si", "danger") : badge("No", "ok")}</td>
+            <td><span class="muted-small">${obs}</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderTodo() {
+      const data = leerSolicitudes();
+      estadoUI.data = data;
+      renderKPIs(data);
+      renderDistribucion(data);
+      renderTabla(data);
+    }
+
+    function recargarReporte() {
+      renderTodo();
+    }
+
+    function limpiarFiltros() {
+      estadoUI.texto = "";
+      estadoUI.filtro = "todos";
+      document.getElementById("txtBuscar").value = "";
+      document.getElementById("selFiltro").value = "todos";
+      renderTabla(estadoUI.data);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const txtBuscar = document.getElementById("txtBuscar");
+      const selFiltro = document.getElementById("selFiltro");
+
+      txtBuscar.addEventListener("input", () => {
+        estadoUI.texto = txtBuscar.value;
+        renderTabla(estadoUI.data);
+      });
+
+      selFiltro.addEventListener("change", () => {
+        estadoUI.filtro = selFiltro.value;
+        renderTabla(estadoUI.data);
+      });
+
+      window.addEventListener("storage", event => {
+        if (event.key === STORAGE_KEY) renderTodo();
+      });
+
+      renderTodo();
+    });
+  </script>
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

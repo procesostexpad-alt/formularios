@@ -1,0 +1,800 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporteria de Creacion de Cargos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+  <style>
+    :root {
+      --bg-top: #f3f8f5;
+      --bg-bottom: #dbece5;
+      --ink: #1f2a2b;
+      --muted: #5f7376;
+      --line: #cfdfd9;
+      --surface: #ffffff;
+      --brand: #0f5f4e;
+      --brand-2: #268a70;
+      --warn: #f0bf5a;
+      --danger: #d74f67;
+      --ok: #1f9d72;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 0% 12%, rgba(38, 138, 112, 0.14), transparent 35%),
+        radial-gradient(circle at 100% 0%, rgba(240, 191, 90, 0.12), transparent 25%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .page-wrap {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 22px 14px 36px;
+    }
+
+    .hero {
+      background: linear-gradient(140deg, #ffffff 0%, #f8fbfa 58%, #eaf6f1 100%);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 16px 34px rgba(22, 52, 44, 0.11);
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      color: var(--brand);
+      font-weight: 800;
+    }
+
+    .hero p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .kpi-card {
+      border-radius: 16px;
+      border: 1px solid #cfe2db;
+      background: linear-gradient(155deg, #ffffff 0%, #f6fcf9 100%);
+      box-shadow: 0 10px 24px rgba(17, 48, 40, 0.08);
+      padding: 12px;
+      min-height: 118px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: "";
+      position: absolute;
+      right: -22px;
+      top: -22px;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(15, 95, 78, 0.08);
+      pointer-events: none;
+    }
+
+    .kpi-card[data-tone="warn"]::after {
+      background: rgba(240, 191, 90, 0.2);
+    }
+
+    .kpi-card[data-tone="danger"]::after {
+      background: rgba(215, 79, 103, 0.14);
+    }
+
+    .kpi-card[data-tone="ok"]::after {
+      background: rgba(31, 157, 114, 0.14);
+    }
+
+    .kpi-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      color: #4f6662;
+      font-weight: 700;
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-value {
+      font-size: 1.62rem;
+      font-weight: 800;
+      line-height: 1.1;
+      color: #173430;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-meta {
+      margin-top: 2px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-track {
+      margin-top: 10px;
+      height: 6px;
+      border-radius: 999px;
+      background: #e5efeb;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-track > span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #268a70 0%, #39b08f 100%);
+      border-radius: inherit;
+      transition: width 320ms ease;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: 0 14px 30px rgba(20, 48, 40, 0.09);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f4faf7;
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1rem;
+      color: #1a4c41;
+      font-weight: 700;
+    }
+
+    .panel-sub {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.83rem;
+    }
+
+    .dist-wrap {
+      padding: 12px 14px 14px;
+    }
+
+    .dist-row {
+      display: grid;
+      grid-template-columns: 1fr 52px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 9px;
+    }
+
+    .dist-label {
+      font-size: 0.86rem;
+      color: #304845;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dist-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #e7f0ec;
+      overflow: hidden;
+    }
+
+    .dist-bar > span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #268a70, #58c8a7);
+      transition: width 320ms ease;
+    }
+
+    .dist-val {
+      text-align: right;
+      font-weight: 700;
+      font-size: 0.86rem;
+      color: #1a4c41;
+    }
+
+    .toolbar {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 1.2fr 0.6fr auto;
+      gap: 9px;
+    }
+
+    .table-wrap {
+      padding: 10px 12px 14px;
+      overflow-x: auto;
+    }
+
+    .table {
+      margin: 0;
+      font-size: 0.88rem;
+      min-width: 1100px;
+    }
+
+    .table thead th {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.22px;
+      color: #48605c;
+      white-space: nowrap;
+    }
+
+    .badge-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border: 1px solid #bfd6cf;
+      background: #edf6f2;
+      color: #1b5b4e;
+      white-space: nowrap;
+    }
+
+    .badge-chip.warn {
+      border-color: #e6c791;
+      background: #fff4de;
+      color: #7d4a02;
+    }
+
+    .badge-chip.ok {
+      border-color: #9ed2ba;
+      background: #def4ea;
+      color: #0f5f4e;
+    }
+
+    .badge-chip.danger {
+      border-color: #e1a0aa;
+      background: #ffe8ec;
+      color: #8f1f35;
+    }
+
+    .badge-chip.dark {
+      border-color: #aebbc0;
+      background: #ebeff1;
+      color: #33474f;
+    }
+
+    .muted-small {
+      color: #6b7f84;
+      font-size: 0.8rem;
+    }
+
+    .empty {
+      text-align: center;
+      color: #607478;
+      padding: 22px 10px;
+    }
+
+    @media (max-width: 1080px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding: 14px;
+      }
+
+      .hero h1 {
+        font-size: 1.28rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-wrap">
+    <section class="hero">
+      <div>
+        <h1>Reporteria de creacion de cargos</h1>
+        <p>KPI dinamico para monitorear pendientes, decisiones, ejecucion en manual y solicitudes que vuelven a ajuste.</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-dark btn-sm" type="button" onclick="recargarReporte()">Actualizar</button>
+        <a class="btn btn-success btn-sm" href="../puestos-trabajo/solicitud-creacion-puesto.html">Ver modulo origen</a>
+      </div>
+    </section>
+
+    <section id="kpiGrid" class="kpi-grid"></section>
+
+    <section class="grid-2">
+      <article class="panel">
+        <header class="panel-head">
+          <div>
+            <h2 class="panel-title">Distribucion por estado</h2>
+            <p class="panel-sub">Pendientes, aprobadas y rechazadas.</p>
+          </div>
+        </header>
+        <div id="distribucionEstados" class="dist-wrap"></div>
+      </article>
+
+      <article class="panel">
+        <header class="panel-head">
+          <div>
+            <h2 class="panel-title">Trazabilidad de solicitudes</h2>
+            <p class="panel-sub">Visualiza si se aprobo, rechazo, ejecuto en manual o debe retornar a ajuste.</p>
+          </div>
+        </header>
+        <div class="toolbar">
+          <input id="txtBuscar" class="form-control" type="text" placeholder="Buscar por id, solicitante, codigo o cargo">
+          <select id="selFiltro" class="form-select">
+            <option value="todos">Todos</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="aprobada">Aprobada</option>
+            <option value="rechazada">Rechazada</option>
+            <option value="retorno">Con retorno</option>
+          </select>
+          <button class="btn btn-outline-secondary" type="button" onclick="limpiarFiltros()">Limpiar</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>ID solicitud</th>
+                <th>Fecha</th>
+                <th>Solicitante</th>
+                <th>Cargo</th>
+                <th>Estado</th>
+                <th>Accion tomada</th>
+                <th>Ejecucion manual</th>
+                <th>Retorno</th>
+                <th>Ultima gestion</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody id="tablaBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_SOLICITUDES = "solicitudesCreacionPuesto";
+    const STORAGE_MANUAL = "manualFuncionesCargos";
+    const fmtFecha = new Intl.DateTimeFormat("es-CO", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    function txt(valor) {
+      return String(valor || "").trim();
+    }
+
+    function n(valor) {
+      return txt(valor).toLowerCase();
+    }
+
+    function parseFechaFlexible(valor) {
+      if (!valor) return null;
+      if (valor instanceof Date && !Number.isNaN(valor.getTime())) return valor;
+
+      const texto = txt(valor);
+      if (!texto) return null;
+
+      if (/^\d{4}-\d{2}-\d{2}/.test(texto)) {
+        const iso = new Date(texto);
+        return Number.isNaN(iso.getTime()) ? null : iso;
+      }
+
+      const dm = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (dm) {
+        const d = Number(dm[1]);
+        const m = Number(dm[2]) - 1;
+        let y = Number(dm[3]);
+        if (y < 100) y += 2000;
+        const hh = Number(dm[4] || 0);
+        const mm = Number(dm[5] || 0);
+        const ss = Number(dm[6] || 0);
+        const fecha = new Date(y, m, d, hh, mm, ss);
+        return Number.isNaN(fecha.getTime()) ? null : fecha;
+      }
+
+      const directo = new Date(texto);
+      return Number.isNaN(directo.getTime()) ? null : directo;
+    }
+
+    function formatearFecha(valor) {
+      const fecha = parseFechaFlexible(valor);
+      return fecha ? fmtFecha.format(fecha) : "-";
+    }
+
+    function porcentaje(valor, total) {
+      if (!total) return 0;
+      return Math.round((valor / total) * 100);
+    }
+
+    function leerSolicitudes() {
+      try {
+        const lista = JSON.parse(localStorage.getItem(STORAGE_SOLICITUDES) || "[]");
+        return Array.isArray(lista) ? lista : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function leerManual() {
+      try {
+        const lista = JSON.parse(localStorage.getItem(STORAGE_MANUAL) || "[]");
+        return Array.isArray(lista) ? lista : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function estadoSolicitud(item) {
+      const estado = n(item?.estadoSolicitud);
+      if (estado === "aprobada") return "Aprobada";
+      if (estado === "rechazada") return "Rechazada";
+      return "Pendiente";
+    }
+
+    function claseEstado(estado) {
+      const normal = n(estado);
+      if (normal === "aprobada") return "ok";
+      if (normal === "rechazada") return "danger";
+      if (normal === "pendiente") return "warn";
+      return "";
+    }
+
+    function enManual(idSolicitud, manuales) {
+      return manuales.some(item => txt(item?.origenSolicitudPuestoId) === txt(idSolicitud));
+    }
+
+    function accionTomada(item, manuales) {
+      const estado = estadoSolicitud(item);
+      const creadoManual = enManual(item?.idSolicitud, manuales);
+
+      if (estado === "Aprobada" && creadoManual) return "Aprobada y creada";
+      if (estado === "Aprobada") return "Aprobada";
+      if (estado === "Rechazada") return "Rechazada";
+      return "Pendiente";
+    }
+
+    function requiereRetorno(item) {
+      return estadoSolicitud(item) === "Rechazada";
+    }
+
+    function ultimaGestion(item) {
+      return item?.actualizadoEn || item?.fechaAprobacion || item?.fechaRechazo || item?.fechaSolicitud || "";
+    }
+
+    function fechaDecision(item) {
+      return item?.fechaAprobacion || item?.fechaRechazo || item?.actualizadoEn || "";
+    }
+
+    function promedioRespuesta(lista) {
+      const difs = [];
+      lista.forEach(item => {
+        const estado = estadoSolicitud(item);
+        if (estado === "Pendiente") return;
+
+        const inicio = parseFechaFlexible(item?.fechaSolicitud);
+        const fin = parseFechaFlexible(fechaDecision(item));
+        if (!inicio || !fin) return;
+
+        const delta = (fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24);
+        if (Number.isFinite(delta) && delta >= 0) difs.push(delta);
+      });
+
+      if (!difs.length) return 0;
+      const total = difs.reduce((acc, v) => acc + v, 0);
+      return Math.round((total / difs.length) * 10) / 10;
+    }
+
+    let estadoUI = {
+      texto: "",
+      filtro: "todos",
+      data: [],
+      manuales: []
+    };
+
+    function renderKPIs(lista, manuales) {
+      const total = lista.length;
+      const pendientes = lista.filter(item => estadoSolicitud(item) === "Pendiente").length;
+      const aprobadas = lista.filter(item => estadoSolicitud(item) === "Aprobada").length;
+      const rechazadas = lista.filter(item => estadoSolicitud(item) === "Rechazada").length;
+      const decididas = aprobadas + rechazadas;
+      const tasaAprobacion = porcentaje(aprobadas, decididas || 1);
+      const conRetorno = rechazadas;
+      const creadasManual = lista.filter(item => enManual(item?.idSolicitud, manuales)).length;
+      const tProm = promedioRespuesta(lista);
+
+      const data = [
+        {
+          tone: "brand",
+          label: "Total solicitudes",
+          valor: total,
+          meta: "Solicitudes de creacion registradas",
+          avance: 100
+        },
+        {
+          tone: "warn",
+          label: "Pendientes",
+          valor: pendientes,
+          meta: "Sin decision todavia",
+          avance: porcentaje(pendientes, total)
+        },
+        {
+          tone: "ok",
+          label: "Aprobadas",
+          valor: aprobadas,
+          meta: porcentaje(aprobadas, total) + "% del total",
+          avance: porcentaje(aprobadas, total)
+        },
+        {
+          tone: "danger",
+          label: "Rechazadas",
+          valor: rechazadas,
+          meta: "Necesitan ajuste para reingresar",
+          avance: porcentaje(rechazadas, total)
+        },
+        {
+          tone: "ok",
+          label: "Tasa aprobacion",
+          valor: tasaAprobacion + "%",
+          meta: "Sobre solicitudes decididas",
+          avance: tasaAprobacion
+        },
+        {
+          tone: "brand",
+          label: "Creadas en manual",
+          valor: creadasManual,
+          meta: "Cargos sincronizados en manual",
+          avance: porcentaje(creadasManual, total)
+        },
+        {
+          tone: "danger",
+          label: "Con retorno",
+          valor: conRetorno,
+          meta: "Deben volver a correccion",
+          avance: porcentaje(conRetorno, total)
+        },
+        {
+          tone: "brand",
+          label: "Tiempo prom. respuesta",
+          valor: tProm.toFixed(1) + " dias",
+          meta: "Desde solicitud hasta decision",
+          avance: Math.min(100, Math.round(tProm * 10))
+        }
+      ];
+
+      const host = document.getElementById("kpiGrid");
+      host.innerHTML = data.map(item => `
+        <article class="kpi-card" data-tone="${item.tone}">
+          <div class="kpi-label">${item.label}</div>
+          <div class="kpi-value">${item.valor}</div>
+          <div class="kpi-meta">${item.meta}</div>
+          <div class="kpi-track"><span style="width:${item.avance}%;"></span></div>
+        </article>
+      `).join("");
+    }
+
+    function renderDistribucion(lista) {
+      const pendientes = lista.filter(item => estadoSolicitud(item) === "Pendiente").length;
+      const aprobadas = lista.filter(item => estadoSolicitud(item) === "Aprobada").length;
+      const rechazadas = lista.filter(item => estadoSolicitud(item) === "Rechazada").length;
+
+      const data = [
+        ["Pendiente", pendientes],
+        ["Aprobada", aprobadas],
+        ["Rechazada", rechazadas]
+      ];
+
+      const total = lista.length || 1;
+      const host = document.getElementById("distribucionEstados");
+
+      if (!lista.length) {
+        host.innerHTML = '<div class="empty">No hay solicitudes para mostrar.</div>';
+        return;
+      }
+
+      host.innerHTML = data.map(([estado, cantidad]) => {
+        const pct = porcentaje(cantidad, total);
+        return `
+          <div class="dist-row">
+            <div>
+              <div class="dist-label">${estado}</div>
+              <div class="dist-bar"><span style="width:${pct}%;"></span></div>
+            </div>
+            <div class="dist-val">${cantidad}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function cumpleFiltro(item) {
+      const estado = n(estadoSolicitud(item));
+      const filtro = estadoUI.filtro;
+
+      if (filtro === "pendiente" && estado !== "pendiente") return false;
+      if (filtro === "aprobada" && estado !== "aprobada") return false;
+      if (filtro === "rechazada" && estado !== "rechazada") return false;
+      if (filtro === "retorno" && !requiereRetorno(item)) return false;
+
+      const textoFiltro = n(estadoUI.texto);
+      if (!textoFiltro) return true;
+
+      const bolsa = [
+        item?.idSolicitud,
+        item?.personaSolicita,
+        item?.codigoCargo,
+        item?.nombreCargo,
+        item?.estadoSolicitud,
+        item?.area,
+        item?.departamento
+      ].map(txt).join(" ").toLowerCase();
+
+      return bolsa.includes(textoFiltro);
+    }
+
+    function badge(html, clase) {
+      return `<span class="badge-chip ${clase || ""}">${html}</span>`;
+    }
+
+    function renderTabla(lista, manuales) {
+      const tabla = document.getElementById("tablaBody");
+      const filtrada = [...lista]
+        .filter(cumpleFiltro)
+        .sort((a, b) => {
+          const fa = parseFechaFlexible(a?.fechaSolicitud)?.getTime() || 0;
+          const fb = parseFechaFlexible(b?.fechaSolicitud)?.getTime() || 0;
+          return fb - fa;
+        });
+
+      if (!filtrada.length) {
+        tabla.innerHTML = '<tr><td colspan="11" class="empty">No hay datos para el filtro seleccionado.</td></tr>';
+        return;
+      }
+
+      tabla.innerHTML = filtrada.map((item, idx) => {
+        const estado = estadoSolicitud(item);
+        const accion = accionTomada(item, manuales);
+        const existeManual = enManual(item?.idSolicitud, manuales);
+        const retorno = requiereRetorno(item);
+
+        let claseAccion = "warn";
+        if (accion === "Aprobada" || accion === "Aprobada y creada") claseAccion = "ok";
+        if (accion === "Rechazada") claseAccion = "danger";
+
+        let manualTxt = "Pendiente";
+        let manualClass = "warn";
+        if (estado === "Rechazada") {
+          manualTxt = "No aplica";
+          manualClass = "dark";
+        } else if (estado === "Aprobada" && existeManual) {
+          manualTxt = "Creado";
+          manualClass = "ok";
+        } else if (estado === "Aprobada") {
+          manualTxt = "Pendiente sync";
+          manualClass = "warn";
+        }
+
+        return `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${txt(item?.idSolicitud) || "-"}</td>
+            <td>${formatearFecha(item?.fechaSolicitud)}</td>
+            <td>${txt(item?.personaSolicita) || "-"}</td>
+            <td>
+              <strong>${txt(item?.codigoCargo) || "-"}</strong><br>
+              <span class="muted-small">${txt(item?.nombreCargo) || "-"}</span>
+            </td>
+            <td>${badge(estado, claseEstado(estado))}</td>
+            <td>${badge(accion, claseAccion)}</td>
+            <td>${badge(manualTxt, manualClass)}</td>
+            <td>${retorno ? badge("Si", "danger") : badge("No", "ok")}</td>
+            <td><span class="muted-small">${formatearFecha(ultimaGestion(item))}</span></td>
+            <td><span class="muted-small">${txt(item?.motivoRechazo) || "-"}</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderTodo() {
+      const data = leerSolicitudes();
+      const manuales = leerManual();
+      estadoUI.data = data;
+      estadoUI.manuales = manuales;
+
+      renderKPIs(data, manuales);
+      renderDistribucion(data);
+      renderTabla(data, manuales);
+    }
+
+    function recargarReporte() {
+      renderTodo();
+    }
+
+    function limpiarFiltros() {
+      estadoUI.texto = "";
+      estadoUI.filtro = "todos";
+      document.getElementById("txtBuscar").value = "";
+      document.getElementById("selFiltro").value = "todos";
+      renderTabla(estadoUI.data, estadoUI.manuales);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const txtBuscar = document.getElementById("txtBuscar");
+      const selFiltro = document.getElementById("selFiltro");
+
+      txtBuscar.addEventListener("input", () => {
+        estadoUI.texto = txtBuscar.value;
+        renderTabla(estadoUI.data, estadoUI.manuales);
+      });
+
+      selFiltro.addEventListener("change", () => {
+        estadoUI.filtro = selFiltro.value;
+        renderTabla(estadoUI.data, estadoUI.manuales);
+      });
+
+      window.addEventListener("storage", event => {
+        if (event.key === STORAGE_SOLICITUDES || event.key === STORAGE_MANUAL) {
+          renderTodo();
+        }
+      });
+
+      renderTodo();
+    });
+  </script>
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

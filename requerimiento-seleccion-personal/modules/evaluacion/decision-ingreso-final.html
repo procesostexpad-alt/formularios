@@ -1,0 +1,627 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Paso 11. Decision final de ingreso</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  table th, table td {
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .readonly {
+    background: #ececec !important;
+  }
+
+  .estado-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid #c9d5d1;
+  }
+
+  .estado-ok {
+    background: #d8f3e5;
+    color: #0f5f4e;
+    border-color: #9ecfb8;
+  }
+
+  .estado-alerta {
+    background: #ffe9ec;
+    color: #8a1f35;
+    border-color: #e5a3ae;
+  }
+
+  .estado-pendiente {
+    background: #fff4dd;
+    color: #7a4a03;
+    border-color: #e5c790;
+  }
+
+  .estado-neutral {
+    background: #edf2f5;
+    color: #334a52;
+    border-color: #b6c3c8;
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr auto;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 3200;
+  }
+
+  .modal-overlay.show {
+    display: flex;
+  }
+
+  .modal-card {
+    width: min(640px, 100%);
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #d6dee8;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .2);
+    overflow: hidden;
+  }
+
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e6edf5;
+    background: #f8fbff;
+  }
+
+  .modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #0d5f6f;
+    font-weight: 700;
+  }
+
+  .btn-close-modal {
+    border: 0;
+    background: transparent;
+    font-size: 28px;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+  }
+
+  .modal-body-custom {
+    padding: 16px;
+  }
+
+  .modal-footer-custom {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid #e6edf5;
+    background: #fafcff;
+  }
+
+  .helper-text {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+    text-align: left;
+  }
+</style>
+<link rel="stylesheet" href="../../assets/css/global-theme.css">
+<link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body class="bg-light p-4">
+
+<div class="container">
+  <h3 class="mb-3">Decision final de ingreso</h3>
+  <p class="text-muted mb-3">Aqui confirmas si el candidato INGRESA o NO INGRESA despues de aptitud medica y validaciones finales.</p>
+
+  <div class="toolbar">
+    <input id="txtBuscar" class="form-control" type="text" placeholder="Buscar por solicitud, cargo, nombre o cedula">
+    <select id="selFiltro" class="form-select">
+      <option value="todos">Todos</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="ingreso">Ingreso</option>
+      <option value="no_ingreso">No ingreso</option>
+    </select>
+    <button class="btn btn-outline-secondary" type="button" onclick="limpiarFiltros()">Limpiar</button>
+  </div>
+
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-secondary">
+      <tr>
+        <th>N Solicitud</th>
+        <th>Fecha solicitud</th>
+        <th>Cargo</th>
+        <th>Nombre</th>
+        <th>Cedula</th>
+        <th>Aptitud medica</th>
+        <th>Dotacion completa</th>
+        <th>Decision final</th>
+        <th>Accion</th>
+      </tr>
+    </thead>
+    <tbody id="tablaDecisionIngreso"></tbody>
+  </table>
+</div>
+
+<div id="modalDecisionIngreso" class="modal-overlay" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalDecisionTitulo">
+    <div class="modal-head">
+      <h4 id="modalDecisionTitulo" class="modal-title">Registrar decision final</h4>
+      <button type="button" class="btn-close-modal" onclick="cerrarModalDecisionIngreso()">&times;</button>
+    </div>
+
+    <div class="modal-body-custom">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">Trabajador</label>
+          <input id="mdTrabajador" class="form-control" readonly>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Aptitud medica</label>
+          <input id="mdAptitud" class="form-control" readonly>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Estado dotacion</label>
+          <input id="mdDotacion" class="form-control" readonly>
+        </div>
+        <div id="bloqueMotivoAptitud" class="col-12" style="display:none;">
+          <label class="form-label">Motivo aptitud medica</label>
+          <textarea id="mdMotivoAptitud" class="form-control" rows="2" readonly></textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Decision final</label>
+          <select id="mdDecisionFinal" class="form-select">
+            <option value="">Seleccione...</option>
+            <option value="ingreso">INGRESO</option>
+            <option value="no_ingreso">NO INGRESO</option>
+          </select>
+          <div id="mdDecisionHint" class="helper-text"></div>
+        </div>
+        <div id="bloqueMotivoNoIngreso" class="col-12" style="display:none;">
+          <label class="form-label">Motivo NO INGRESO</label>
+          <textarea id="mdMotivoNoIngreso" class="form-control" rows="3" placeholder="Ingrese el motivo por el cual no ingresa"></textarea>
+          <div class="helper-text">Este campo es obligatorio cuando la decision es NO INGRESO.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button type="button" class="btn btn-outline-secondary" onclick="cerrarModalDecisionIngreso()">Cancelar</button>
+      <button type="button" class="btn btn-success" onclick="guardarDecisionIngresoModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const USUARIO_DEFECTO = "Nicolas Crisanto";
+let contextoDecisionIngreso = null;
+let filasActuales = [];
+let textoFiltro = "";
+let estadoFiltro = "todos";
+
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function texto(valor) {
+  return String(valor || "").trim();
+}
+
+function soloDigitos(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function esSi(valor) {
+  return normalizarTexto(valor) === "si";
+}
+
+function obtenerSolicitudes() {
+  return JSON.parse(localStorage.getItem("solicitudes") || "[]");
+}
+
+function guardarSolicitudes(lista) {
+  localStorage.setItem("solicitudes", JSON.stringify(lista));
+}
+
+function formatearFechaHora(valor) {
+  if (!valor) return "-";
+  const fecha = new Date(valor);
+  if (!Number.isNaN(fecha.getTime())) {
+    return fecha.toLocaleString("es-CO", { timeZone: "America/Bogota" });
+  }
+  return texto(valor) || "-";
+}
+
+function usuarioSesionActual() {
+  const llaves = ["usuarioActual", "usuarioLogeado", "usuario", "nombreUsuario", "sessionUsuario", "authUser"];
+  for (const llave of llaves) {
+    const bruto = localStorage.getItem(llave);
+    if (!bruto) continue;
+
+    const limpio = texto(bruto);
+    if (!limpio) continue;
+
+    if (limpio.startsWith("{")) {
+      try {
+        const obj = JSON.parse(limpio);
+        const nombre = texto(obj?.nombreCompleto || obj?.nombre || obj?.usuario || obj?.user || obj?.displayName);
+        if (nombre) return nombre;
+      } catch (e) {}
+    }
+
+    if (limpio) return limpio;
+  }
+  return USUARIO_DEFECTO;
+}
+
+function requiereDotacionEpp(sol) {
+  const flagExplicito =
+    esSi(sol?.requiereDotacion) ||
+    esSi(sol?.requiereEpp) ||
+    esSi(sol?.requiereUniforme) ||
+    esSi(sol?.requiereDotacionEpp) ||
+    esSi(sol?.requiereEppsUniformes);
+
+  if (flagExplicito) return true;
+
+  const detalle = Array.isArray(sol?.manualCargoDetalle?.ficha?.eppsUniformesDetalle)
+    ? sol.manualCargoDetalle.ficha.eppsUniformesDetalle
+    : [];
+
+  if (detalle.length > 0) return true;
+
+  const txtFicha = normalizarTexto(sol?.manualCargoDetalle?.ficha?.eppsUniformes || "");
+  const txtSol = normalizarTexto(sol?.eppsUniformes || "");
+
+  if (txtFicha && !txtFicha.includes("no aplica")) return true;
+  if (txtSol && !txtSol.includes("no aplica")) return true;
+  return false;
+}
+
+function entregaCompletaFinalizada(candidato) {
+  const valor = String(candidato?.entregaCompleta || "").toUpperCase();
+  return valor === "ENTREGADO" || valor === "NO APLICA" || candidato?.bloqueoCompleta === true;
+}
+
+function preIngresoCompleto(candidato) {
+  const codigo = soloDigitos(candidato?.codigoUnico || "");
+  const fecha = texto(candidato?.fechaIngreso || "");
+  return /^\d{5}$/.test(codigo) && !!fecha;
+}
+
+function aptitudNormalizada(candidato) {
+  return normalizarTexto(candidato?.aptitudMedica);
+}
+
+function aptitudTexto(candidato) {
+  const apt = aptitudNormalizada(candidato);
+  if (apt === "apto") return "APTO";
+  if (apt === "apto con observacion") return "APTO CON OBSERVACION";
+  if (apt === "no apto") return "NO APTO";
+  return "PENDIENTE";
+}
+
+function dotacionTexto(sol, candidato) {
+  if (!requiereDotacionEpp(sol)) return "NO APLICA";
+  return entregaCompletaFinalizada(candidato) ? "ENTREGADO" : "PENDIENTE";
+}
+
+function decisionTexto(candidato) {
+  const ingreso = normalizarTexto(candidato?.ingreso);
+  if (ingreso === "ingreso") return "INGRESO";
+  if (ingreso === "no ingreso") return "NO INGRESO";
+  return "PENDIENTE";
+}
+
+function motivoNoIngreso(candidato) {
+  return texto(candidato?.noIngresoMotivo || candidato?.motivoNoIngreso || "");
+}
+
+function motivoAptitud(candidato) {
+  return texto(candidato?.aptitudMedicaMotivo || "");
+}
+
+function esCandidatoVisible(sol, candidato) {
+  const apt = aptitudNormalizada(candidato);
+  const tieneDecision = decisionTexto(candidato) !== "PENDIENTE";
+
+  if (tieneDecision) return true;
+
+  const aptitudLista = apt === "apto" || apt === "apto con observacion" || apt === "no apto";
+  if (!aptitudLista) return false;
+
+  if (apt === "no apto") return true;
+
+  if (!preIngresoCompleto(candidato)) return false;
+  if (requiereDotacionEpp(sol) && !entregaCompletaFinalizada(candidato)) return false;
+
+  return true;
+}
+
+function claseEstado(valor) {
+  const normal = normalizarTexto(valor);
+  if (normal.includes("ingreso") && !normal.includes("no ingreso")) return "estado-ok";
+  if (normal.includes("no ingreso") || normal.includes("no apto")) return "estado-alerta";
+  if (normal.includes("pendiente")) return "estado-pendiente";
+  return "estado-neutral";
+}
+
+function registrarEtapa(sol, candidato, etapa, detalle) {
+  const fecha = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
+  const usuario = usuarioSesionActual();
+  const evento = {
+    etapa,
+    fecha,
+    usuario,
+    detalle: texto(detalle)
+  };
+
+  if (!Array.isArray(sol.historialEtapas)) sol.historialEtapas = [];
+  if (!Array.isArray(candidato.historialEtapas)) candidato.historialEtapas = [];
+
+  sol.historialEtapas.push({ ...evento });
+  candidato.historialEtapas.push({ ...evento });
+}
+
+function cargarTablaDecisionIngreso() {
+  const tabla = document.getElementById("tablaDecisionIngreso");
+  tabla.innerHTML = "";
+
+  const solicitudes = obtenerSolicitudes();
+  filasActuales = [];
+
+  solicitudes.forEach((sol, solIndex) => {
+    const candidatos = Array.isArray(sol.candidatos) ? sol.candidatos : [];
+    candidatos.forEach((candidato, candIndex) => {
+      if (!esCandidatoVisible(sol, candidato)) return;
+      filasActuales.push({ sol, candidato, solIndex, candIndex });
+    });
+  });
+
+  const filtradas = filasActuales.filter(item => {
+    const decision = decisionTexto(item.candidato);
+
+    if (estadoFiltro === "pendiente" && decision !== "PENDIENTE") return false;
+    if (estadoFiltro === "ingreso" && decision !== "INGRESO") return false;
+    if (estadoFiltro === "no_ingreso" && decision !== "NO INGRESO") return false;
+
+    const bolsa = [
+      item.sol?.numero,
+      item.sol?.cargoSolicitado,
+      item.candidato?.nombre,
+      item.candidato?.cedula,
+      decision,
+      aptitudTexto(item.candidato)
+    ].map(texto).join(" ").toLowerCase();
+
+    if (textoFiltro && !bolsa.includes(textoFiltro)) return false;
+    return true;
+  });
+
+  if (filtradas.length === 0) {
+    tabla.innerHTML = `
+      <tr>
+        <td colspan="9" class="text-center text-muted py-4">
+          No hay candidatos disponibles para este filtro.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  filtradas.forEach(item => {
+    const sol = item.sol;
+    const candidato = item.candidato;
+    const aptitud = aptitudTexto(candidato);
+    const dotacion = dotacionTexto(sol, candidato);
+    const decision = decisionTexto(candidato);
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="readonly">${sol.numero || "-"}</td>
+      <td class="readonly">${sol.fechaSolicitud || "-"}</td>
+      <td class="readonly">${sol.cargoSolicitado || "-"}</td>
+      <td class="readonly">${candidato.nombre || "-"}</td>
+      <td class="readonly">${candidato.cedula || "-"}</td>
+      <td><span class="estado-chip ${claseEstado(aptitud)}">${aptitud}</span></td>
+      <td><span class="estado-chip ${claseEstado(dotacion)}">${dotacion}</span></td>
+      <td><span class="estado-chip ${claseEstado(decision)}">${decision}</span></td>
+      <td>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalDecisionIngreso(${item.solIndex}, ${item.candIndex})">Decidir</button>
+      </td>
+    `;
+    tabla.appendChild(row);
+  });
+}
+
+function abrirModalDecisionIngreso(solIndex, candIndex) {
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[Number(solIndex)];
+  if (!sol) return;
+
+  const candidato = (Array.isArray(sol.candidatos) ? sol.candidatos : [])[Number(candIndex)];
+  if (!candidato) return;
+
+  contextoDecisionIngreso = { solIndex: Number(solIndex), candIndex: Number(candIndex) };
+
+  const aptitud = aptitudTexto(candidato);
+  const dotacion = dotacionTexto(sol, candidato);
+  const decision = decisionTexto(candidato);
+
+  document.getElementById("mdTrabajador").value = `${candidato.nombre || "-"} - CI ${candidato.cedula || "-"}`;
+  document.getElementById("mdAptitud").value = aptitud;
+  document.getElementById("mdDotacion").value = dotacion;
+
+  const select = document.getElementById("mdDecisionFinal");
+  select.value = decision === "INGRESO" ? "ingreso" : (decision === "NO INGRESO" ? "no_ingreso" : "");
+
+  const aptitudMotivo = motivoAptitud(candidato);
+  const bloqueAptitud = document.getElementById("bloqueMotivoAptitud");
+  const txtAptitud = document.getElementById("mdMotivoAptitud");
+  const aptitudConMotivo = normalizarTexto(aptitud) === "apto con observacion" || normalizarTexto(aptitud) === "no apto";
+  txtAptitud.value = aptitudMotivo || "Sin motivo registrado.";
+  bloqueAptitud.style.display = aptitudConMotivo ? "block" : "none";
+
+  document.getElementById("mdMotivoNoIngreso").value = motivoNoIngreso(candidato);
+
+  const optionIngreso = select.querySelector('option[value="ingreso"]');
+  const aptitudNoApta = normalizarTexto(aptitud) === "no apto";
+  optionIngreso.disabled = aptitudNoApta;
+
+  const hint = document.getElementById("mdDecisionHint");
+  if (aptitudNoApta) {
+    hint.textContent = "Este candidato tiene aptitud NO APTO: solo se permite NO INGRESO.";
+    if (select.value === "ingreso" || !select.value) select.value = "no_ingreso";
+  } else {
+    hint.textContent = "Selecciona la decision final del proceso de ingreso.";
+  }
+
+  actualizarBloqueMotivoNoIngreso();
+
+  const modal = document.getElementById("modalDecisionIngreso");
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function cerrarModalDecisionIngreso() {
+  contextoDecisionIngreso = null;
+  const modal = document.getElementById("modalDecisionIngreso");
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+function actualizarBloqueMotivoNoIngreso() {
+  const decision = String(document.getElementById("mdDecisionFinal").value || "");
+  const bloque = document.getElementById("bloqueMotivoNoIngreso");
+  if (!bloque) return;
+
+  const mostrar = decision === "no_ingreso";
+  bloque.style.display = mostrar ? "block" : "none";
+
+  if (!mostrar) {
+    document.getElementById("mdMotivoNoIngreso").value = "";
+  }
+}
+
+function guardarDecisionIngresoModal() {
+  if (!contextoDecisionIngreso) return;
+
+  const decision = String(document.getElementById("mdDecisionFinal").value || "");
+  const motivo = String(document.getElementById("mdMotivoNoIngreso").value || "").trim();
+
+  if (!decision) {
+    alert("Debe seleccionar una decision final.");
+    return;
+  }
+
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[contextoDecisionIngreso.solIndex];
+  if (!sol || !Array.isArray(sol.candidatos)) return;
+
+  const candidato = sol.candidatos[contextoDecisionIngreso.candIndex];
+  if (!candidato) return;
+
+  const aptitud = aptitudTexto(candidato);
+  if (normalizarTexto(aptitud) === "no apto" && decision === "ingreso") {
+    alert("No se puede registrar INGRESO cuando la aptitud medica es NO APTO.");
+    return;
+  }
+
+  if (decision === "no_ingreso" && !motivo) {
+    alert("Debe ingresar el motivo de NO INGRESO.");
+    document.getElementById("mdMotivoNoIngreso").focus();
+    return;
+  }
+
+  const usuario = usuarioSesionActual();
+  const fecha = new Date().toISOString();
+
+  if (decision === "ingreso") {
+    candidato.ingreso = "INGRESO";
+    candidato.noIngresoMotivo = "";
+    candidato.motivoNoIngreso = "";
+    candidato.estadoIngresoFinal = "INGRESO";
+    registrarEtapa(sol, candidato, "Ingreso final confirmado", "Decision final: INGRESO");
+  } else {
+    candidato.ingreso = "NO INGRESO";
+    candidato.noIngresoMotivo = motivo;
+    candidato.motivoNoIngreso = motivo;
+    candidato.estadoIngresoFinal = "NO INGRESO";
+    registrarEtapa(sol, candidato, "Ingreso final rechazado", `Decision final: NO INGRESO. Motivo: ${motivo}`);
+  }
+
+  candidato.decisionIngresoFecha = fecha;
+  candidato.decisionIngresoUsuario = usuario;
+  candidato.decisionIngresoFinalizada = true;
+
+  guardarSolicitudes(solicitudes);
+
+  cerrarModalDecisionIngreso();
+  cargarTablaDecisionIngreso();
+}
+
+function limpiarFiltros() {
+  textoFiltro = "";
+  estadoFiltro = "todos";
+  document.getElementById("txtBuscar").value = "";
+  document.getElementById("selFiltro").value = "todos";
+  cargarTablaDecisionIngreso();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const txtBuscar = document.getElementById("txtBuscar");
+  const selFiltro = document.getElementById("selFiltro");
+  const selectDecision = document.getElementById("mdDecisionFinal");
+
+  txtBuscar.addEventListener("input", () => {
+    textoFiltro = normalizarTexto(txtBuscar.value || "");
+    cargarTablaDecisionIngreso();
+  });
+
+  selFiltro.addEventListener("change", () => {
+    estadoFiltro = String(selFiltro.value || "todos");
+    cargarTablaDecisionIngreso();
+  });
+
+  selectDecision.addEventListener("change", actualizarBloqueMotivoNoIngreso);
+
+  document.getElementById("modalDecisionIngreso").addEventListener("click", ev => {
+    if (ev.target && ev.target.id === "modalDecisionIngreso") {
+      cerrarModalDecisionIngreso();
+    }
+  });
+
+  window.addEventListener("keydown", ev => {
+    if (ev.key === "Escape") cerrarModalDecisionIngreso();
+  });
+
+  cargarTablaDecisionIngreso();
+});
+</script>
+
+<script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

@@ -103,15 +103,16 @@
     }
 
     function resultadoAptitudCandidato(candidato) {
+      const ingreso = normalizarTexto(candidato?.ingreso);
+      if (ingreso === "no ingreso") return "no_ingreso";
+
       const aptitud = normalizarTexto(candidato?.aptitudMedica);
       if (aptitud === "apto") return "apto";
       if (aptitud === "apto con observacion" || aptitud === "apto con observación") return "apto_obs";
       if (aptitud === "no apto") return "no_apto";
 
       // Compatibilidad con datos antiguos donde solo se guardaba "ingreso / no ingreso".
-      const ingreso = normalizarTexto(candidato?.ingreso);
       if (ingreso === "ingreso") return "apto";
-      if (ingreso === "no ingreso") return "no_apto";
 
       return "";
     }
@@ -214,6 +215,7 @@
       const candidatoProceso = obtenerCandidatoReferenciaProceso(sol);
       const resultadoAptitud = resultadoAptitudCandidato(candidatoProceso);
 
+      if (resultadoAptitud === "no_ingreso") return "Cerrado - No ingreso";
       if (resultadoAptitud === "no_apto") return "Cerrado - No apto medico";
       if (resultadoAptitud === "apto" || resultadoAptitud === "apto_obs") {
         const etiquetaAptitud = etiquetaAptitudProceso(resultadoAptitud);
@@ -274,6 +276,7 @@
 
       if (normal.includes("rechazado")) return "danger";
       if (normal.includes("anulado")) return "secondary";
+      if (normal.includes("no ingreso")) return "dark";
       if (normal.includes("no apto medico")) return "danger";
       if (normal.includes("pendiente dotacion completa")) return "warning text-dark";
       if (normal.includes("dotacion completa finalizada") || normal.includes("proceso finalizado")) return "success";
@@ -315,6 +318,7 @@
       "Apto con observacion - Dotacion completa finalizada",
       "Apto medico - Proceso finalizado",
       "Apto con observacion - Proceso finalizado",
+      "Cerrado - No ingreso",
       "Cerrado - No apto medico",
       "Aptitud medica",
       "Ingreso de personal",

@@ -21,10 +21,10 @@
         { label: "Paso 1 - Solicitud requerimiento", path: "modules/gestion/solicitudes/listado-solicitudes.html" },
         { label: "Paso 2 - Aprobacion requerimiento", path: "modules/postulacion/aprobacion-postulacion.html" },
         {
-          label: "Aprobacion de requerimiento",
+          label: "Paso 3 - Gestion postulacion",
           children: [
-            { label: "Paso 2.1 - Activacion postulacion", path: "modules/postulacion/activacion-postulacion.html" },
-            { label: "Paso 2.2 - Registro postulacion", path: "modules/postulacion/registro-postulacion.html" }
+            { label: "Paso 3.1 - Activacion postulacion", path: "modules/postulacion/activacion-postulacion.html" },
+            { label: "Paso 3.2 - Registro postulacion", path: "modules/postulacion/registro-postulacion.html" }
           ]
         }
       ]
@@ -33,20 +33,20 @@
       key: "seleccion-personal",
       label: "Seleccion de personal",
       items: [
-        { label: "Paso 3 - Preseleccion", path: "modules/seleccion/visualizacion-preseleccion.html" },
-        { label: "Paso 4 - Seleccion oficial", path: "modules/postulacion/visualizacion-solicitante.html" },
-        { label: "Paso 5 - Aprobacion ingreso", path: "modules/seleccion/lista-candidatos-aptos.html" }
+        { label: "Paso 4 - Preseleccion", path: "modules/seleccion/visualizacion-preseleccion.html" },
+        { label: "Paso 5 - Seleccion oficial", path: "modules/postulacion/visualizacion-solicitante.html" },
+        { label: "Paso 6 - Aprobacion ingreso", path: "modules/seleccion/lista-candidatos-aptos.html" }
       ]
     },
     {
       key: "evaluacion-personal",
       label: "Evaluacion",
       items: [
-        { label: "Paso 6 - Pre-ingreso", path: "modules/evaluacion/pre-ingreso.html" },
-        { label: "Paso 6.1 - Induccion", path: "modules/evaluacion/induccion.html" },
-        { label: "Paso 7 - Dotacion basica", path: "modules/evaluacion/entrega-dotacion.html" },
-        { label: "Paso 8 - Equipos y accesos", path: "modules/evaluacion/ver-entrega-equipos-accesos.html" },
-        { label: "Paso 9 - Periodo de prueba", path: "modules/evaluacion/periodo-prueba.html" }
+        { label: "Paso 7 - Pre-ingreso", path: "modules/evaluacion/pre-ingreso.html" },
+        { label: "Paso 7.1 - Induccion", path: "modules/evaluacion/induccion.html" },
+        { label: "Paso 8 - Dotacion basica", path: "modules/evaluacion/entrega-dotacion.html" },
+        { label: "Paso 9 - Equipos y accesos", path: "modules/evaluacion/ver-entrega-equipos-accesos.html" },
+        { label: "Paso 10 - Periodo de prueba", path: "modules/evaluacion/periodo-prueba.html" }
       ]
     },
     {
@@ -54,8 +54,19 @@
       label: "Ingreso personal",
       items: [
         { label: "Aptitud medica", path: "modules/evaluacion/aptitud-medica.html" },
-        { label: "Dotacion completa", path: "modules/evaluacion/entrega-dotacion-completa.html" }
+        { label: "Dotacion completa", path: "modules/evaluacion/entrega-dotacion-completa.html" },
+        { label: "Paso 11 - Decision ingreso final", path: "modules/evaluacion/decision-ingreso-final.html" }
       ]
+    },
+    {
+      key: "reporteria-requerimientos",
+      label: "Reporteria de requerimientos",
+      path: "modules/reporteria/reporteria-requerimientos.html"
+    },
+    {
+      key: "reporteria-creacion-cargos",
+      label: "Reporteria de creacion de cargos",
+      path: "modules/reporteria/reporteria-creacion-cargos.html"
     }
   ];
 
