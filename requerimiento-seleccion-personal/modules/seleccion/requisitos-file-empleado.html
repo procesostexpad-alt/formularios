@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paso 6.1 - Requisitos file empleado</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .table th, .table td {
+      text-align: center;
+      vertical-align: middle;
+    }
+    .readonly-cell {
+      background: #f8f9fa;
+    }
+    .badge-estado {
+      font-weight: 700;
+      padding: .35rem .6rem;
+      border-radius: 999px;
+      font-size: .8rem;
+      display: inline-block;
+    }
+    .badge-completo {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .badge-incompleto {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .check-col {
+      width: 90px;
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body class="bg-light p-4">
+  <div class="container">
+    <h3 class="mb-2">Requisitos file empleado</h3>
+    <p class="text-muted mb-4">
+      Referencia: GTH-REG-009 Requisitos ficha empleado.
+    </p>
+
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>N Solicitud</th>
+          <th>Fecha</th>
+          <th>Tipo cargo</th>
+          <th>Area</th>
+          <th>Cargo</th>
+          <th>Candidato</th>
+          <th>Cedula</th>
+          <th>Estado habilitante</th>
+          <th>Estado file</th>
+          <th>Accion</th>
+        </tr>
+      </thead>
+      <tbody id="tablaFileEmpleado"></tbody>
+    </table>
+  </div>
+
+  <div class="modal fade" id="modalChecklistFileEmpleado" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Checklist requisitos file empleado</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <strong id="txtModalCandidato">-</strong><br>
+            <small class="text-muted" id="txtModalSolicitud">-</small>
+          </div>
+
+          <table class="table table-sm table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="text-align:left;">Item</th>
+                <th class="check-col">Cumple</th>
+                <th class="check-col">No aplica</th>
+              </tr>
+            </thead>
+            <tbody id="tablaChecklistBody"></tbody>
+          </table>
+
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span id="txtResumenChecklist" class="text-muted">0/0 items cubiertos.</span>
+            <span id="txtEstadoChecklist" class="badge-estado badge-incompleto">Incompleto</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-primary" onclick="guardarChecklistFileEmpleado()">Guardar checklist</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const CHECKLIST_ITEMS = [
+      { id: "hv", label: "1 copia - Hoja de vida actualizada" },
+      { id: "cedula", label: "1 copia - Cedula de ciudadania a color" },
+      { id: "papeleta", label: "1 copia - Papeleta de votacion" },
+      { id: "bachiller", label: "1 copia - Titulo de Bachiller (Cuando aplica)" },
+      { id: "certificados", label: "1 copia - Certificados, cursos, capacitaciones, seminarios, credenciales tecnicas especiales (Cuando aplica)" },
+      { id: "titulo_uni", label: "1 copia - Titulo universitario (Cuando aplica)" },
+      { id: "planilla", label: "1 original - Planilla de servicios basicos (Luz)" },
+      { id: "laborales_iess", label: "2 originales - Certificados laborales o mecanizado del IESS" },
+      { id: "bancario", label: "1 copia - Certificado bancario (Pichincha)" },
+      { id: "licencia", label: "1 copia - Licencia de conducir (Cuando aplica)" },
+      { id: "discapacidad", label: "1 copia - Certificado de acreditacion de discapacidad (Cuando aplica)" },
+      { id: "sustituto", label: "1 copia - Certificado de sustituto directo emitido por Ministerio de Trabajo (Cuando aplica)" },
+      { id: "matrimonio", label: "1 original - Certificado de matrimonio/union libre legalizado por Registro Civil" },
+      { id: "cedula_conyuge", label: "1 copia - Cedula de ciudadania a color del conyuge" },
+      { id: "hijos", label: "1 copia - Partida de nacimiento de hijos menores a 18 anos o cedula de ciudadania" }
+    ];
+
+    let modalChecklistInstance = null;
+    let contextoModal = { solIndex: -1, cedula: "" };
+
+    function normalizarTexto(valor) {
+      return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    }
+
+    function obtenerSolicitudes() {
+      return JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    }
+
+    function guardarSolicitudes(lista) {
+      localStorage.setItem("solicitudes", JSON.stringify(lista));
+    }
+
+    function candidatoHabilitadoParaFile(sol, candidato) {
+      const tipoCargo = normalizarTexto(sol?.tipoCargo);
+      const estadoCandidato = normalizarTexto(candidato?.estado);
+
+      const esOperativo = tipoCargo.includes("operativo");
+      const esAdministrativo = tipoCargo.includes("administrativo");
+
+      const operativoSeleccionado = esOperativo && estadoCandidato === "seleccionado_oficial";
+      const administrativoAprobado = esAdministrativo && estadoCandidato === "aprobado_ingreso";
+
+      return operativoSeleccionado || administrativoAprobado;
+    }
+
+    function descripcionEstadoHabilitante(sol, candidato) {
+      const tipoCargo = normalizarTexto(sol?.tipoCargo);
+      const esOperativo = tipoCargo.includes("operativo");
+      const esAdministrativo = tipoCargo.includes("administrativo");
+      const estado = normalizarTexto(candidato?.estado);
+
+      if (esOperativo && estado === "seleccionado_oficial") return "Seleccion oficial (Operativo)";
+      if (esAdministrativo && estado === "aprobado_ingreso") return "Aprobacion ingreso (Administrativo)";
+      return "Habilitado";
+    }
+
+    function construirEstadosVacios() {
+      const estados = {};
+      CHECKLIST_ITEMS.forEach(item => {
+        estados[item.id] = "";
+      });
+      return estados;
+    }
+
+    function obtenerEstadosChecklist(candidato) {
+      const base = construirEstadosVacios();
+      const guardado = candidato?.requisitosFileEmpleadoChecklist?.estados;
+
+      if (guardado && typeof guardado === "object") {
+        CHECKLIST_ITEMS.forEach(item => {
+          const valor = String(guardado[item.id] || "").trim();
+          if (valor === "cumple" || valor === "no_aplica") {
+            base[item.id] = valor;
+          }
+        });
+        return base;
+      }
+
+      if (candidato?.requisitosFileEmpleadoCompletos === true) {
+        CHECKLIST_ITEMS.forEach(item => { base[item.id] = "cumple"; });
+      }
+
+      return base;
+    }
+
+    function calcularResumenChecklist(estados) {
+      let cubiertos = 0;
+      CHECKLIST_ITEMS.forEach(item => {
+        const estado = estados[item.id];
+        if (estado === "cumple" || estado === "no_aplica") cubiertos += 1;
+      });
+
+      const total = CHECKLIST_ITEMS.length;
+      return {
+        total,
+        cubiertos,
+        completo: total > 0 && cubiertos === total
+      };
+    }
+
+    function badgeEstadoHtml(completo) {
+      if (completo) return '<span class="badge-estado badge-completo">Completo</span>';
+      return '<span class="badge-estado badge-incompleto">Incompleto</span>';
+    }
+
+    function cargarRequisitosFileEmpleado() {
+      const tabla = document.getElementById("tablaFileEmpleado");
+      tabla.innerHTML = "";
+
+      const solicitudes = obtenerSolicitudes();
+      let total = 0;
+
+      solicitudes.forEach((sol, solIndex) => {
+        (Array.isArray(sol.candidatos) ? sol.candidatos : [])
+          .filter(candidato => candidatoHabilitadoParaFile(sol, candidato))
+          .forEach(candidato => {
+            const estados = obtenerEstadosChecklist(candidato);
+            const resumen = calcularResumenChecklist(estados);
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td class="readonly-cell">${sol.numero || "-"}</td>
+              <td class="readonly-cell">${sol.fechaSolicitud || "-"}</td>
+              <td class="readonly-cell">${sol.tipoCargo || "-"}</td>
+              <td class="readonly-cell">${sol.area || "-"}</td>
+              <td class="readonly-cell">${sol.cargoSolicitado || "-"}</td>
+              <td class="readonly-cell">${candidato.nombre || "-"}</td>
+              <td class="readonly-cell">${candidato.cedula || "-"}</td>
+              <td class="readonly-cell">${descripcionEstadoHabilitante(sol, candidato)}</td>
+              <td>${badgeEstadoHtml(resumen.completo)}<div class="small text-muted mt-1">${resumen.cubiertos}/${resumen.total}</div></td>
+              <td>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary"
+                  onclick="abrirChecklistFileEmpleado(${solIndex}, '${String(candidato.cedula || "").replace(/'/g, "\\'")}')">
+                  Revisar checklist
+                </button>
+              </td>
+            `;
+
+            tabla.appendChild(tr);
+            total += 1;
+          });
+      });
+
+      if (total === 0) {
+        tabla.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center text-muted py-4">
+              No hay candidatos habilitados para Requisitos file empleado.
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function renderTablaChecklist(estados) {
+      const tbody = document.getElementById("tablaChecklistBody");
+      tbody.innerHTML = "";
+
+      CHECKLIST_ITEMS.forEach(item => {
+        const estado = estados[item.id];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td style="text-align:left;">${item.label}</td>
+          <td>
+            <input type="checkbox" class="form-check-input chk-cumple" data-item-id="${item.id}" ${estado === "cumple" ? "checked" : ""}>
+          </td>
+          <td>
+            <input type="checkbox" class="form-check-input chk-na" data-item-id="${item.id}" ${estado === "no_aplica" ? "checked" : ""}>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      actualizarResumenDesdeModal();
+    }
+
+    function leerEstadosDesdeModal() {
+      const estados = construirEstadosVacios();
+
+      CHECKLIST_ITEMS.forEach(item => {
+        const cumple = document.querySelector(`.chk-cumple[data-item-id="${item.id}"]`);
+        const noAplica = document.querySelector(`.chk-na[data-item-id="${item.id}"]`);
+
+        if (cumple && cumple.checked) estados[item.id] = "cumple";
+        else if (noAplica && noAplica.checked) estados[item.id] = "no_aplica";
+        else estados[item.id] = "";
+      });
+
+      return estados;
+    }
+
+    function actualizarResumenDesdeModal() {
+      const estados = leerEstadosDesdeModal();
+      const resumen = calcularResumenChecklist(estados);
+
+      const txtResumen = document.getElementById("txtResumenChecklist");
+      txtResumen.textContent = `${resumen.cubiertos}/${resumen.total} items cubiertos (Cumple o No aplica).`;
+
+      const txtEstado = document.getElementById("txtEstadoChecklist");
+      txtEstado.textContent = resumen.completo ? "Completo" : "Incompleto";
+      txtEstado.classList.toggle("badge-completo", resumen.completo);
+      txtEstado.classList.toggle("badge-incompleto", !resumen.completo);
+    }
+
+    function abrirChecklistFileEmpleado(solIndex, cedula) {
+      const solicitudes = obtenerSolicitudes();
+      const sol = solicitudes[solIndex];
+      if (!sol || !Array.isArray(sol.candidatos)) return;
+
+      const candidato = sol.candidatos.find(c => String(c.cedula || "") === String(cedula || ""));
+      if (!candidato) return;
+
+      contextoModal = { solIndex, cedula: String(cedula || "") };
+
+      document.getElementById("txtModalCandidato").textContent = `${candidato.nombre || "-"} - ${candidato.cedula || "-"}`;
+      document.getElementById("txtModalSolicitud").textContent = `Solicitud ${sol.numero || "-"} | ${sol.cargoSolicitado || "-"}`;
+
+      const estados = obtenerEstadosChecklist(candidato);
+      renderTablaChecklist(estados);
+
+      if (!modalChecklistInstance) {
+        const modalEl = document.getElementById("modalChecklistFileEmpleado");
+        modalChecklistInstance = new bootstrap.Modal(modalEl);
+      }
+      modalChecklistInstance.show();
+    }
+
+    function guardarChecklistFileEmpleado() {
+      const { solIndex, cedula } = contextoModal;
+      if (solIndex < 0 || !cedula) return;
+
+      const solicitudes = obtenerSolicitudes();
+      const sol = solicitudes[solIndex];
+      if (!sol || !Array.isArray(sol.candidatos)) return;
+
+      const candidato = sol.candidatos.find(c => String(c.cedula || "") === cedula);
+      if (!candidato) return;
+
+      const estados = leerEstadosDesdeModal();
+      const resumen = calcularResumenChecklist(estados);
+      const ahoraIso = new Date().toISOString();
+
+      candidato.requisitosFileEmpleadoChecklist = {
+        documento: "GTH-REG-009",
+        estados,
+        completo: resumen.completo,
+        cubiertos: resumen.cubiertos,
+        total: resumen.total,
+        actualizadoEn: ahoraIso
+      };
+
+      candidato.requisitosFileEmpleadoCompletos = resumen.completo;
+      candidato.fechaRequisitosFileEmpleado = resumen.completo ? ahoraIso : "";
+
+      if (!Array.isArray(candidato.historialEtapas)) candidato.historialEtapas = [];
+      candidato.historialEtapas.push({
+        etapa: resumen.completo
+          ? "Requisitos file empleado completos"
+          : "Requisitos file empleado incompletos",
+        fecha: new Date().toLocaleString("es-EC", { hour12: false }),
+        usuario: "Nicolas Crisanto"
+      });
+
+      guardarSolicitudes(solicitudes);
+      cargarRequisitosFileEmpleado();
+
+      if (modalChecklistInstance) modalChecklistInstance.hide();
+    }
+
+    document.addEventListener("change", ev => {
+      if (!(ev.target instanceof HTMLInputElement)) return;
+
+      const isCumple = ev.target.classList.contains("chk-cumple");
+      const isNoAplica = ev.target.classList.contains("chk-na");
+      if (!isCumple && !isNoAplica) return;
+
+      const itemId = ev.target.getAttribute("data-item-id");
+      if (!itemId) return;
+
+      const chkCumple = document.querySelector(`.chk-cumple[data-item-id="${itemId}"]`);
+      const chkNoAplica = document.querySelector(`.chk-na[data-item-id="${itemId}"]`);
+
+      if (isCumple && ev.target.checked && chkNoAplica) chkNoAplica.checked = false;
+      if (isNoAplica && ev.target.checked && chkCumple) chkCumple.checked = false;
+
+      actualizarResumenDesdeModal();
+    });
+
+    document.addEventListener("DOMContentLoaded", cargarRequisitosFileEmpleado);
+  </script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

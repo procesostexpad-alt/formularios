@@ -55,7 +55,7 @@
       <div class="row">
         <div class="col-md-3 mb-3">
           <label class="form-label">Cedula</label>
-          <input type="text" id="cedula" class="form-control" placeholder="Cedula">
+          <input type="text" id="cedula" class="form-control" placeholder="Cedula" maxlength="10" inputmode="numeric">
         </div>
 
         <div class="col-md-4 mb-3">
@@ -82,7 +82,7 @@
 
         <div class="col-md-6 mb-3">
           <label class="form-label">Numero de Telefono</label>
-          <input type="tel" id="telefono" class="form-control" placeholder="Numero de Telefono">
+          <input type="tel" id="telefono" class="form-control" placeholder="Numero de Telefono" maxlength="10" inputmode="numeric">
         </div>
       </div>
 
@@ -110,6 +110,33 @@
   <script>
     let solicitudIndex = null;
 
+    function soloDigitos(valor) {
+      return String(valor || "").replace(/\D/g, "");
+    }
+
+    function fechaMaximaNacimiento18() {
+      const hoy = new Date();
+      const corte = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate());
+      const yyyy = corte.getFullYear();
+      const mm = String(corte.getMonth() + 1).padStart(2, "0");
+      const dd = String(corte.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function esMayorOIgual18(fechaIso) {
+      if (!fechaIso) return false;
+      const nacimiento = new Date(`${fechaIso}T00:00:00`);
+      if (Number.isNaN(nacimiento.getTime())) return false;
+
+      const hoy = new Date();
+      let edad = hoy.getFullYear() - nacimiento.getFullYear();
+      const mes = hoy.getMonth() - nacimiento.getMonth();
+      const dia = hoy.getDate() - nacimiento.getDate();
+
+      if (mes < 0 || (mes === 0 && dia < 0)) edad -= 1;
+      return edad >= 18;
+    }
+
     function cargarSolicitudesHabilitadas() {
       const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
       const select = document.getElementById("selectSolicitud");
@@ -131,7 +158,9 @@
           sol.postulacionCerrada !== true &&
           dentroDeRango
         ) {
-          select.innerHTML += `<option value="${index}">${sol.numero}</option>`;
+          const numero = String(sol.numero || "").trim() || `Solicitud ${index + 1}`;
+          const cargo = String(sol.cargoSolicitado || "").trim() || "Cargo sin definir";
+          select.innerHTML += `<option value="${index}">${numero} - ${cargo}</option>`;
         }
       });
     }
@@ -144,11 +173,11 @@
         return;
       }
 
-      const cedulaVal = cedula.value.trim();
+      const cedulaVal = soloDigitos(cedula.value).slice(0, 10);
       const nombreVal = nombre.value.trim();
       const fechaNVal = fechaNacimiento.value;
       const correoVal = correo.value.trim();
-      const telefonoVal = telefono.value.trim();
+      const telefonoVal = soloDigitos(telefono.value).slice(0, 10);
       const aspiracionVal = aspiracion.value.trim();
       const cvFile = cv.files[0];
       const infoAdicionalVal = document.getElementById("infoAdicional").value.trim();
@@ -163,13 +192,18 @@
         return;
       }
 
+      if (!esMayorOIgual18(fechaNVal)) {
+        alert("La fecha de nacimiento debe corresponder a una edad mayor o igual a 18 anos.");
+        return;
+      }
+
       if (!correoVal.includes("@")) {
         alert("Correo invalido.");
         return;
       }
 
-      if (telefonoVal.length < 10 || isNaN(telefonoVal)) {
-        alert("Telefono invalido.");
+      if (telefonoVal.length === 0 || telefonoVal.length > 10 || isNaN(telefonoVal)) {
+        alert("Telefono invalido. Debe tener maximo 10 digitos numericos.");
         return;
       }
 
@@ -215,7 +249,28 @@
       document.getElementById("mensajeFinal").style.display = "block";
     }
 
-    window.onload = cargarSolicitudesHabilitadas;
+    window.onload = function () {
+      const fechaNacimientoInput = document.getElementById("fechaNacimiento");
+      if (fechaNacimientoInput) {
+        fechaNacimientoInput.max = fechaMaximaNacimiento18();
+      }
+
+      const cedulaInput = document.getElementById("cedula");
+      if (cedulaInput) {
+        cedulaInput.addEventListener("input", () => {
+          cedulaInput.value = soloDigitos(cedulaInput.value).slice(0, 10);
+        });
+      }
+
+      const telefonoInput = document.getElementById("telefono");
+      if (telefonoInput) {
+        telefonoInput.addEventListener("input", () => {
+          telefonoInput.value = soloDigitos(telefonoInput.value).slice(0, 10);
+        });
+      }
+
+      cargarSolicitudesHabilitadas();
+    };
   </script>
 
   <script src="../../assets/js/ui-shell.js"></script>

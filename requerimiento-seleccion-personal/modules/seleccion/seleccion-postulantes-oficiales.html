@@ -112,10 +112,6 @@
     Iniciar Seleccion Oficial
   </button>
 
-  <button id="btnGuardar" class="btn btn-primary btn-lg me-3" onclick="guardarCambiosGenerales()">
-    Guardar Cambios
-  </button>
-
   <button id="btnFinalizarSeleccionOficial" class="btn btn-danger btn-lg" onclick="finalizarSeleccionOficial()">
     Finalizar Seleccion Oficial
   </button>
@@ -405,7 +401,8 @@ function bloquearPantalla() {
         chk.disabled = true;
     });
 
-    document.getElementById("btnGuardar").style.display = "none";
+    const btnGuardar = document.getElementById("btnGuardar");
+    if (btnGuardar) btnGuardar.style.display = "none";
     document.getElementById("btnFinalizarSeleccionOficial").style.display = "none";
 }
 
@@ -423,21 +420,21 @@ function actualizarBotonesSegunEtapa() {
 
     if (solicitud.seleccionOficialFinalizada) {
         btnIniciar.style.display = "none";
-        btnGuardar.style.display = "none";
+        if (btnGuardar) btnGuardar.style.display = "none";
         btnFinalizar.style.display = "none";
         return;
     }
 
     if (!solicitud.etapaSeleccionOficial || solicitud.etapaSeleccionOficial === "no_iniciada") {
         btnIniciar.style.display = "inline-block";
-        btnGuardar.style.display = "none";
+        if (btnGuardar) btnGuardar.style.display = "none";
         btnFinalizar.style.display = "none";
         return;
     }
 
     if (solicitud.etapaSeleccionOficial === "iniciada") {
         btnIniciar.style.display = "none";
-        btnGuardar.style.display = "inline-block";
+        if (btnGuardar) btnGuardar.style.display = "none";
         btnFinalizar.style.display = "inline-block";
         return;
     }

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>6.1. Vigilancia a la salud F1</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    table th, table td {
+      text-align: center;
+      vertical-align: middle;
+    }
+    .readonly {
+      background-color: #e9ecef !important;
+    }
+    .estado-pendiente {
+      color: #92400e;
+      background: #fef3c7;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 4px 10px;
+      display: inline-block;
+    }
+    .estado-ok {
+      color: #065f46;
+      background: #d1fae5;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 4px 10px;
+      display: inline-block;
+    }
+    .estado-alerta {
+      color: #7f1d1d;
+      background: #fee2e2;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 4px 10px;
+      display: inline-block;
+    }
+  </style>
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+</head>
+<body class="bg-light p-4">
+  <div class="container">
+    <h3 class="mb-4">Vigilancia a la salud F1</h3>
+
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-secondary">
+        <tr>
+          <th>N Solicitud</th>
+          <th>Fecha Solicitud</th>
+          <th>Solicitante</th>
+          <th>Area</th>
+          <th>Cargo</th>
+          <th>Tipo cargo</th>
+          <th>Nombre postulante</th>
+          <th>Cedula</th>
+          <th>Estado habilitante</th>
+          <th>Vigilancia salud F1</th>
+          <th>Accion</th>
+        </tr>
+      </thead>
+      <tbody id="tablaVigilanciaF1"></tbody>
+    </table>
+  </div>
+
+  <div class="modal fade" id="modalVigilanciaF1" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Registrar Vigilancia a la salud F1</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2 mb-3">
+            <div class="col-md-3">
+              <label class="form-label">Trabajador</label>
+              <input id="mdTrabajadorF1" class="form-control readonly" readonly>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Codigo</label>
+              <input id="mdCodigoF1" class="form-control readonly" readonly>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Cargo</label>
+              <input id="mdCargoF1" class="form-control readonly" readonly>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Area</label>
+              <input id="mdAreaF1" class="form-control readonly" readonly>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Departamento</label>
+              <input id="mdDepartamentoF1" class="form-control readonly" readonly>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label">Tipo de cargo</label>
+              <input id="mdTipoCargoF1" class="form-control readonly" readonly>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Resultado F1</label>
+            <select id="mdResultadoF1" class="form-select">
+              <option value="">Seleccione...</option>
+              <option value="apto">APTO</option>
+              <option value="apto_observacion">APTO CON OBSERVACION</option>
+              <option value="no_apto">NO APTO</option>
+            </select>
+          </div>
+          <div id="bloqueMotivoF1" class="mb-1" style="display:none;">
+            <label class="form-label">Motivo / Observacion</label>
+            <textarea id="mdMotivoF1" class="form-control" rows="3" placeholder="Detalle de la observacion o motivo"></textarea>
+            <small class="text-muted">Obligatorio para APTO CON OBSERVACION y NO APTO.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" onclick="guardarVigilanciaF1()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let contextoModal = null;
+    let modalF1 = null;
+
+    function normalizarTexto(valor) {
+      return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase();
+    }
+
+    function obtenerSolicitudes() {
+      return JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    }
+
+    function guardarSolicitudes(lista) {
+      localStorage.setItem("solicitudes", JSON.stringify(lista));
+    }
+
+    function candidatoHabilitado(sol, candidato) {
+      const tipoCargo = normalizarTexto(sol?.tipoCargo);
+      const estado = normalizarTexto(candidato?.estado);
+
+      const esOperativo = tipoCargo.includes("operativo");
+      const esAdministrativo = tipoCargo.includes("administrativo");
+
+      const operativoSeleccionado = esOperativo && estado === "seleccionado_oficial";
+      const administrativoAprobado = esAdministrativo && estado === "aprobado_ingreso";
+
+      return operativoSeleccionado || administrativoAprobado;
+    }
+
+    function estadoHabilitante(sol, candidato) {
+      const tipoCargo = normalizarTexto(sol?.tipoCargo);
+      const estado = normalizarTexto(candidato?.estado);
+
+      if (tipoCargo.includes("operativo") && estado === "seleccionado_oficial") {
+        return "Seleccion oficial (Operativo)";
+      }
+      if (tipoCargo.includes("administrativo") && estado === "aprobado_ingreso") {
+        return "Aprobacion ingreso (Administrativo)";
+      }
+      return "Habilitado";
+    }
+
+    function resultadoF1Texto(candidato) {
+      const v = normalizarTexto(candidato?.vigilanciaSaludF1Resultado);
+      if (v === "apto") return "APTO";
+      if (v === "apto con observacion") return "APTO CON OBSERVACION";
+      if (v === "no apto") return "NO APTO";
+      return "PENDIENTE";
+    }
+
+    function resultadoF1Clase(candidato) {
+      const v = resultadoF1Texto(candidato);
+      if (v === "APTO" || v === "APTO CON OBSERVACION") return "estado-ok";
+      if (v === "NO APTO") return "estado-alerta";
+      return "estado-pendiente";
+    }
+
+    function cargarVigilanciaF1() {
+      const tabla = document.getElementById("tablaVigilanciaF1");
+      tabla.innerHTML = "";
+
+      const lista = obtenerSolicitudes();
+      let total = 0;
+
+      lista.forEach((sol, solIndex) => {
+        (Array.isArray(sol.candidatos) ? sol.candidatos : [])
+          .filter(c => candidatoHabilitado(sol, c))
+          .forEach(c => {
+            total += 1;
+            const fila = document.createElement("tr");
+            fila.innerHTML = `
+              <td>${sol.numero || "-"}</td>
+              <td>${sol.fechaSolicitud || "-"}</td>
+              <td>${sol.solicitante || "-"}</td>
+              <td>${sol.area || "-"}</td>
+              <td>${sol.cargoSolicitado || "-"}</td>
+              <td>${sol.tipoCargo || "-"}</td>
+              <td>${c.nombre || "-"}</td>
+              <td>${c.cedula || "-"}</td>
+              <td>${estadoHabilitante(sol, c)}</td>
+              <td><span class="${resultadoF1Clase(c)}">${resultadoF1Texto(c)}</span></td>
+              <td>
+                <button class="btn btn-sm btn-primary" type="button" onclick="abrirModalF1(${solIndex}, '${String(c.cedula || "").replace(/'/g, "\\'")}')">
+                  ${resultadoF1Texto(c) === "PENDIENTE" ? "Registrar" : "Editar"}
+                </button>
+              </td>
+            `;
+            tabla.appendChild(fila);
+          });
+      });
+
+      if (total === 0) {
+        tabla.innerHTML = `
+          <tr>
+            <td colspan="11" class="text-center text-muted py-4">
+              No hay candidatos habilitados para Vigilancia a la salud F1.
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function abrirModalF1(solIndex, cedula) {
+      const lista = obtenerSolicitudes();
+      const solicitud = lista[Number(solIndex)];
+      if (!solicitud) return;
+
+      const candidato = (solicitud.candidatos || []).find(c => String(c.cedula || "") === String(cedula || ""));
+      if (!candidato) return;
+
+      contextoModal = { solIndex: Number(solIndex), cedula: String(cedula || "") };
+
+      document.getElementById("mdTrabajadorF1").value = candidato.nombre || "-";
+      document.getElementById("mdCodigoF1").value = candidato.codigoUnico || "-";
+      document.getElementById("mdCargoF1").value = solicitud.cargoSolicitado || "-";
+      document.getElementById("mdAreaF1").value = solicitud.area || "-";
+      document.getElementById("mdDepartamentoF1").value = solicitud.departamento || "-";
+      document.getElementById("mdTipoCargoF1").value = solicitud.tipoCargo || solicitud?.manualCargoDetalle?.ficha?.tipoCargo || "-";
+
+      const resultado = normalizarTexto(candidato.vigilanciaSaludF1Resultado);
+      let valor = "";
+      if (resultado === "apto") valor = "apto";
+      if (resultado === "apto con observacion") valor = "apto_observacion";
+      if (resultado === "no apto") valor = "no_apto";
+      document.getElementById("mdResultadoF1").value = valor;
+      document.getElementById("mdMotivoF1").value = String(candidato.vigilanciaSaludF1Motivo || "");
+      actualizarVisibilidadMotivoF1();
+
+      if (!modalF1) {
+        modalF1 = new bootstrap.Modal(document.getElementById("modalVigilanciaF1"));
+      }
+      modalF1.show();
+    }
+
+    function actualizarVisibilidadMotivoF1() {
+      const valor = String(document.getElementById("mdResultadoF1").value || "");
+      const requiere = valor === "apto_observacion" || valor === "no_apto";
+      const bloque = document.getElementById("bloqueMotivoF1");
+      bloque.style.display = requiere ? "block" : "none";
+      if (!requiere) document.getElementById("mdMotivoF1").value = "";
+    }
+
+    function guardarVigilanciaF1() {
+      if (!contextoModal) return;
+
+      const valor = String(document.getElementById("mdResultadoF1").value || "");
+      if (!valor) {
+        alert("Debe seleccionar un resultado para Vigilancia a la salud F1.");
+        return;
+      }
+
+      const requiereMotivo = valor === "apto_observacion" || valor === "no_apto";
+      const motivo = String(document.getElementById("mdMotivoF1").value || "").trim();
+      if (requiereMotivo && !motivo) {
+        alert("Debe ingresar motivo u observacion.");
+        document.getElementById("mdMotivoF1").focus();
+        return;
+      }
+
+      const lista = obtenerSolicitudes();
+      const solicitud = lista[contextoModal.solIndex];
+      if (!solicitud) return;
+
+      const candidato = (solicitud.candidatos || []).find(c => String(c.cedula || "") === contextoModal.cedula);
+      if (!candidato) return;
+
+      let resultadoFinal = "";
+      if (valor === "apto") resultadoFinal = "APTO";
+      if (valor === "apto_observacion") resultadoFinal = "APTO CON OBSERVACION";
+      if (valor === "no_apto") resultadoFinal = "NO APTO";
+
+      candidato.vigilanciaSaludF1Resultado = resultadoFinal;
+      candidato.vigilanciaSaludF1Motivo = requiereMotivo ? motivo : "";
+      candidato.vigilanciaSaludF1Procesada = true;
+      candidato.vigilanciaSaludF1Fecha = new Date().toISOString();
+
+      const fechaLocal = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
+      const detalle = requiereMotivo
+        ? `Vigilancia-Salud-F1-${resultadoFinal} - Motivo: ${motivo}`
+        : `Vigilancia-Salud-F1-${resultadoFinal}`;
+
+      if (!Array.isArray(solicitud.historialEtapas)) solicitud.historialEtapas = [];
+      solicitud.historialEtapas.push({
+        etapa: detalle,
+        fecha: fechaLocal,
+        usuario: "Nicolas Crisanto"
+      });
+
+      if (!Array.isArray(candidato.historialEtapas)) candidato.historialEtapas = [];
+      candidato.historialEtapas.push({
+        etapa: detalle,
+        fecha: fechaLocal,
+        usuario: "Nicolas Crisanto"
+      });
+
+      guardarSolicitudes(lista);
+      if (modalF1) modalF1.hide();
+      contextoModal = null;
+      cargarVigilanciaF1();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      cargarVigilanciaF1();
+      document.getElementById("mdResultadoF1").addEventListener("change", actualizarVisibilidadMotivoF1);
+      document.getElementById("modalVigilanciaF1").addEventListener("hidden.bs.modal", () => {
+        contextoModal = null;
+      });
+    });
+  </script>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+</body>
+</html>

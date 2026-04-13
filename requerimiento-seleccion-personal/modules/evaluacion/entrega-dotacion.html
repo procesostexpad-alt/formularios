@@ -7,8 +7,6 @@
 <style>
   table th, table td { text-align: center; vertical-align: middle; }
   .readonly { background: #ececec !important; }
-  .dias-ok { background: #198754 !important; color: white !important; font-weight: bold; }
-  .dias-alerta { background: #dc3545 !important; color: white !important; font-weight: bold; }
 
   .estado-chip {
     display: inline-block;
@@ -175,9 +173,7 @@
         <th>Codigo Trabajador</th>
         <th>Fecha Ingreso</th>
         <th>Entrega Basica</th>
-        <th>Dias PP</th>
         <th>Entregar</th>
-        <th>PDF</th>
       </tr>
     </thead>
     <tbody id="tablaDotacionBasica"></tbody>
@@ -227,6 +223,12 @@
         <div class="col-md-2">
           <label class="form-label">Departamento</label>
           <input id="mdDepartamento" class="form-control" readonly>
+        </div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-md-4">
+          <label class="form-label">Tipo de cargo</label>
+          <input id="mdTipoCargo" class="form-control" readonly>
         </div>
       </div>
 
@@ -405,13 +407,20 @@ function estadoBasica(candidato, detalleRequerido) {
     return { texto: "NO APLICA", clase: "estado-noaplica" };
   }
 
-  if (valor === "ENTREGADO") {
+  const historial = Array.isArray(candidato?.entregaBasicaDetalle) ? candidato.entregaBasicaDetalle : [];
+  const historicoMap = new Map(
+    historial.map(item => [`${normalizarTexto(item?.tipo)}|${normalizarTexto(item?.elemento)}`, item?.entregado === true])
+  );
+
+  const entregados = detalleRequerido.filter(item => {
+    const key = `${normalizarTexto(item.tipo)}|${normalizarTexto(item.elemento)}`;
+    return historicoMap.get(key) === true;
+  }).length;
+
+  if (entregados === detalleRequerido.length) {
     return { texto: "ENTREGADO", clase: "estado-entregado" };
   }
-
-  const historial = Array.isArray(candidato?.entregaBasicaDetalle) ? candidato.entregaBasicaDetalle : [];
-  const huboParcial = historial.some(item => item.entregado === true);
-  if (huboParcial) {
+  if (entregados > 0) {
     return { texto: "ENTREGA INCOMPLETA", clase: "estado-incompleta" };
   }
 
@@ -423,6 +432,12 @@ function entregaBasicaFinalizada(candidato) {
   return valor === "ENTREGADO" || valor === "NO APLICA" || candidato?.bloqueoBasica === true;
 }
 
+function tieneRegistroBasica(candidato) {
+  const valor = String(candidato?.entregaBasica || "").toUpperCase();
+  const detalle = Array.isArray(candidato?.entregaBasicaDetalle) ? candidato.entregaBasicaDetalle : [];
+  return valor !== "" || detalle.length > 0;
+}
+
 function cargarDotacionBasica() {
   const tabla = document.getElementById("tablaDotacionBasica");
   tabla.innerHTML = "";
@@ -430,21 +445,24 @@ function cargarDotacionBasica() {
   const solicitudes = obtenerSolicitudes();
 
   solicitudes.forEach((sol, solIndex) => {
-    if (!requiereDotacionEpp(sol)) return;
+    const candidatosSol = Array.isArray(sol.candidatos) ? sol.candidatos : [];
+    const hayRegistroSol = candidatosSol.some(c => tieneRegistroBasica(c));
+    if (!requiereDotacionEpp(sol) && !hayRegistroSol) return;
 
     const detalleRequerido = obtenerDetalleDotacion(sol);
 
-    (Array.isArray(sol.candidatos) ? sol.candidatos : [])
+    candidatosSol
       .filter(candidato => {
-        if (!induccionCompletaCandidato(candidato)) return false;
-        if (!preIngresoCompleto(candidato)) return false;
-        if (entregaBasicaFinalizada(candidato)) return false;
+        const tieneRegistro = tieneRegistroBasica(candidato);
+        if (!induccionCompletaCandidato(candidato) && !tieneRegistro) return false;
+        if (!preIngresoCompleto(candidato) && !tieneRegistro) return false;
         const estadoPP = String(candidato.periodoEstado || "ABIERTO").toUpperCase();
-        return estadoPP === "ABIERTO" || estadoPP === "EN PRUEBA";
+        const enEtapa = estadoPP === "ABIERTO" || estadoPP === "EN PRUEBA";
+        return enEtapa || tieneRegistro;
       })
       .forEach(candidato => {
         const estado = estadoBasica(candidato, detalleRequerido);
-        const botonDisabled = detalleRequerido.length === 0 || candidato.bloqueoBasica === true ? "disabled" : "";
+        const botonDisabled = detalleRequerido.length === 0 ? "disabled" : "";
 
         const row = document.createElement("tr");
         row.dataset.solIndex = String(solIndex);
@@ -462,49 +480,12 @@ function cargarDotacionBasica() {
           <td class="readonly">${candidato.codigoUnico || ""}</td>
           <td class="readonly">${candidato.fechaIngreso || ""}</td>
           <td><span class="estado-chip ${estado.clase}">${estado.texto}</span></td>
-          <td class="diasPP readonly"></td>
           <td><button class="btn btn-success" ${botonDisabled} onclick="abrirModalEntregaBasica(${solIndex}, '${String(candidato.cedula || "")}')">Entregar</button></td>
-          <td>
-            <div class="acciones">
-              <button type="button" class="btn btn-outline-primary btn-sm btn-accion" onclick="verPdfEntregaBasica(${solIndex}, '${String(candidato.cedula || "")}')">PDF</button>
-            </div>
-          </td>
         `;
 
         tabla.appendChild(row);
-        mostrarDias(row);
       });
   });
-}
-
-function mostrarDias(row) {
-  const solIndex = Number(row.dataset.solIndex);
-  const cedula = String(row.dataset.cedula || "");
-
-  const solicitudes = obtenerSolicitudes();
-  const sol = solicitudes[solIndex];
-  if (!sol || !Array.isArray(sol.candidatos)) return;
-
-  const candidato = sol.candidatos.find(c => String(c.cedula || "") === cedula);
-  if (!candidato) return;
-
-  const diasCell = row.querySelector(".diasPP");
-  if (!diasCell) return;
-
-  const fechaIngreso = candidato.fechaIngreso || "";
-  const inicio = fechaIngreso ? new Date(`${fechaIngreso}T00:00:00`) : null;
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-
-  let diff = 0;
-  if (inicio && !Number.isNaN(inicio.getTime())) {
-    diff = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24));
-    if (!Number.isFinite(diff) || diff < 0) diff = 0;
-  }
-
-  diasCell.innerText = `${diff} dias`;
-  diasCell.classList.remove("dias-ok", "dias-alerta");
-  diasCell.classList.add(diff < 90 ? "dias-ok" : "dias-alerta");
 }
 
 function abrirModalEntregaBasica(solIndex, cedula) {
@@ -540,6 +521,7 @@ function abrirModalEntregaBasica(solIndex, cedula) {
   document.getElementById("mdCargo").value = sol.cargoSolicitado || "-";
   document.getElementById("mdArea").value = sol.area || "-";
   document.getElementById("mdDepartamento").value = sol.departamento || "-";
+  document.getElementById("mdTipoCargo").value = sol.tipoCargo || sol?.manualCargoDetalle?.ficha?.tipoCargo || "-";
 
   const cuerpo = document.getElementById("modalDetalleDotacion");
   cuerpo.innerHTML = "";
@@ -584,13 +566,14 @@ function actualizarEstadoMotivoModal() {
   const total = checks.length;
   const entregados = checks.filter(chk => chk.checked).length;
   const completa = total > 0 && entregados === total;
+  const incompleta = entregados > 0 && entregados < total;
 
   document.getElementById("mdResumen").textContent = `Items entregados: ${entregados} de ${total}.`;
 
-  if (completa) {
+  if (completa || entregados === 0) {
     document.getElementById("bloqueMotivoEntrega").style.display = "none";
     document.getElementById("txtMotivoEntrega").value = "";
-  } else {
+  } else if (incompleta) {
     document.getElementById("bloqueMotivoEntrega").style.display = "block";
     document.getElementById("lblMotivoEntrega").textContent = "Motivo de entrega incompleta (obligatorio)";
     document.getElementById("mdHintMotivo").textContent = "Indica por que faltan items y que queda pendiente.";
@@ -617,9 +600,10 @@ function guardarEntregaBasicaModal() {
   const entregados = checks.filter(chk => chk.checked).length;
   const total = checks.length;
   const completa = total > 0 && entregados === total;
+  const incompleta = entregados > 0 && entregados < total;
 
   const motivo = String(document.getElementById("txtMotivoEntrega").value || "").trim();
-  if (!completa && !motivo) {
+  if (incompleta && !motivo) {
     alert("Debe ingresar el motivo de la entrega incompleta.");
     return;
   }
@@ -634,12 +618,15 @@ function guardarEntregaBasicaModal() {
     };
   });
 
-  candidato.entregaBasicaMotivo = completa ? "" : motivo;
+  candidato.entregaBasicaMotivo = incompleta ? motivo : "";
   candidato.entregaBasicaFechaRegistro = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
 
   if (completa) {
     candidato.entregaBasica = "ENTREGADO";
     candidato.bloqueoBasica = true;
+  } else if (incompleta) {
+    candidato.entregaBasica = "ENTREGA INCOMPLETA";
+    candidato.bloqueoBasica = false;
   } else {
     candidato.entregaBasica = "PENDIENTE";
     candidato.bloqueoBasica = false;

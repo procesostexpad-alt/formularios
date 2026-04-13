@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -7,6 +7,30 @@
 <style>
   table th, table td { text-align: center; vertical-align: middle; }
   .readonly { background: #ececec !important; }
+  .aptitud-ok {
+    color: #065f46;
+    background: #d1fae5;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 4px 10px;
+    display: inline-block;
+  }
+  .aptitud-alerta {
+    color: #7f1d1d;
+    background: #fee2e2;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 4px 10px;
+    display: inline-block;
+  }
+  .aptitud-pendiente {
+    color: #92400e;
+    background: #fef3c7;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 4px 10px;
+    display: inline-block;
+  }
 </style>
 <link rel="stylesheet" href="../../assets/css/global-theme.css">
 <link rel="stylesheet" href="../../assets/css/ui-shell.css">
@@ -26,9 +50,7 @@
         <th>Cargo</th>
         <th>Nombre</th>
         <th>Cedula</th>
-        <th>Estado PP</th>
-        <th>Codigo Trabajador (5)</th>
-        <th>Fecha Ingreso</th>
+        <th>Aptitud medica</th>
         <th>Guardar</th>
       </tr>
     </thead>
@@ -36,7 +58,55 @@
   </table>
 </div>
 
+<div class="modal fade" id="modalPreIngreso" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Registrar Pre-ingreso</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Trabajador</label>
+          <input id="mdTrabajador" class="form-control readonly" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Aptitud medica</label>
+          <input id="mdAptitudMedica" class="form-control readonly" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Estado ficha empleado</label>
+          <input id="mdEstadoFichaEmpleado" class="form-control readonly" readonly>
+        </div>
+        <div id="bloqueMotivoAptitud" class="mb-3" style="display:none;">
+          <label class="form-label">Motivo de observacion</label>
+          <textarea id="mdMotivoAptitud" class="form-control readonly" rows="3" readonly></textarea>
+        </div>
+        <hr>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Codigo unico trabajador (5)</label>
+            <input id="mdCodigoUnico" class="form-control" inputmode="numeric" maxlength="5" placeholder="00000">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Fecha ingreso</label>
+            <input id="mdFechaIngreso" type="date" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="guardarPreIngresoModal()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+let modalPreIngreso = null;
+let contextoModalPreIngreso = null;
+
 function normalizarTexto(valor) {
   return String(valor || "")
     .normalize("NFD")
@@ -61,45 +131,68 @@ function guardarSolicitudes(lista) {
   localStorage.setItem("solicitudes", JSON.stringify(lista));
 }
 
-function induccionCompletaCandidato(candidato) {
-  if (candidato?.induccionCompleta === true) return true;
-
-  const induccion = candidato?.induccion;
-  if (!induccion || typeof induccion !== "object") return false;
-
-  const completo = modulo => {
-    if (!modulo || typeof modulo !== "object") return false;
-    if (modulo.completada === true) return true;
-    return Array.isArray(modulo.items) && modulo.items.length > 0;
-  };
-
-  return completo(induccion.th) && completo(induccion.ssoma) && completo(induccion.puesto);
-}
-
 function preIngresoCompleto(candidato) {
   const codigo = soloDigitos(candidato?.codigoUnico || "");
   const fecha = String(candidato?.fechaIngreso || "").trim();
   return validarCodigoUnico(codigo) && !!fecha;
 }
 
+function requisitosFileEmpleadoCompleto(candidato) {
+  return (
+    candidato?.requisitosFileEmpleadoCompletos === true ||
+    candidato?.requisitosFileEmpleadoChecklist?.completo === true
+  );
+}
+
+function aptitudMedicaF1Apta(candidato) {
+  const aptitudF1 = normalizarTexto(candidato?.vigilanciaSaludF1Resultado);
+  return aptitudF1 === "apto" || aptitudF1 === "apto con observacion";
+}
+
 function candidatoEnFlujoPreIngreso(sol, candidato) {
-  const tipoCargo = normalizarTexto(sol?.tipoCargo);
-  const estadoCandidato = normalizarTexto(candidato?.estado);
-
-  const esOperativo = tipoCargo.includes("operativo");
-  const esAdministrativo = tipoCargo.includes("administrativo");
-
-  const operativoSeleccionado = esOperativo && estadoCandidato === "seleccionado_oficial";
-  const administrativoAprobadoIngreso = esAdministrativo && estadoCandidato === "aprobado_ingreso";
-
-  if (!(operativoSeleccionado || administrativoAprobadoIngreso)) return false;
-  if (induccionCompletaCandidato(candidato)) return false;
+  if (!aptitudMedicaF1Apta(candidato)) return false;
+  if (!requisitosFileEmpleadoCompleto(candidato)) return false;
   if (preIngresoCompleto(candidato)) return false;
-
-  const estadoPP = String(candidato?.periodoEstado || "ABIERTO").toUpperCase();
-  if (estadoPP === "CERRADO") return false;
-
   return true;
+}
+
+function obtenerAptitudMedica(candidato) {
+  const f1 = normalizarTexto(candidato?.vigilanciaSaludF1Resultado);
+  if (f1 === "apto" || f1 === "apto con observacion" || f1 === "no apto") {
+    return {
+      aptitud: String(candidato.vigilanciaSaludF1Resultado || "").toUpperCase(),
+      motivo: String(candidato.vigilanciaSaludF1Motivo || "").trim()
+    };
+  }
+
+  return {
+    aptitud: "NO REGISTRADA",
+    motivo: ""
+  };
+}
+
+function obtenerEstadoFichaEmpleado(candidato) {
+  const completo = requisitosFileEmpleadoCompleto(candidato);
+  const checklist = candidato?.requisitosFileEmpleadoChecklist;
+  const cubiertos = Number(checklist?.cubiertos || 0);
+  const total = Number(checklist?.total || 0);
+
+  if (total > 0) {
+    return `${completo ? "COMPLETA" : "INCOMPLETA"} (${cubiertos}/${total})`;
+  }
+  return completo ? "COMPLETA" : "INCOMPLETA";
+}
+
+function claseAptitud(aptitudTexto) {
+  const n = normalizarTexto(aptitudTexto);
+  if (n === "apto" || n === "apto con observacion") return "aptitud-ok";
+  if (n === "no apto") return "aptitud-alerta";
+  return "aptitud-pendiente";
+}
+
+function requiereMotivoAptitud(aptitudTexto) {
+  const n = normalizarTexto(aptitudTexto);
+  return n === "apto con observacion" || n === "no apto";
 }
 
 function cargarPreIngreso() {
@@ -113,12 +206,9 @@ function cargarPreIngreso() {
     (Array.isArray(sol.candidatos) ? sol.candidatos : [])
       .filter(c => candidatoEnFlujoPreIngreso(sol, c))
       .forEach(c => {
-        const estadoPP = String(c.periodoEstado || "ABIERTO").toUpperCase();
+        const aptitud = obtenerAptitudMedica(c);
 
         const row = document.createElement("tr");
-        row.dataset.solIndex = String(solIndex);
-        row.dataset.cedula = String(c.cedula || "");
-
         row.innerHTML = `
           <td class="readonly">${sol.numero || ""}</td>
           <td class="readonly">${sol.fechaSolicitud || ""}</td>
@@ -127,22 +217,13 @@ function cargarPreIngreso() {
           <td class="readonly">${sol.cargoSolicitado || ""}</td>
           <td class="readonly">${c.nombre || ""}</td>
           <td class="readonly">${c.cedula || ""}</td>
-          <td class="readonly">${estadoPP}</td>
+          <td><span class="${claseAptitud(aptitud.aptitud)}">${aptitud.aptitud}</span></td>
           <td>
-            <input class="form-control codigoTrabajador" inputmode="numeric" maxlength="5" value="${soloDigitos(c.codigoUnico || "").slice(0, 5)}" placeholder="00000">
-          </td>
-          <td>
-            <input type="date" class="form-control fechaIngreso" value="${c.fechaIngreso || ""}">
-          </td>
-          <td>
-            <button class="btn btn-success" onclick="guardarFilaPreIngreso(this)">Guardar</button>
+            <button class="btn btn-success btn-sm" onclick="abrirModalPreIngreso(${solIndex}, '${String(c.cedula || "").replace(/'/g, "\\'")}')">
+              Guardar
+            </button>
           </td>
         `;
-
-        const inputCodigo = row.querySelector(".codigoTrabajador");
-        inputCodigo.addEventListener("input", () => {
-          inputCodigo.value = soloDigitos(inputCodigo.value).slice(0, 5);
-        });
 
         tabla.appendChild(row);
         total += 1;
@@ -152,23 +233,54 @@ function cargarPreIngreso() {
   if (total === 0) {
     tabla.innerHTML = `
       <tr>
-        <td colspan="11" class="text-center text-muted py-4">
-          No hay candidatos pendientes de pre-ingreso en esta etapa.
+        <td colspan="9" class="text-center text-muted py-4">
+          No hay candidatos aptos en Vigilancia a la salud F1 para pre-ingreso.
         </td>
       </tr>
     `;
   }
 }
 
-function guardarFilaPreIngreso(btn) {
-  const row = btn.closest("tr");
-  if (!row) return;
+function abrirModalPreIngreso(solIndex, cedula) {
+  const solicitudes = obtenerSolicitudes();
+  const sol = solicitudes[Number(solIndex)];
+  if (!sol || !Array.isArray(sol.candidatos)) return;
 
-  const solIndex = Number(row.dataset.solIndex);
-  const cedula = String(row.dataset.cedula || "");
+  const candidato = sol.candidatos.find(c => String(c.cedula || "") === String(cedula || ""));
+  if (!candidato) return;
 
-  const codigo = soloDigitos(row.querySelector(".codigoTrabajador")?.value || "").slice(0, 5);
-  const fechaIngreso = String(row.querySelector(".fechaIngreso")?.value || "").trim();
+  const aptitud = obtenerAptitudMedica(candidato);
+  contextoModalPreIngreso = {
+    solIndex: Number(solIndex),
+    cedula: String(cedula || ""),
+    aptitud: aptitud.aptitud,
+    motivo: aptitud.motivo
+  };
+
+  document.getElementById("mdTrabajador").value = `${candidato.nombre || "-"} - CI ${candidato.cedula || "-"}`;
+  document.getElementById("mdAptitudMedica").value = aptitud.aptitud;
+  document.getElementById("mdEstadoFichaEmpleado").value = obtenerEstadoFichaEmpleado(candidato);
+
+  const bloqueMotivo = document.getElementById("bloqueMotivoAptitud");
+  const txtMotivo = document.getElementById("mdMotivoAptitud");
+  const mostrarMotivo = requiereMotivoAptitud(aptitud.aptitud);
+  bloqueMotivo.style.display = mostrarMotivo ? "block" : "none";
+  txtMotivo.value = aptitud.motivo || "";
+
+  document.getElementById("mdCodigoUnico").value = soloDigitos(candidato.codigoUnico || "").slice(0, 5);
+  document.getElementById("mdFechaIngreso").value = candidato.fechaIngreso || "";
+
+  if (!modalPreIngreso) {
+    modalPreIngreso = new bootstrap.Modal(document.getElementById("modalPreIngreso"));
+  }
+  modalPreIngreso.show();
+}
+
+function guardarPreIngresoModal() {
+  if (!contextoModalPreIngreso) return;
+
+  const codigo = soloDigitos(document.getElementById("mdCodigoUnico").value || "").slice(0, 5);
+  const fechaIngreso = String(document.getElementById("mdFechaIngreso").value || "").trim();
 
   if (!validarCodigoUnico(codigo)) {
     alert("El codigo de trabajador debe tener exactamente 5 digitos.");
@@ -180,11 +292,16 @@ function guardarFilaPreIngreso(btn) {
     return;
   }
 
+  if (requiereMotivoAptitud(contextoModalPreIngreso.aptitud) && !String(contextoModalPreIngreso.motivo || "").trim()) {
+    alert("La aptitud medica tiene observacion y no registra motivo. Completa ese motivo antes de guardar pre-ingreso.");
+    return;
+  }
+
   const solicitudes = obtenerSolicitudes();
-  const sol = solicitudes[solIndex];
+  const sol = solicitudes[contextoModalPreIngreso.solIndex];
   if (!sol || !Array.isArray(sol.candidatos)) return;
 
-  const candidato = sol.candidatos.find(c => String(c.cedula || "") === cedula);
+  const candidato = sol.candidatos.find(c => String(c.cedula || "") === contextoModalPreIngreso.cedula);
   if (!candidato) return;
 
   candidato.codigoUnico = codigo;
@@ -207,16 +324,24 @@ function guardarFilaPreIngreso(btn) {
 
   guardarSolicitudes(solicitudes);
 
-  if (preIngresoCompleto(candidato)) {
-    alert("Pre-ingreso guardado. Ya puedes continuar con Induccion.");
-  } else {
-    alert("Pre-ingreso guardado.");
-  }
-
+  if (modalPreIngreso) modalPreIngreso.hide();
+  contextoModalPreIngreso = null;
+  alert("Pre-ingreso guardado. Ya puedes continuar con Induccion.");
   cargarPreIngreso();
 }
 
-document.addEventListener("DOMContentLoaded", cargarPreIngreso);
+document.addEventListener("DOMContentLoaded", () => {
+  cargarPreIngreso();
+
+  document.getElementById("mdCodigoUnico").addEventListener("input", () => {
+    const input = document.getElementById("mdCodigoUnico");
+    input.value = soloDigitos(input.value).slice(0, 5);
+  });
+
+  document.getElementById("modalPreIngreso").addEventListener("hidden.bs.modal", () => {
+    contextoModalPreIngreso = null;
+  });
+});
 </script>
 
 <script src="../../assets/js/ui-shell.js"></script>

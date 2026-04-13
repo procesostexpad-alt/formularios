@@ -35,7 +35,9 @@
       items: [
         { label: "Paso 4 - Preseleccion", path: "modules/seleccion/visualizacion-preseleccion.html" },
         { label: "Paso 5 - Seleccion oficial", path: "modules/postulacion/visualizacion-solicitante.html" },
-        { label: "Paso 6 - Aprobacion ingreso", path: "modules/seleccion/lista-candidatos-aptos.html" }
+        { label: "Paso 6 - Aprobacion ingreso", path: "modules/seleccion/lista-candidatos-aptos.html" },
+        { label: "Paso 6.1 - Vigilancia a la salud F1", path: "modules/seleccion/vigilancia-salud-f1.html" },
+        { label: "Paso 6.2 - Requisitos file empleado", path: "modules/seleccion/requisitos-file-empleado.html" }
       ]
     },
     {
@@ -53,7 +55,7 @@
       key: "ingreso-personal",
       label: "Ingreso personal",
       items: [
-        { label: "Aptitud medica", path: "modules/evaluacion/aptitud-medica.html" },
+        { label: "Vigilancia a la salud F2", path: "modules/evaluacion/aptitud-medica.html" },
         { label: "Dotacion completa", path: "modules/evaluacion/entrega-dotacion-completa.html" },
         { label: "Paso 11 - Decision ingreso final", path: "modules/evaluacion/decision-ingreso-final.html" }
       ]

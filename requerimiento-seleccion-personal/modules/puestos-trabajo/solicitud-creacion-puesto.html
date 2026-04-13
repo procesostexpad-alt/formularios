@@ -342,10 +342,16 @@
       window.location.href = `solicitar-creacion-puesto.html?id=${encodeURIComponent(idSolicitud)}`;
     }
 
-    function eliminarSolicitud(idSolicitud) {
-      if (!confirm("Se eliminara esta solicitud. Deseas continuar?")) return;
+    function anularSolicitud(idSolicitud) {
+      if (!confirm("Se anulara esta solicitud. Deseas continuar?")) return;
       const lista = asegurarData();
-      const nueva = lista.filter(item => item.idSolicitud !== idSolicitud);
+      const nueva = lista.map(item => {
+        if (item.idSolicitud !== idSolicitud) return item;
+        return {
+          ...item,
+          estadoSolicitud: "Anulado"
+        };
+      });
       guardarLista(nueva);
       renderTabla();
     }
@@ -787,14 +793,14 @@
             <div class="acciones">
               <button type="button" class="btn btn-outline-primary btn-sm btn-accion" data-pdf="${item.idSolicitud}">PDF</button>
               <button type="button" class="btn btn-primary btn-sm btn-accion" data-edit="${item.idSolicitud}">Editar</button>
-              <button type="button" class="btn btn-outline-danger btn-sm btn-accion" data-del="${item.idSolicitud}">Eliminar</button>
+              <button type="button" class="btn btn-secondary btn-sm btn-accion" data-annul="${item.idSolicitud}">Anular</button>
             </div>
           </td>
         `;
 
         fila.querySelector(`[data-pdf="${item.idSolicitud}"]`).addEventListener("click", () => verSolicitudPdf(item.idSolicitud));
         fila.querySelector(`[data-edit="${item.idSolicitud}"]`).addEventListener("click", () => editarSolicitud(item.idSolicitud));
-        fila.querySelector(`[data-del="${item.idSolicitud}"]`).addEventListener("click", () => eliminarSolicitud(item.idSolicitud));
+        fila.querySelector(`[data-annul="${item.idSolicitud}"]`).addEventListener("click", () => anularSolicitud(item.idSolicitud));
         tabla.appendChild(fila);
       });
     }

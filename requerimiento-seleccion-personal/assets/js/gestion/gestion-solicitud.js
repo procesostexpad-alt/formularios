@@ -117,6 +117,47 @@
       return "";
     }
 
+    function preIngresoCompletoCandidato(candidato) {
+      const codigo = String(candidato?.codigoUnico || "").trim();
+      const fecha = String(candidato?.fechaIngreso || "").trim();
+      return codigo !== "" && fecha !== "";
+    }
+
+    function estadoVigilanciaF1Candidato(candidato) {
+      const f1 = normalizarTexto(candidato?.vigilanciaSaludF1Resultado);
+      if (f1 === "apto" || f1 === "apto con observacion" || f1 === "apto con observación" || f1 === "no apto") {
+        return f1;
+      }
+      return "";
+    }
+
+    function estadoVigilanciaF2Candidato(candidato) {
+      const f2 = normalizarTexto(candidato?.aptitudMedica);
+      if (f2 === "apto" || f2 === "apto con observacion" || f2 === "apto con observación" || f2 === "no apto") {
+        return f2;
+      }
+      return "";
+    }
+
+    function estadoEquiposAccesosCandidato(candidato) {
+      const estado = normalizarTexto(candidato?.estadoEntrega);
+      if (estado === "pendiente" || estado === "entregado" || estado === "entrega incompleta") return estado;
+      return "";
+    }
+
+    function estadoDotacionBasicaCandidato(candidato) {
+      const estado = normalizarTexto(candidato?.entregaBasica);
+      if (estado === "pendiente" || estado === "entregado" || estado === "entrega incompleta" || estado === "no aplica") {
+        return estado;
+      }
+      return "";
+    }
+
+    function tieneChecklistRequisitosCandidato(candidato) {
+      if (candidato?.requisitosFileEmpleadoCompletos === true) return true;
+      return !!(candidato?.requisitosFileEmpleadoChecklist && typeof candidato.requisitosFileEmpleadoChecklist === "object");
+    }
+
     function tieneTextoValidoProceso(valor) {
       const texto = normalizarTexto(valor);
       return !!texto && !texto.includes("no aplica");
@@ -214,6 +255,26 @@
 
       const candidatoProceso = obtenerCandidatoReferenciaProceso(sol);
       const resultadoAptitud = resultadoAptitudCandidato(candidatoProceso);
+      const estadoF1 = estadoVigilanciaF1Candidato(candidatoProceso);
+      const estadoF2 = estadoVigilanciaF2Candidato(candidatoProceso);
+      const preIngresoCompleto = preIngresoCompletoCandidato(candidatoProceso);
+      const tieneFileEmpleado = tieneChecklistRequisitosCandidato(candidatoProceso);
+      const fileEmpleadoCompleto = candidatoProceso?.requisitosFileEmpleadoCompletos === true;
+      const equiposAccesos = estadoEquiposAccesosCandidato(candidatoProceso);
+      const dotacionBasica = estadoDotacionBasicaCandidato(candidatoProceso);
+      const decisionFinalizada = candidatoProceso?.decisionIngresoFinalizada === true;
+      const ingresoFinal = normalizarTexto(candidatoProceso?.ingreso);
+      const induccionCompleta = tieneInduccionCompleta(sol);
+      const induccionEnProceso = tieneInduccionEnProceso(sol);
+      const periodoCerrado = tienePeriodo(sol, "CERRADO");
+      const periodoEnPrueba = tienePeriodo(sol, "EN PRUEBA");
+      const aprobacionIngresoIniciada = etapaIngreso === "iniciada" || estadoIngreso.includes("en proceso");
+      const aprobacionIngresoFinalizada = etapaIngreso === "finalizada" || estadoIngreso.includes("finalizada") || tieneEstadoCandidato(sol, ["aprobado_ingreso"]);
+
+      if (decisionFinalizada || ingresoFinal === "ingreso" || ingresoFinal === "no ingreso") {
+        if (ingresoFinal === "no ingreso") return "Decision final de ingreso - NO INGRESO";
+        if (ingresoFinal === "ingreso") return "Decision final de ingreso - INGRESO";
+      }
 
       if (resultadoAptitud === "no_ingreso") return "Cerrado - No ingreso";
       if (resultadoAptitud === "no_apto") return "Cerrado - No apto medico";
@@ -221,26 +282,45 @@
         const etiquetaAptitud = etiquetaAptitudProceso(resultadoAptitud);
         if (solicitudRequiereDotacionCompleta(sol)) {
           if (dotacionCompletaFinalizada(candidatoProceso)) {
-            return `${etiquetaAptitud} - Dotacion completa finalizada`;
+            return "En decision final de ingreso";
           }
           return `${etiquetaAptitud} - Pendiente dotacion completa`;
         }
-        return `${etiquetaAptitud} - Proceso finalizado`;
+        return "En decision final de ingreso";
       }
+
+      if (periodoCerrado && !estadoF2) return "En vigilancia a la salud F2";
+      if (estadoF2 === "no apto") return "Vigilancia a la salud F2 - NO APTO";
+      if (estadoF2 === "apto con observacion" || estadoF2 === "apto con observación") {
+        return "Vigilancia a la salud F2 - APTO CON OBSERVACION";
+      }
+      if (estadoF2 === "apto") return "Vigilancia a la salud F2 - APTO";
+
+      if (periodoEnPrueba) return "En periodo de prueba";
+      if (periodoCerrado) return "Periodo de prueba finalizado";
+
+      if (equiposAccesos) return "Gestion de equipos y accesos";
+      if (dotacionBasica) return "En gestion de equipos y accesos";
+      if (induccionEnProceso) return "En induccion";
+      if (induccionCompleta) return "En entrega de dotacion basica";
+      if (preIngresoCompleto) return "En induccion";
+      if (fileEmpleadoCompleto) return "En pre-ingreso";
+      if (tieneFileEmpleado) {
+        return "En requisitos file empleado";
+      }
+      if (estadoF1 === "no apto") return "Vigilancia a la salud F1 - NO APTO";
+      if (estadoF1 === "apto" || estadoF1 === "apto con observacion" || estadoF1 === "apto con observación") {
+        return "En requisitos file empleado";
+      }
+      if (aprobacionIngresoFinalizada) return "En vigilancia a la salud F1";
 
       // Compatibilidad de lectura para solicitudes antiguas.
       if (tieneAptitudMedicaRegistrada(sol)) return "Aptitud medica";
       if (tieneIngresoRegistrado(sol)) return "Ingreso de personal";
       if (tieneGestionEquiposAccesos(sol)) return "Gestion de equipos y accesos";
-      if (tienePeriodo(sol, "EN PRUEBA")) return "En periodo de prueba";
-      if (tienePeriodo(sol, "CERRADO")) return "Periodo de prueba finalizado";
 
-      const aprobacionIngresoIniciada = etapaIngreso === "iniciada" || estadoIngreso.includes("en proceso");
-      const aprobacionIngresoFinalizada = etapaIngreso === "finalizada" || estadoIngreso.includes("finalizada");
       if (aprobacionIngresoIniciada) return "En aprobacion de ingreso";
-      if (aprobacionIngresoFinalizada || tieneEstadoCandidato(sol, ["aprobado_ingreso"])) return "Aprobacion de ingreso finalizada";
-      if (tieneInduccionEnProceso(sol)) return "En induccion";
-      if (tieneInduccionCompleta(sol)) return "Induccion completada";
+      if (aprobacionIngresoFinalizada) return "Aprobacion de ingreso finalizada";
 
       const seleccionIniciada = etapaSel === "iniciada" || estadoSel.includes("en proceso");
       const seleccionFinalizada =
@@ -276,6 +356,18 @@
 
       if (normal.includes("rechazado")) return "danger";
       if (normal.includes("anulado")) return "secondary";
+      if (normal.includes("en decision final de ingreso")) return "dark";
+      if (normal.includes("decision final de ingreso")) return normal.includes("no ingreso") ? "dark" : "success";
+      if (normal.includes("en vigilancia a la salud f2")) return "warning text-dark";
+      if (normal.includes("vigilancia a la salud f2")) return normal.includes("no apto") ? "danger" : "info text-dark";
+      if (normal.includes("en vigilancia a la salud f1")) return "warning text-dark";
+      if (normal.includes("vigilancia a la salud f1")) return normal.includes("no apto") ? "danger" : "info text-dark";
+      if (normal.includes("en pre-ingreso")) return "primary";
+      if (normal.includes("pre-ingreso registrado")) return "primary";
+      if (normal.includes("en entrega de dotacion basica")) return "secondary";
+      if (normal.includes("en gestion de equipos y accesos")) return "secondary";
+      if (normal.includes("requisitos file empleado")) return normal.includes("completado") ? "success" : "warning text-dark";
+      if (normal.includes("dotacion basica")) return "secondary";
       if (normal.includes("no ingreso")) return "dark";
       if (normal.includes("no apto medico")) return "danger";
       if (normal.includes("pendiente dotacion completa")) return "warning text-dark";
@@ -307,17 +399,35 @@
       "Seleccion oficial finalizada",
       "En aprobacion de ingreso",
       "Aprobacion de ingreso finalizada",
+      "En vigilancia a la salud F1",
+      "Vigilancia a la salud F1 - APTO",
+      "Vigilancia a la salud F1 - APTO CON OBSERVACION",
+      "Vigilancia a la salud F1 - NO APTO",
+      "En requisitos file empleado",
+      "Requisitos file empleado completado",
+      "En pre-ingreso",
+      "Pre-ingreso registrado",
       "En induccion",
       "Induccion completada",
+      "En entrega de dotacion basica",
+      "Entrega de dotacion basica",
+      "En gestion de equipos y accesos",
+      "Gestion de equipos y accesos",
       "En periodo de prueba",
       "Periodo de prueba finalizado",
-      "Gestion de equipos y accesos",
+      "En vigilancia a la salud F2",
+      "Vigilancia a la salud F2 - APTO",
+      "Vigilancia a la salud F2 - APTO CON OBSERVACION",
+      "Vigilancia a la salud F2 - NO APTO",
       "Apto medico - Pendiente dotacion completa",
       "Apto con observacion - Pendiente dotacion completa",
       "Apto medico - Dotacion completa finalizada",
       "Apto con observacion - Dotacion completa finalizada",
+      "En decision final de ingreso",
       "Apto medico - Proceso finalizado",
       "Apto con observacion - Proceso finalizado",
+      "Decision final de ingreso - INGRESO",
+      "Decision final de ingreso - NO INGRESO",
       "Cerrado - No ingreso",
       "Cerrado - No apto medico",
       "Aptitud medica",
@@ -679,23 +789,47 @@
       const periodo = normalizarTexto(candidato?.periodoEstado);
       const aptitudMedica = normalizarTexto(candidato?.aptitudMedica);
       const ingreso = normalizarTexto(candidato?.ingreso);
+      const f1 = normalizarTexto(candidato?.vigilanciaSaludF1Resultado);
+      const tienePreIngreso = preIngresoCompletoCandidato(candidato);
+      const tieneDecisionFinal = candidato?.decisionIngresoFinalizada === true || ingreso === "ingreso" || ingreso === "no ingreso";
+      const requisitosCompletos = candidato?.requisitosFileEmpleadoCompletos === true;
+      const estadoEquipos = estadoEquiposAccesosCandidato(candidato);
+      const estadoBasica = estadoDotacionBasicaCandidato(candidato);
+      const dotacionCompleta = normalizarTexto(candidato?.entregaCompleta);
 
       let puntaje = 0;
+
+      if (tieneDecisionFinal) puntaje += 1000;
+      if (ingreso === "ingreso") puntaje += 500;
+      else if (ingreso === "no ingreso") puntaje += 480;
+
+      if (dotacionCompleta === "entregado" || dotacionCompleta === "no aplica") puntaje += 450;
+      else if (dotacionCompleta === "entregado incompleto") puntaje += 430;
+
+      if (aptitudMedica === "apto") puntaje += 420;
+      else if (aptitudMedica === "apto con observacion" || aptitudMedica === "apto con observación") puntaje += 410;
+      else if (aptitudMedica === "no apto") puntaje += 400;
+
+      if (periodo === "cerrado") puntaje += 350;
+      else if (periodo === "en prueba") puntaje += 340;
+
+      if (estadoEquipos === "entregado" || estadoEquipos === "entrega incompleta" || estadoEquipos === "pendiente") puntaje += 300;
+      if (estadoBasica === "entregado" || estadoBasica === "entrega incompleta" || estadoBasica === "pendiente" || estadoBasica === "no aplica") puntaje += 290;
+
+      if (candidato?.induccionCompleta === true) puntaje += 280;
+      else if (candidato?.induccion && typeof candidato.induccion === "object") puntaje += 270;
+
+      if (tienePreIngreso) puntaje += 260;
+      if (requisitosCompletos) puntaje += 250;
+      else if (tieneChecklistRequisitosCandidato(candidato)) puntaje += 240;
+
+      if (f1 === "apto" || f1 === "apto con observacion" || f1 === "apto con observación" || f1 === "no apto") puntaje += 230;
 
       if (estado === "seleccionado_oficial") puntaje += 100;
       else if (estado === "aprobado_ingreso") puntaje += 90;
       else if (estado === "terna") puntaje += 80;
       else if (estado === "apto") puntaje += 70;
       else if (estado === "apto_observacion") puntaje += 65;
-
-      if (periodo === "cerrado") puntaje += 55;
-      else if (periodo === "en prueba") puntaje += 50;
-
-      if (aptitudMedica === "apto") puntaje += 45;
-      else if (aptitudMedica === "apto con observacion" || aptitudMedica === "apto con observación") puntaje += 40;
-      else if (aptitudMedica === "no apto") puntaje += 30;
-
-      if (ingreso === "ingreso" || ingreso === "no ingreso") puntaje += 25;
 
       return puntaje;
     }
@@ -754,6 +888,16 @@
       document.getElementById("txtBuscar").value = "";
       document.getElementById("selEstado").value = "";
       cargarTabla();
+    }
+
+    function limpiarSolicitudesParaEmpezar() {
+      const claveReset = "__reset_solicitudes_requerimiento_realizado__";
+      if (localStorage.getItem(claveReset) === "1") return;
+
+      localStorage.setItem("solicitudes", "[]");
+      localStorage.setItem("solicitudes_eliminadas", "[]");
+      localStorage.removeItem("numeroSolicitud");
+      localStorage.setItem(claveReset, "1");
     }
 
     function cumpleFiltroTexto(solicitud, texto, estadoProceso) {
@@ -819,7 +963,6 @@
           "<button class=\"btn btn-warning btn-sm\" onclick=\"editarSolicitud(" + indiceReal + ")\"" + attrEditar + ">Editar</button>" +
           "<button class=\"btn btn-outline-dark btn-sm\" onclick=\"verMotivoRechazo(" + indiceReal + ")\"" + attrMotivo + ">Motivo rechazo</button>" +
           "<button class=\"btn btn-secondary btn-sm\" onclick=\"anularSolicitud(" + indiceReal + ")\">Anular</button>" +
-          "<button class=\"btn btn-danger btn-sm\" onclick=\"eliminarSolicitud(" + indiceReal + ")\">Eliminar</button>" +
           "</td>" +
           "</tr>";
 
@@ -827,5 +970,6 @@
       });
     }
 
+    limpiarSolicitudesParaEmpezar();
     cargarTabla();
 

@@ -71,7 +71,7 @@
   }
 
   .modal-card {
-    width: min(640px, 100%);
+    width: min(1100px, 100%);
     background: #fff;
     border-radius: 14px;
     border: 1px solid #d6dee8;
@@ -106,6 +106,8 @@
 
   .modal-body-custom {
     padding: 16px;
+    max-height: 75vh;
+    overflow: auto;
   }
 
   .modal-footer-custom {
@@ -152,8 +154,7 @@
         <th>Cargo</th>
         <th>Nombre</th>
         <th>Cedula</th>
-        <th>Aptitud medica</th>
-        <th>Dotacion completa</th>
+        <th>Codigo trabajador</th>
         <th>Decision final</th>
         <th>Accion</th>
       </tr>
@@ -170,23 +171,113 @@
     </div>
 
     <div class="modal-body-custom">
-      <div class="row g-3">
-        <div class="col-12">
+      <div class="row g-2 mb-3">
+        <div class="col-md-3">
           <label class="form-label">Trabajador</label>
-          <input id="mdTrabajador" class="form-control" readonly>
+          <input id="mdTrabajador" class="form-control readonly" readonly>
         </div>
+        <div class="col-md-2">
+          <label class="form-label">Codigo</label>
+          <input id="mdCodigo" class="form-control readonly" readonly>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Cargo</label>
+          <input id="mdCargo" class="form-control readonly" readonly>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Area</label>
+          <input id="mdArea" class="form-control readonly" readonly>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Departamento</label>
+          <input id="mdDepartamento" class="form-control readonly" readonly>
+        </div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-md-4">
+          <label class="form-label">Tipo de cargo</label>
+          <input id="mdTipoCargo" class="form-control readonly" readonly>
+        </div>
+      </div>
+
+      <h6 class="mb-2">Aptitud medica F1</h6>
+      <div class="row g-2 mb-3">
         <div class="col-md-6">
-          <label class="form-label">Aptitud medica</label>
-          <input id="mdAptitud" class="form-control" readonly>
+          <label class="form-label">Resultado F1</label>
+          <input id="mdAptitudF1" class="form-control readonly" readonly>
         </div>
+        <div id="bloqueMotivoF1" class="col-12" style="display:none;">
+          <label class="form-label">Motivo F1 (apto con observacion)</label>
+          <textarea id="mdMotivoF1" class="form-control readonly" rows="2" readonly></textarea>
+        </div>
+      </div>
+
+      <h6 class="mb-2">Dotacion basica entregada</h6>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Tipo</th>
+              <th>Elemento</th>
+              <th>Cantidad</th>
+              <th>Entregado</th>
+            </tr>
+          </thead>
+          <tbody id="mdTablaBasica"></tbody>
+        </table>
+      </div>
+
+      <h6 class="mb-2">Equipos y accesos</h6>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Tipo</th>
+              <th>Recurso</th>
+              <th>Observacion</th>
+              <th>Entregado</th>
+            </tr>
+          </thead>
+          <tbody id="mdTablaEquipos"></tbody>
+        </table>
+      </div>
+
+      <h6 class="mb-2">Aptitud al cargo</h6>
+      <div class="row g-2 mb-3">
         <div class="col-md-6">
-          <label class="form-label">Estado dotacion</label>
-          <input id="mdDotacion" class="form-control" readonly>
+          <label class="form-label">Resultado</label>
+          <input id="mdAptitudCargo" class="form-control readonly" readonly>
         </div>
-        <div id="bloqueMotivoAptitud" class="col-12" style="display:none;">
-          <label class="form-label">Motivo aptitud medica</label>
-          <textarea id="mdMotivoAptitud" class="form-control" rows="2" readonly></textarea>
+      </div>
+
+      <h6 class="mb-2">Aptitud medica F2</h6>
+      <div class="row g-2 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Resultado F2</label>
+          <input id="mdAptitudF2" class="form-control readonly" readonly>
         </div>
+        <div id="bloqueMotivoF2" class="col-12" style="display:none;">
+          <label class="form-label">Motivo F2 (apto con observacion)</label>
+          <textarea id="mdMotivoF2" class="form-control readonly" rows="2" readonly></textarea>
+        </div>
+      </div>
+
+      <h6 class="mb-2">Dotacion completa</h6>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Tipo</th>
+              <th>Elemento</th>
+              <th>Cantidad</th>
+              <th>Entregado</th>
+            </tr>
+          </thead>
+          <tbody id="mdTablaCompleta"></tbody>
+        </table>
+      </div>
+
+      <div class="row g-3">
         <div class="col-12">
           <label class="form-label">Decision final</label>
           <select id="mdDecisionFinal" class="form-select">
@@ -344,6 +435,48 @@ function motivoAptitud(candidato) {
   return texto(candidato?.aptitudMedicaMotivo || "");
 }
 
+function aptitudF1Texto(candidato) {
+  const valor = normalizarTexto(candidato?.vigilanciaSaludF1Resultado);
+  if (valor === "apto") return "APTO";
+  if (valor === "apto con observacion") return "APTO CON OBSERVACION";
+  if (valor === "no apto") return "NO APTO";
+  return "PENDIENTE";
+}
+
+function motivoF1(candidato) {
+  return texto(candidato?.vigilanciaSaludF1Motivo || "");
+}
+
+function aptitudCargoTexto(candidato) {
+  const bruto = normalizarTexto(
+    candidato?.periodoAptitudFinal ||
+    candidato?.resultadoPeriodoPrueba ||
+    candidato?.aptitudPeriodoPrueba
+  );
+  if (bruto === "apto") return "APTO";
+  if (bruto === "apto con observacion") return "APTO CON OBSERVACION";
+  if (bruto === "no apto") return "NO APTO";
+  if (normalizarTexto(candidato?.estado) === "aprobado_periodo_prueba") return "APTO";
+  return "PENDIENTE";
+}
+
+function renderTablaDetalle(tbodyId, columnas, filas, mensajeVacio) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(filas) || filas.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${columnas}" class="text-center text-muted">${mensajeVacio}</td></tr>`;
+    return;
+  }
+
+  filas.forEach(fila => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = fila.map(celda => `<td>${texto(celda) || "-"}</td>`).join("");
+    tbody.appendChild(tr);
+  });
+}
+
 function esCandidatoVisible(sol, candidato) {
   const apt = aptitudNormalizada(candidato);
   const tieneDecision = decisionTexto(candidato) !== "PENDIENTE";
@@ -424,7 +557,7 @@ function cargarTablaDecisionIngreso() {
   if (filtradas.length === 0) {
     tabla.innerHTML = `
       <tr>
-        <td colspan="9" class="text-center text-muted py-4">
+        <td colspan="8" class="text-center text-muted py-4">
           No hay candidatos disponibles para este filtro.
         </td>
       </tr>
@@ -435,8 +568,6 @@ function cargarTablaDecisionIngreso() {
   filtradas.forEach(item => {
     const sol = item.sol;
     const candidato = item.candidato;
-    const aptitud = aptitudTexto(candidato);
-    const dotacion = dotacionTexto(sol, candidato);
     const decision = decisionTexto(candidato);
 
     const row = document.createElement("tr");
@@ -446,8 +577,7 @@ function cargarTablaDecisionIngreso() {
       <td class="readonly">${sol.cargoSolicitado || "-"}</td>
       <td class="readonly">${candidato.nombre || "-"}</td>
       <td class="readonly">${candidato.cedula || "-"}</td>
-      <td><span class="estado-chip ${claseEstado(aptitud)}">${aptitud}</span></td>
-      <td><span class="estado-chip ${claseEstado(dotacion)}">${dotacion}</span></td>
+      <td class="readonly">${candidato.codigoUnico || "-"}</td>
       <td><span class="estado-chip ${claseEstado(decision)}">${decision}</span></td>
       <td>
         <button class="btn btn-primary btn-sm" onclick="abrirModalDecisionIngreso(${item.solIndex}, ${item.candIndex})">Decidir</button>
@@ -467,28 +597,91 @@ function abrirModalDecisionIngreso(solIndex, candIndex) {
 
   contextoDecisionIngreso = { solIndex: Number(solIndex), candIndex: Number(candIndex) };
 
-  const aptitud = aptitudTexto(candidato);
-  const dotacion = dotacionTexto(sol, candidato);
+  const aptitudF1 = aptitudF1Texto(candidato);
+  const aptitudF2 = aptitudTexto(candidato);
+  const aptitudCargo = aptitudCargoTexto(candidato);
   const decision = decisionTexto(candidato);
 
-  document.getElementById("mdTrabajador").value = `${candidato.nombre || "-"} - CI ${candidato.cedula || "-"}`;
-  document.getElementById("mdAptitud").value = aptitud;
-  document.getElementById("mdDotacion").value = dotacion;
+  document.getElementById("mdTrabajador").value = candidato.nombre || "-";
+  document.getElementById("mdCodigo").value = candidato.codigoUnico || "-";
+  document.getElementById("mdCargo").value = sol.cargoSolicitado || "-";
+  document.getElementById("mdArea").value = sol.area || "-";
+  document.getElementById("mdDepartamento").value = sol.departamento || "-";
+  document.getElementById("mdTipoCargo").value = sol.tipoCargo || sol?.manualCargoDetalle?.ficha?.tipoCargo || "-";
+  document.getElementById("mdAptitudF1").value = aptitudF1;
+  document.getElementById("mdAptitudCargo").value = aptitudCargo;
+  document.getElementById("mdAptitudF2").value = aptitudF2;
+
+  const motivoObsF1 = motivoF1(candidato);
+  const bloqueF1 = document.getElementById("bloqueMotivoF1");
+  const txtF1 = document.getElementById("mdMotivoF1");
+  const f1ConObs = normalizarTexto(aptitudF1) === "apto con observacion";
+  bloqueF1.style.display = f1ConObs ? "block" : "none";
+  txtF1.value = f1ConObs ? (motivoObsF1 || "Sin motivo registrado.") : "";
+
+  const motivoObsF2 = motivoAptitud(candidato);
+  const bloqueF2 = document.getElementById("bloqueMotivoF2");
+  const txtF2 = document.getElementById("mdMotivoF2");
+  const f2ConObs = normalizarTexto(aptitudF2) === "apto con observacion";
+  bloqueF2.style.display = f2ConObs ? "block" : "none";
+  txtF2.value = f2ConObs ? (motivoObsF2 || "Sin motivo registrado.") : "";
+
+  const basicaEstado = String(candidato?.entregaBasica || "").toUpperCase();
+  if (basicaEstado === "NO APLICA") {
+    renderTablaDetalle("mdTablaBasica", 4, [], "No aplica dotacion basica.");
+  } else {
+    const detalleBasica = Array.isArray(candidato?.entregaBasicaDetalle) ? candidato.entregaBasicaDetalle : [];
+    renderTablaDetalle(
+      "mdTablaBasica",
+      4,
+      detalleBasica.map(item => [
+        item?.tipo || "-",
+        item?.elemento || "-",
+        item?.cantidad || "-",
+        item?.entregado === true ? "SI" : "NO"
+      ]),
+      "No hay registros de dotacion basica."
+    );
+  }
+
+  const detalleEquipos = Array.isArray(candidato?.estadoEntregaDetalle) ? candidato.estadoEntregaDetalle : [];
+  renderTablaDetalle(
+    "mdTablaEquipos",
+    4,
+    detalleEquipos.map(item => [
+      item?.tipo || "-",
+      item?.recurso || "-",
+      item?.observacion || "-",
+      item?.entregado === true ? "SI" : "NO"
+    ]),
+    "No hay registros de equipos y accesos."
+  );
+
+  const completaEstado = String(candidato?.entregaCompleta || "").toUpperCase();
+  if (completaEstado === "NO APLICA") {
+    renderTablaDetalle("mdTablaCompleta", 4, [], "No aplica dotacion completa.");
+  } else {
+    const detalleCompleta = Array.isArray(candidato?.entregaCompletaDetalle) ? candidato.entregaCompletaDetalle : [];
+    renderTablaDetalle(
+      "mdTablaCompleta",
+      4,
+      detalleCompleta.map(item => [
+        item?.tipo || "-",
+        item?.elemento || "-",
+        item?.cantidad || "-",
+        item?.entregado === true ? "SI" : "NO"
+      ]),
+      "No hay registros de dotacion completa."
+    );
+  }
 
   const select = document.getElementById("mdDecisionFinal");
   select.value = decision === "INGRESO" ? "ingreso" : (decision === "NO INGRESO" ? "no_ingreso" : "");
 
-  const aptitudMotivo = motivoAptitud(candidato);
-  const bloqueAptitud = document.getElementById("bloqueMotivoAptitud");
-  const txtAptitud = document.getElementById("mdMotivoAptitud");
-  const aptitudConMotivo = normalizarTexto(aptitud) === "apto con observacion" || normalizarTexto(aptitud) === "no apto";
-  txtAptitud.value = aptitudMotivo || "Sin motivo registrado.";
-  bloqueAptitud.style.display = aptitudConMotivo ? "block" : "none";
-
   document.getElementById("mdMotivoNoIngreso").value = motivoNoIngreso(candidato);
 
   const optionIngreso = select.querySelector('option[value="ingreso"]');
-  const aptitudNoApta = normalizarTexto(aptitud) === "no apto";
+  const aptitudNoApta = normalizarTexto(aptitudF2) === "no apto";
   optionIngreso.disabled = aptitudNoApta;
 
   const hint = document.getElementById("mdDecisionHint");

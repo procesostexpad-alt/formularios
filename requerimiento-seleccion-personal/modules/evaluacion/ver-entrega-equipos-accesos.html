@@ -92,7 +92,6 @@
         <th>Trabajador</th>
         <th>Codigo trabajador</th>
         <th>Fecha ingreso</th>
-        <th>Estado PP</th>
         <th>Estado equipos/accesos</th>
         <th>Entregar</th>
       </tr>
@@ -129,6 +128,12 @@
         <div class="col-md-2">
           <label class="form-label">Departamento</label>
           <input id="mdDepartamento" class="form-control" readonly>
+        </div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-md-4">
+          <label class="form-label">Tipo de cargo</label>
+          <input id="mdTipoCargo" class="form-control" readonly>
         </div>
       </div>
 
@@ -364,17 +369,23 @@ function estadoEquiposAccesos(candidato, detalleRequerido) {
   if (detalleRequerido.length === 0 || estado === "NO APLICA") {
     return { texto: "NO APLICA", clase: "estado-noaplica" };
   }
-  if (estado === "ENTREGADO") {
-    return { texto: "ENTREGADO", clase: "estado-entregado" };
-  }
-  if (estado === "ENTREGA INCOMPLETA") {
-    return { texto: "ENTREGA INCOMPLETA", clase: "estado-incompleta" };
-  }
-
   const detalleHistorico = Array.isArray(candidato?.estadoEntregaDetalle)
     ? candidato.estadoEntregaDetalle
     : [];
-  if (detalleHistorico.some(item => item?.entregado === true)) {
+
+  const historicoMap = new Map(
+    detalleHistorico.map(item => [`${normalizarTexto(item?.tipo)}|${normalizarTexto(item?.recurso)}`, item?.entregado === true])
+  );
+
+  const entregados = detalleRequerido.filter(item => {
+    const key = `${normalizarTexto(item.tipo)}|${normalizarTexto(item.recurso)}`;
+    return historicoMap.get(key) === true;
+  }).length;
+
+  if (entregados === detalleRequerido.length) {
+    return { texto: "ENTREGADO", clase: "estado-entregado" };
+  }
+  if (entregados > 0) {
     return { texto: "ENTREGA INCOMPLETA", clase: "estado-incompleta" };
   }
 
@@ -384,6 +395,12 @@ function estadoEquiposAccesos(candidato, detalleRequerido) {
 function entregaEquiposAccesosFinalizada(candidato) {
   const estado = String(candidato?.estadoEntrega || "").toUpperCase();
   return estado === "NO APLICA";
+}
+
+function tieneRegistroEquiposAccesos(candidato) {
+  const estado = String(candidato?.estadoEntrega || "").toUpperCase();
+  const detalle = Array.isArray(candidato?.estadoEntregaDetalle) ? candidato.estadoEntregaDetalle : [];
+  return estado !== "" || detalle.length > 0;
 }
 
 function abrirModalEntregaEquipos(solIndex, cedula) {
@@ -417,6 +434,7 @@ function abrirModalEntregaEquipos(solIndex, cedula) {
   document.getElementById("mdCargo").value = sol.cargoSolicitado || "-";
   document.getElementById("mdArea").value = sol.area || "-";
   document.getElementById("mdDepartamento").value = sol.departamento || "-";
+  document.getElementById("mdTipoCargo").value = sol.tipoCargo || sol?.manualCargoDetalle?.ficha?.tipoCargo || "-";
 
   const cuerpo = document.getElementById("modalDetalleEquipos");
   cuerpo.innerHTML = "";
@@ -461,13 +479,14 @@ function actualizarEstadoMotivoModal() {
   const total = checks.length;
   const entregados = checks.filter(chk => chk.checked).length;
   const completa = total > 0 && entregados === total;
+  const incompleta = entregados > 0 && entregados < total;
 
   document.getElementById("mdResumen").textContent = `Items entregados: ${entregados} de ${total}.`;
 
-  if (completa) {
+  if (completa || entregados === 0) {
     document.getElementById("bloqueMotivoEntrega").style.display = "none";
     document.getElementById("txtMotivoEntrega").value = "";
-  } else {
+  } else if (incompleta) {
     document.getElementById("bloqueMotivoEntrega").style.display = "block";
     document.getElementById("lblMotivoEntrega").textContent = "Motivo de entrega incompleta (obligatorio)";
     document.getElementById("mdHintMotivo").textContent = "Indica por que faltan recursos por entregar.";
@@ -494,9 +513,10 @@ function guardarEntregaEquiposModal() {
   const entregados = checks.filter(chk => chk.checked).length;
   const total = checks.length;
   const completa = total > 0 && entregados === total;
+  const incompleta = entregados > 0 && entregados < total;
   const motivo = String(document.getElementById("txtMotivoEntrega").value || "").trim();
 
-  if (!completa && !motivo) {
+  if (incompleta && !motivo) {
     alert("Debe ingresar el motivo de la entrega incompleta.");
     return;
   }
@@ -511,9 +531,11 @@ function guardarEntregaEquiposModal() {
     };
   });
 
-  candidato.estadoEntregaMotivo = completa ? "" : motivo;
+  candidato.estadoEntregaMotivo = incompleta ? motivo : "";
   candidato.estadoEntregaFechaRegistro = new Date().toLocaleString("es-EC", { timeZone: "America/Guayaquil" });
-  candidato.estadoEntrega = completa ? "ENTREGADO" : "ENTREGA INCOMPLETA";
+  if (completa) candidato.estadoEntrega = "ENTREGADO";
+  else if (incompleta) candidato.estadoEntrega = "ENTREGA INCOMPLETA";
+  else candidato.estadoEntrega = "PENDIENTE";
 
   guardarSolicitudes(solicitudes);
   cerrarModalEntregaEquipos();
@@ -528,21 +550,23 @@ function cargarSistemas() {
   let totalFilas = 0;
 
   solicitudes.forEach((sol, solIndex) => {
-    if (!requiereEquiposAccesos(sol)) return;
+    const candidatosSol = Array.isArray(sol.candidatos) ? sol.candidatos : [];
+    const hayRegistroSol = candidatosSol.some(c => tieneRegistroEquiposAccesos(c));
+    if (!requiereEquiposAccesos(sol) && !hayRegistroSol) return;
 
     const detalleRequerido = obtenerDetalleEquiposAccesos(sol);
 
-    (Array.isArray(sol.candidatos) ? sol.candidatos : [])
+    candidatosSol
       .filter(c => {
-        if (!induccionCompletaCandidato(c)) return false;
-        if (!preIngresoCompleto(c)) return false;
-        if (entregaEquiposAccesosFinalizada(c)) return false;
-        if (String(c.periodoEstado || "").toUpperCase() === "CERRADO") return false;
+        const tieneRegistro = tieneRegistroEquiposAccesos(c);
+        if (!induccionCompletaCandidato(c) && !tieneRegistro) return false;
+        if (!preIngresoCompleto(c) && !tieneRegistro) return false;
+        const estadoPP = String(c.periodoEstado || "").toUpperCase();
+        if (estadoPP === "CERRADO" && !tieneRegistro) return false;
         return true;
       })
       .forEach(c => {
         const estado = estadoEquiposAccesos(c, detalleRequerido);
-        const estadoPP = String(c.periodoEstado || "ABIERTO").toUpperCase();
         const disableBtn = detalleRequerido.length === 0 ? "disabled" : "";
 
         const row = document.createElement("tr");
@@ -555,7 +579,6 @@ function cargarSistemas() {
           <td class="readonly">${c.nombre || ""}</td>
           <td class="readonly">${c.codigoUnico || ""}</td>
           <td class="readonly">${c.fechaIngreso || ""}</td>
-          <td class="readonly">${estadoPP}</td>
           <td><span class="estado-chip ${estado.clase}">${estado.texto}</span></td>
           <td><button type="button" class="btn btn-success btn-sm btn-entregar" data-sol-index="${solIndex}" data-cedula="${String(c.cedula || "")}" ${disableBtn}>Entregar</button></td>
         `;
@@ -565,7 +588,7 @@ function cargarSistemas() {
   });
 
   if (totalFilas === 0) {
-    tabla.innerHTML = '<tr><td colspan="11" class="text-center text-muted">No hay registros para entregar equipos/accesos.</td></tr>';
+    tabla.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No hay registros para entregar equipos/accesos.</td></tr>';
   }
 }
 

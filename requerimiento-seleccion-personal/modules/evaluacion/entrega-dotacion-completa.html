@@ -97,8 +97,6 @@
         <th>Cedula</th>
         <th>Codigo Trabajador</th>
         <th>Estado PP</th>
-        <th>Aptitud Medica</th>
-        <th>Entrega Basica</th>
         <th>Entrega Completa</th>
         <th>Entregar</th>
       </tr>
@@ -137,6 +135,40 @@
           <input id="mdDepartamento" class="form-control" readonly>
         </div>
       </div>
+      <div class="row g-2 mb-3">
+        <div class="col-md-4">
+          <label class="form-label">Tipo de cargo</label>
+          <input id="mdTipoCargo" class="form-control" readonly>
+        </div>
+      </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Aptitud medica</label>
+          <input id="mdAptitudMedica" class="form-control" readonly>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Estado entrega basica</label>
+          <input id="mdEstadoBasica" class="form-control" readonly>
+        </div>
+      </div>
+
+      <h6 class="mb-2">Dotacion basica entregada</h6>
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Tipo</th>
+              <th>Elemento</th>
+              <th>Cantidad</th>
+              <th>Entregado</th>
+            </tr>
+          </thead>
+          <tbody id="modalDetalleBasica"></tbody>
+        </table>
+      </div>
+
+      <h6 class="mb-2">Dotacion completa por entregar</h6>
 
       <div class="table-responsive">
         <table class="table table-sm table-bordered align-middle">
@@ -313,6 +345,44 @@ function entregaBasicaLista(candidato) {
   return basica === "ENTREGADO" || basica === "NO APLICA";
 }
 
+function renderDetalleBasicaModal(candidato) {
+  const tbody = document.getElementById("modalDetalleBasica");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const estadoBasica = String(candidato?.entregaBasica || "").toUpperCase();
+  const detalleBasica = Array.isArray(candidato?.entregaBasicaDetalle) ? candidato.entregaBasicaDetalle : [];
+
+  if (estadoBasica === "NO APLICA") {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="text-center text-muted">No aplica dotacion basica para este trabajador.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  if (detalleBasica.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="text-center text-muted">No hay registros de dotacion basica.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  detalleBasica.forEach(item => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item?.tipo || "-"}</td>
+      <td>${item?.elemento || "-"}</td>
+      <td>${item?.cantidad || "-"}</td>
+      <td>${item?.entregado === true ? "SI" : "NO"}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
 function estadoCompleta(candidato, detalleRequerido) {
   const valor = String(candidato?.entregaCompleta || "").toUpperCase();
 
@@ -338,6 +408,12 @@ function estadoCompleta(candidato, detalleRequerido) {
 function entregaCompletaFinalizada(candidato) {
   const valor = String(candidato?.entregaCompleta || "").toUpperCase();
   return valor === "ENTREGADO" || valor === "NO APLICA" || candidato?.bloqueoCompleta === true;
+}
+
+function tieneRegistroCompleta(candidato) {
+  const valor = String(candidato?.entregaCompleta || "").toUpperCase();
+  const detalle = Array.isArray(candidato?.entregaCompletaDetalle) ? candidato.entregaCompletaDetalle : [];
+  return valor !== "" || detalle.length > 0;
 }
 
 function abrirModalEntregaCompleta(solIndex, cedula) {
@@ -369,6 +445,10 @@ function abrirModalEntregaCompleta(solIndex, cedula) {
   document.getElementById("mdCargo").value = sol.cargoSolicitado || "-";
   document.getElementById("mdArea").value = sol.area || "-";
   document.getElementById("mdDepartamento").value = sol.departamento || "-";
+  document.getElementById("mdTipoCargo").value = sol.tipoCargo || sol?.manualCargoDetalle?.ficha?.tipoCargo || "-";
+  document.getElementById("mdAptitudMedica").value = String(candidato.aptitudMedica || "PENDIENTE");
+  document.getElementById("mdEstadoBasica").value = String(candidato.entregaBasica || "PENDIENTE").toUpperCase();
+  renderDetalleBasicaModal(candidato);
 
   const cuerpo = document.getElementById("modalDetalleDotacion");
   cuerpo.innerHTML = "";
@@ -482,24 +562,25 @@ function cargarDotacionCompleta() {
   let totalFilas = 0;
 
   solicitudes.forEach((sol, solIndex) => {
-    if (!requiereDotacionEpp(sol)) return;
+    const candidatosSol = Array.isArray(sol.candidatos) ? sol.candidatos : [];
+    const hayRegistroSol = candidatosSol.some(c => tieneRegistroCompleta(c));
+    if (!requiereDotacionEpp(sol) && !hayRegistroSol) return;
 
     const detalleRequerido = obtenerDetalleDotacion(sol);
 
-    (Array.isArray(sol.candidatos) ? sol.candidatos : [])
+    candidatosSol
       .filter(candidato => {
-        if (!induccionCompletaCandidato(candidato)) return false;
-        if (!preIngresoCompleto(candidato)) return false;
-        if (!aptitudMedicaAprobada(candidato)) return false;
-        if (!entregaBasicaLista(candidato)) return false;
-        if (entregaCompletaFinalizada(candidato)) return false;
+        const tieneRegistro = tieneRegistroCompleta(candidato);
+        if (!induccionCompletaCandidato(candidato) && !tieneRegistro) return false;
+        if (!preIngresoCompleto(candidato) && !tieneRegistro) return false;
+        if (!aptitudMedicaAprobada(candidato) && !tieneRegistro) return false;
+        if (!entregaBasicaLista(candidato) && !tieneRegistro) return false;
         const estadoPP = String(candidato.periodoEstado || "ABIERTO").toUpperCase();
-        return estadoPP === "CERRADO" && !candidato.faseIngresoCompletada;
+        const enEtapa = estadoPP === "CERRADO" && !candidato.faseIngresoCompletada;
+        return enEtapa || tieneRegistro;
       })
       .forEach(candidato => {
         const estadoPP = String(candidato.periodoEstado || "").toUpperCase();
-        const aptitudMedica = String(candidato.aptitudMedica || "PENDIENTE");
-        const basica = String(candidato.entregaBasica || "PENDIENTE").toUpperCase();
         const estado = estadoCompleta(candidato, detalleRequerido);
         const disabled = detalleRequerido.length === 0 ? "disabled" : "";
 
@@ -515,8 +596,6 @@ function cargarDotacionCompleta() {
           <td class="readonly">${candidato.cedula || ""}</td>
           <td class="readonly">${candidato.codigoUnico || ""}</td>
           <td class="readonly">${estadoPP}</td>
-          <td class="readonly ${aptitudMedicaAprobada(candidato) ? "estado-ok" : "estado-alerta"}">${aptitudMedica}</td>
-          <td class="readonly ${entregaBasicaLista(candidato) ? "estado-ok" : "estado-alerta"}">${basica}</td>
           <td><span class="estado-chip ${estado.clase}">${estado.texto}</span></td>
           <td><button type="button" class="btn btn-success btn-sm btn-entregar" data-sol-index="${solIndex}" data-cedula="${String(candidato.cedula || "")}" ${disabled}>Entregar</button></td>
         `;
@@ -526,7 +605,7 @@ function cargarDotacionCompleta() {
   });
 
   if (totalFilas === 0) {
-    tabla.innerHTML = '<tr><td colspan="14" class="text-center text-muted">No hay registros pendientes para entrega de dotacion completa.</td></tr>';
+    tabla.innerHTML = '<tr><td colspan="12" class="text-center text-muted">No hay registros para entrega de dotacion completa.</td></tr>';
   }
 }
 
