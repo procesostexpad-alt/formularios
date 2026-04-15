@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catalogos Maestros - Talento Humano</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/global-theme.css">
+  <link rel="stylesheet" href="../../assets/css/ui-shell.css">
+  <style>
+    :root {
+      --line: #d4e0db;
+      --brand: #0f5f4e;
+      --muted: #5f6f73;
+      --bg-a: #ecf5f2;
+      --bg-b: #d3e7df;
+      --surface: #ffffff;
+      --ink: #1f2f31;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 100% 0%, rgba(15, 95, 78, 0.11), transparent 36%),
+        radial-gradient(circle at 0% 15%, rgba(31, 139, 113, 0.12), transparent 35%),
+        linear-gradient(180deg, var(--bg-a), var(--bg-b));
+    }
+
+    .page-wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 14px 36px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: 0 10px 24px rgba(22, 57, 47, 0.07);
+      margin-bottom: 14px;
+    }
+
+    .panel-head {
+      padding: 14px;
+      border-bottom: 1px solid #e3ece8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h1,
+    .panel-head h2 {
+      margin: 0;
+      color: var(--brand);
+      font-weight: 700;
+    }
+
+    .panel-head h1 { font-size: 1.3rem; }
+    .panel-head h2 { font-size: 1.05rem; }
+
+    .panel-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .btn-module {
+      border-radius: 12px;
+      border: 1px solid #c8d9d3;
+      background: #f7fbf9;
+      color: #214843;
+      font-weight: 700;
+      padding: 10px 12px;
+      text-align: left;
+      transition: all 0.18s ease;
+    }
+
+    .btn-module:hover {
+      transform: translateY(-1px);
+      border-color: #9ebbb1;
+      box-shadow: 0 10px 20px rgba(18, 60, 50, 0.1);
+    }
+
+    .btn-module.active {
+      border-color: #88b4a5;
+      background: #eaf5f1;
+      color: #0e5a49;
+    }
+
+    .counter-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .counter-chip {
+      border: 1px solid #cdded8;
+      background: #f7fbf9;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #2a4d47;
+    }
+
+    .badge-state {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 0.74rem;
+      letter-spacing: 0.2px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge-activo {
+      background: #dff3ea;
+      color: #0f614f;
+      border: 1px solid #a9d5c3;
+    }
+
+    .badge-inactivo {
+      background: #f2f3f4;
+      color: #576264;
+      border: 1px solid #d2d8da;
+    }
+
+    .table thead th {
+      font-size: 0.84rem;
+      color: #284945;
+      background: #edf6f2;
+      border-color: #d7e6e0;
+      white-space: nowrap;
+    }
+
+    .table td {
+      vertical-align: middle;
+      font-size: 0.88rem;
+      border-color: #e0ece7;
+    }
+
+    #tablaHead th,
+    #tablaBody td {
+      word-break: normal;
+      overflow-wrap: normal;
+    }
+
+    #tablaHead th:nth-last-child(2),
+    #tablaBody td:nth-last-child(2) {
+      min-width: 110px;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    #tablaHead th:last-child,
+    #tablaBody td:last-child {
+      min-width: 150px;
+      white-space: nowrap;
+    }
+
+    .empty-row {
+      text-align: center;
+      color: #6f7f7a;
+      font-style: italic;
+      padding: 14px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .toolbar > * {
+      flex: 1 1 220px;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: nowrap;
+      align-items: center;
+    }
+
+    .table-actions .btn {
+      min-width: 88px;
+    }
+
+    .form-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #3d5550;
+      margin-bottom: 4px;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 10px;
+      border: 1px solid #cad9d3;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #86b7aa;
+      box-shadow: 0 0 0 0.2rem rgba(31, 139, 113, 0.18);
+    }
+
+    .chip-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 30px;
+    }
+
+    .chip-value {
+      border: 1px solid #cbdad4;
+      background: #f1f6f4;
+      color: #234945;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      padding: 3px 10px;
+      font-weight: 700;
+    }
+
+    .btn-add-top {
+      border-radius: 10px;
+      font-weight: 700;
+      border: 1px solid #9ebfb2;
+      color: #0f5f4e;
+      background: #eaf6f1;
+      padding: 8px 14px;
+    }
+
+    .inline-input,
+    .inline-select {
+      min-width: 130px;
+      font-size: 0.84rem;
+    }
+
+    .inline-textarea {
+      min-width: 160px;
+      min-height: 72px;
+      font-size: 0.84rem;
+    }
+
+    @media (max-width: 768px) {
+      .panel-head {
+        padding-right: 54px;
+      }
+
+      .table-actions {
+        flex-wrap: wrap;
+      }
+
+      .table-actions .btn {
+        min-width: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-wrap">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h1>Catalogos Maestros</h1>
+          <p>Administra competencias, valores corporativos, equipos, accesos, EPP y uniformes sin tocar codigo.</p>
+        </div>
+        <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='../gestion/solicitudes/listado-solicitudes.html'">
+          Volver al flujo
+        </button>
+      </div>
+      <div class="panel-body">
+        <div id="moduleGrid" class="module-grid"></div>
+        <div class="counter-row">
+          <span id="chipTotal" class="counter-chip">Total: 0</span>
+          <span id="chipActivos" class="counter-chip">Activos: 0</span>
+          <span id="chipInactivos" class="counter-chip">Inactivos: 0</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Registros del catalogo</h2>
+          <p>Gestiona estado y edicion de cada item.</p>
+        </div>
+        <button id="btnAgregarInicio" type="button" class="btn-add-top">+ Agregar</button>
+      </div>
+      <div class="panel-body">
+        <div class="toolbar mb-3">
+          <div>
+            <label class="form-label" for="txtBuscar">Buscar</label>
+            <input id="txtBuscar" class="form-control" placeholder="Buscar por texto">
+          </div>
+          <div>
+            <label class="form-label" for="selEstadoFiltro">Estado</label>
+            <select id="selEstadoFiltro" class="form-select">
+              <option value="todos">Todos</option>
+              <option value="activos">Solo activos</option>
+              <option value="inactivos">Solo inactivos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle mb-0">
+            <thead>
+              <tr id="tablaHead"></tr>
+            </thead>
+            <tbody id="tablaBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="../../assets/js/ui-shell.js"></script>
+  <script>
+    const STORAGE_KEY = "catalogosMaestrosTH_v2";
+    const LEGACY_STORAGE_KEY = "catalogosMaestrosTH_v1";
+
+    const DEFAULT_COMPETENCIAS_DATA = {
+      Aptitudinales: ["Atencion al detalle", "Proactividad", "Adaptabilidad", "Organizacion"],
+      Comerciales: ["Negociacion", "Ventas", "Prospeccion"],
+      Comunicacionales: ["Comunicacion verbal", "Comunicacion escrita", "Escucha activa"],
+      Administrativas: ["Planificacion", "Gestion documental"],
+      Digital: ["Excel", "ERP", "Herramientas digitales"],
+      Educacional: ["Capacitacion", "Tutoria"],
+      Cognitivas: ["Analisis", "Resolucion de problemas", "Pensamiento critico"],
+      Emocionales: ["Manejo de estres", "Empatia"],
+      Liderazgo: ["Toma de decisiones", "Gestion de equipos"],
+      Relacionales: ["Trabajo en equipo", "Colaboracion"],
+      Valores: ["Compromiso", "Responsabilidad", "Integridad"],
+      "Prevencion de Riesgos": ["Seguridad industrial", "Uso de EPP"]
+    };
+
+    const DEFAULT_COMPETENCIA_TIPO = {
+      Aptitudinales: "Blanda",
+      Comerciales: "Tecnica",
+      Comunicacionales: "Blanda",
+      Administrativas: "Tecnica",
+      Digital: "Tecnica",
+      Educacional: "Tecnica",
+      Cognitivas: "Blanda",
+      Emocionales: "Blanda",
+      Liderazgo: "Blanda",
+      Relacionales: "Blanda",
+      Valores: "Blanda",
+      "Prevencion de Riesgos": "Tecnica"
+    };
+
+    const DEFAULT_VALORES_CORPORATIVOS = [
+      "Honestidad",
+      "Compromiso",
+      "Respeto",
+      "Lealtad",
+      "Trabajo en equipo",
+      "Empatia",
+      "Perseverancia"
+    ];
+
+    const DEFAULT_COMPETENCIAS_BLANDAS_EJEMPLO = [
+      {
+        competencia: "Adaptacion al cambio",
+        descripcion: "Capacidad para responder a escenarios nuevos con tolerancia, enfoque y criterio.",
+        valores: ["Respeto", "Trabajo en equipo", "Empatia", "Perseverancia"],
+        comportamiento: "Asume retos, enfrenta problemas sin personalizarlos y mantiene foco en resultados."
+      },
+      {
+        competencia: "Autoconfianza",
+        descripcion: "Seguridad personal para tomar decisiones y ejecutar con autonomia.",
+        valores: ["Honestidad", "Perseverancia", "Compromiso"],
+        comportamiento: "Sustenta ideas con criterio tecnico, mantiene iniciativa y mejora continua."
+      }
+    ];
+
+    const DEFAULT_COMPETENCIAS_TECNICAS_EJEMPLO = [
+      {
+        competencia: "Excel avanzado",
+        descripcion: "Construccion de reportes con tablas dinamicas, formulas complejas y validacion de datos."
+      },
+      {
+        competencia: "Excel avanzado",
+        descripcion: "Automatizacion de plantillas con Power Query y estandares de control de calidad."
+      },
+      {
+        competencia: "ERP",
+        descripcion: "Registro y trazabilidad de operaciones en modulos de compras, inventario y ventas."
+      }
+    ];
+
+    const DEFAULT_RECURSOS_POR_TIPO = {
+      Acceso: [
+        "Control TP",
+        "AS2",
+        "EAS",
+        "Carpetas compartidas",
+        "Correo corporativo",
+        "ERP",
+        "VPN",
+        "Biometrico"
+      ],
+      Equipo: [
+        "Laptop",
+        "Computadora de escritorio",
+        "Mouse",
+        "Teclado",
+        "Monitor externo",
+        "Headset",
+        "Docking station",
+        "Impresora"
+      ]
+    };
+
+    const DEFAULT_DOTACION_POR_TIPO = {
+      EPP: [
+        "Protectores auditivos",
+        "Mascarilla",
+        "Casco",
+        "Guantes",
+        "Lentes de seguridad",
+        "Chaleco reflectivo",
+        "Botas de seguridad"
+      ],
+      Uniforme: [
+        "Camiseta",
+        "Pantalon jean industrial",
+        "Zapatos industriales",
+        "Chaqueta",
+        "Overol"
+      ]
+    };
+
+    const MODULE_META = {
+      competenciasBlandas: {
+        label: "Competencias blandas",
+        empty: "Sin competencias blandas registradas.",
+        columns: [
+          { key: "competencia", label: "Competencia" },
+          { key: "descripcion", label: "Descripcion" },
+          { key: "valores", label: "Valores corporativos" },
+          { key: "comportamiento", label: "Comportamiento" },
+          { key: "estado", label: "Estado" },
+          { key: "acciones", label: "Acciones" }
+        ]
+      },
+      competenciasTecnicas: {
+        label: "Competencias tecnicas",
+        empty: "Sin competencias tecnicas registradas.",
+        columns: [
+          { key: "competencia", label: "Competencia tecnica" },
+          { key: "descripcion", label: "Descripcion" },
+          { key: "estado", label: "Estado" },
+          { key: "acciones", label: "Acciones" }
+        ]
+      },
+      valoresCorporativos: {
+        label: "Valores corporativos",
+        empty: "Sin valores corporativos registrados.",
+        columns: [
+          { key: "nombre", label: "Nombre" },
+          { key: "estado", label: "Estado" },
+          { key: "acciones", label: "Acciones" }
+        ]
+      },
+      equipos: {
+        label: "Equipos",
+        empty: "Sin equipos registrados.",
+        columns: [
+          { key: "nombre", label: "Nombre" },
+          { key: "estado", label: "Estado" },
+          { key: "acciones", label: "Acciones" }
+        ]
+      },
+      accesos: {
+        label: "Accesos",
+        empty: "Sin accesos registrados.",
+        columns: [
+          { key: "nombre", label: "Nombre" },
+          { key: "estado", label: "Estado" },
+          { key: "acciones", label: "Acciones" }
+        ]
+      },
+      epp: {
+        label: "EPP",
+        empty: "Sin EPP registrados.",
+        columns: [
+          { key: "nombre", label: "Nombre" },
+          { key: "estado", label: "Estado" },
+          { key: "acciones", label: "Acciones" }
+        ]
+      },
+      uniformes: {
+        label: "Uniformes",
+        empty: "Sin uniformes registrados.",
+        columns: [
+          { key: "nombre", label: "Nombre" },
+          { key: "estado", label: "Estado" },
+          { key: "acciones", label: "Acciones" }
+        ]
+      }
+    };
+
+    let moduloActivo = "competenciasBlandas";
+    let filaActiva = null;
+    let catalogos = cargarCatalogos();
+
+    function textoSeguro(valor) {
+      return String(valor || "").trim();
+    }
+
+    function escapeHtml(valor) {
+      return String(valor || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function normalizar(valor) {
+      return textoSeguro(valor)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    }
+
+    function generarId(modulo) {
+      return modulo + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+    }
+
+    function resumen(texto, maximo) {
+      const limpio = textoSeguro(texto);
+      if (limpio.length <= maximo) return limpio || "-";
+      return limpio.slice(0, maximo) + "...";
+    }
+
+    function convertirNombresAItems(modulo, lista) {
+      return (Array.isArray(lista) ? lista : []).map(item => ({
+        id: generarId(modulo),
+        nombre: textoSeguro(item),
+        activo: true
+      })).filter(item => item.nombre !== "");
+    }
+
+    function defaultsCatalogos() {
+      const valoresCorporativos = convertirNombresAItems("valoresCorporativos", DEFAULT_VALORES_CORPORATIVOS);
+      const valorIdPorNombre = new Map(valoresCorporativos.map(item => [normalizar(item.nombre), item.id]));
+      const competencias = [];
+
+      DEFAULT_COMPETENCIAS_BLANDAS_EJEMPLO.forEach(item => {
+        const valoresIds = (Array.isArray(item.valores) ? item.valores : [])
+          .map(nombre => valorIdPorNombre.get(normalizar(nombre)))
+          .filter(Boolean);
+        competencias.push({
+          id: generarId("competencias"),
+          tipoCompetencia: "Blanda",
+          familia: "Blanda",
+          competencia: textoSeguro(item.competencia),
+          descripcion: textoSeguro(item.descripcion),
+          valoresIds: valoresIds,
+          comportamiento: textoSeguro(item.comportamiento),
+          activo: true
+        });
+      });
+
+      DEFAULT_COMPETENCIAS_TECNICAS_EJEMPLO.forEach(item => {
+        competencias.push({
+          id: generarId("competencias"),
+          tipoCompetencia: "Tecnica",
+          familia: "Tecnica",
+          competencia: textoSeguro(item.competencia),
+          descripcion: textoSeguro(item.descripcion),
+          valoresIds: [],
+          comportamiento: "",
+          activo: true
+        });
+      });
+
+      Object.keys(DEFAULT_COMPETENCIAS_DATA).forEach(familia => {
+        const subcategorias = Array.isArray(DEFAULT_COMPETENCIAS_DATA[familia]) ? DEFAULT_COMPETENCIAS_DATA[familia] : [];
+        const tipoMapa = textoSeguro(DEFAULT_COMPETENCIA_TIPO[familia] || "Blanda");
+        const tipoCompetencia = normalizar(tipoMapa).includes("tecnica") ? "Tecnica" : "Blanda";
+        subcategorias.forEach(subcategoria => {
+          if (tipoCompetencia === "Blanda") {
+            const existe = competencias.some(c => c.tipoCompetencia === "Blanda" && normalizar(c.competencia) === normalizar(subcategoria));
+            if (existe) return;
+          }
+          competencias.push({
+            id: generarId("competencias"),
+            tipoCompetencia: tipoCompetencia,
+            familia: familia,
+            competencia: subcategoria,
+            descripcion: "",
+            valoresIds: [],
+            comportamiento: "",
+            activo: true
+          });
+        });
+      });
+
+      return {
+        competencias: competencias,
+        valoresCorporativos: valoresCorporativos,
+        equipos: convertirNombresAItems("equipos", DEFAULT_RECURSOS_POR_TIPO.Equipo),
+        accesos: convertirNombresAItems("accesos", DEFAULT_RECURSOS_POR_TIPO.Acceso),
+        epp: convertirNombresAItems("epp", DEFAULT_DOTACION_POR_TIPO.EPP),
+        uniformes: convertirNombresAItems("uniformes", DEFAULT_DOTACION_POR_TIPO.Uniforme)
+      };
+    }
+
+    function estructuraValida(data) {
+      return data && typeof data === "object" &&
+        Array.isArray(data.competencias) &&
+        Array.isArray(data.valoresCorporativos) &&
+        Array.isArray(data.equipos) &&
+        Array.isArray(data.accesos) &&
+        Array.isArray(data.epp) &&
+        Array.isArray(data.uniformes);
+    }
+
+    function migrarDesdeLegacy(legacy) {
+      if (!legacy || typeof legacy !== "object") return null;
+
+      const base = defaultsCatalogos();
+
+      if (Array.isArray(legacy.competencias) && legacy.competencias.length > 0) {
+        base.competencias = legacy.competencias.map(item => ({
+          id: textoSeguro(item.id) || generarId("competencias"),
+          tipoCompetencia: normalizar(item.tipoCompetencia || item.tipo || item.familia).includes("tecn") ? "Tecnica" : "Blanda",
+          familia: textoSeguro(item.familia || item.categoria || item.tipo || "General"),
+          competencia: textoSeguro(item.competencia || item.subcategoria || item.nombre || "Competencia"),
+          descripcion: textoSeguro(item.descripcion),
+          valoresIds: Array.isArray(item.valoresIds) ? item.valoresIds.map(textoSeguro).filter(Boolean) : [],
+          comportamiento: textoSeguro(item.comportamiento),
+          activo: item.activo !== false
+        }));
+      }
+
+      if (Array.isArray(legacy.valoresCorporativos) && legacy.valoresCorporativos.length > 0) {
+        base.valoresCorporativos = legacy.valoresCorporativos.map(item => ({
+          id: textoSeguro(item.id) || generarId("valoresCorporativos"),
+          nombre: textoSeguro(item.nombre || item.valor),
+          activo: item.activo !== false
+        })).filter(item => item.nombre !== "");
+      }
+
+      if (Array.isArray(legacy.equipos) && legacy.equipos.length > 0) {
+        base.equipos = legacy.equipos.map(item => ({
+          id: textoSeguro(item.id) || generarId("equipos"),
+          nombre: textoSeguro(item.nombre || item.recurso),
+          activo: item.activo !== false
+        })).filter(item => item.nombre !== "");
+      }
+
+      if (Array.isArray(legacy.accesos) && legacy.accesos.length > 0) {
+        base.accesos = legacy.accesos.map(item => ({
+          id: textoSeguro(item.id) || generarId("accesos"),
+          nombre: textoSeguro(item.nombre || item.recurso),
+          activo: item.activo !== false
+        })).filter(item => item.nombre !== "");
+      }
+
+      if (Array.isArray(legacy.epp) && legacy.epp.length > 0) {
+        base.epp = legacy.epp.map(item => ({
+          id: textoSeguro(item.id) || generarId("epp"),
+          nombre: textoSeguro(item.nombre || item.elemento),
+          activo: item.activo !== false
+        })).filter(item => item.nombre !== "");
+      }
+
+      if (Array.isArray(legacy.uniformes) && legacy.uniformes.length > 0) {
+        base.uniformes = legacy.uniformes.map(item => ({
+          id: textoSeguro(item.id) || generarId("uniformes"),
+          nombre: textoSeguro(item.nombre || item.elemento),
+          activo: item.activo !== false
+        })).filter(item => item.nombre !== "");
+      }
+
+      return base;
+    }
+
+    function guardarCatalogos() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(catalogos));
+    }
+
+    function cargarCatalogos() {
+      try {
+        const guardado = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (estructuraValida(guardado)) {
+          const normalizado = normalizarCatalogos(guardado);
+          const enriquecido = inyectarEjemplosSiFaltan(normalizado);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(enriquecido));
+          return enriquecido;
+        }
+      } catch (error) {
+      }
+
+      try {
+        const legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) || "null");
+        const migrado = migrarDesdeLegacy(legacy);
+        if (migrado && estructuraValida(migrado)) {
+          const normalizado = normalizarCatalogos(migrado);
+          const enriquecido = inyectarEjemplosSiFaltan(normalizado);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(enriquecido));
+          return enriquecido;
+        }
+      } catch (error) {
+      }
+
+      const base = defaultsCatalogos();
+      const normalizadoBase = normalizarCatalogos(base);
+      const enriquecidoBase = inyectarEjemplosSiFaltan(normalizadoBase);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(enriquecidoBase));
+      return enriquecidoBase;
+    }
+
+    function normalizarCatalogos(data) {
+      const salida = { ...data };
+      const lista = Array.isArray(salida.competencias) ? salida.competencias : [];
+      salida.competencias = lista.map(item => {
+        const tipo = normalizar(item.tipoCompetencia || item.tipo || item.familia).includes("tecn") ? "Tecnica" : "Blanda";
+        return {
+          id: textoSeguro(item.id) || generarId("competencias"),
+          tipoCompetencia: tipo,
+          familia: textoSeguro(item.familia || "General"),
+          competencia: textoSeguro(item.competencia || item.nombre || "Competencia"),
+          descripcion: textoSeguro(item.descripcion),
+          valoresIds: Array.isArray(item.valoresIds) ? item.valoresIds.map(textoSeguro).filter(Boolean) : [],
+          comportamiento: textoSeguro(item.comportamiento),
+          activo: item.activo !== false
+        };
+      });
+      return salida;
+    }
+
+    function inyectarEjemplosSiFaltan(data) {
+      const salida = data;
+      if (!Array.isArray(salida.competencias)) salida.competencias = [];
+      if (!Array.isArray(salida.valoresCorporativos)) salida.valoresCorporativos = [];
+
+      const valorIdPorNombre = new Map(salida.valoresCorporativos.map(item => [normalizar(item.nombre), item.id]));
+
+      DEFAULT_COMPETENCIAS_BLANDAS_EJEMPLO.forEach(item => {
+        const existe = salida.competencias.some(comp =>
+          comp.tipoCompetencia === "Blanda" &&
+          normalizar(comp.competencia) === normalizar(item.competencia)
+        );
+        if (existe) return;
+
+        const valoresIds = (Array.isArray(item.valores) ? item.valores : [])
+          .map(nombre => valorIdPorNombre.get(normalizar(nombre)))
+          .filter(Boolean);
+
+        salida.competencias.push({
+          id: generarId("competencias"),
+          tipoCompetencia: "Blanda",
+          familia: "Blanda",
+          competencia: textoSeguro(item.competencia),
+          descripcion: textoSeguro(item.descripcion),
+          valoresIds: valoresIds,
+          comportamiento: textoSeguro(item.comportamiento),
+          activo: true
+        });
+      });
+
+      DEFAULT_COMPETENCIAS_TECNICAS_EJEMPLO.forEach(item => {
+        const existe = salida.competencias.some(comp =>
+          comp.tipoCompetencia === "Tecnica" &&
+          normalizar(comp.competencia) === normalizar(item.competencia) &&
+          normalizar(comp.descripcion) === normalizar(item.descripcion)
+        );
+        if (existe) return;
+
+        salida.competencias.push({
+          id: generarId("competencias"),
+          tipoCompetencia: "Tecnica",
+          familia: "Tecnica",
+          competencia: textoSeguro(item.competencia),
+          descripcion: textoSeguro(item.descripcion),
+          valoresIds: [],
+          comportamiento: "",
+          activo: true
+        });
+      });
+
+      return salida;
+    }
+
+    function getItemsActuales() {
+      if (moduloActivo === "competenciasBlandas") {
+        return (Array.isArray(catalogos.competencias) ? catalogos.competencias : []).filter(item => item.tipoCompetencia === "Blanda");
+      }
+      if (moduloActivo === "competenciasTecnicas") {
+        return (Array.isArray(catalogos.competencias) ? catalogos.competencias : []).filter(item => item.tipoCompetencia === "Tecnica");
+      }
+      return Array.isArray(catalogos[moduloActivo]) ? catalogos[moduloActivo] : [];
+    }
+
+    function getColeccionDestino() {
+      if (moduloActivo === "competenciasBlandas" || moduloActivo === "competenciasTecnicas") {
+        if (!Array.isArray(catalogos.competencias)) catalogos.competencias = [];
+        return catalogos.competencias;
+      }
+      if (!Array.isArray(catalogos[moduloActivo])) catalogos[moduloActivo] = [];
+      return catalogos[moduloActivo];
+    }
+
+    function obtenerNombresValores(ids) {
+      const listaValores = Array.isArray(catalogos.valoresCorporativos) ? catalogos.valoresCorporativos : [];
+      const mapa = new Map(listaValores.map(item => [String(item.id), item.nombre]));
+      return (Array.isArray(ids) ? ids : []).map(id => mapa.get(String(id))).filter(Boolean);
+    }
+
+    function actualizarTextoBotonAgregar() {
+      const btn = document.getElementById("btnAgregarInicio");
+      if (!btn) return;
+      const meta = MODULE_META[moduloActivo];
+      btn.textContent = "+ Agregar en " + (meta?.label || "catalogo");
+    }
+
+    function crearDraftNuevo() {
+      if (moduloActivo === "competenciasBlandas") {
+        return { tipoCompetencia: "Blanda", familia: "Blanda", competencia: "", descripcion: "", valoresIds: [], comportamiento: "", activo: true };
+      }
+      if (moduloActivo === "competenciasTecnicas") {
+        return { tipoCompetencia: "Tecnica", familia: "Tecnica", competencia: "", descripcion: "", valoresIds: [], comportamiento: "", activo: true };
+      }
+      return { nombre: "", activo: true };
+    }
+
+    function iniciarNuevoRegistro() {
+      filaActiva = { modo: "add", id: "", draft: crearDraftNuevo() };
+      renderTabla();
+    }
+
+    function editarFila(id) {
+      const item = getItemsActuales().find(x => x.id === id);
+      if (!item) return;
+      filaActiva = { modo: "edit", id: id, draft: JSON.parse(JSON.stringify(item)) };
+      renderTabla();
+    }
+
+    function cancelarFilaInline() {
+      filaActiva = null;
+      renderTabla();
+    }
+
+    function onInlineChange(campo, valor) {
+      if (!filaActiva || !filaActiva.draft) return;
+      filaActiva.draft[campo] = textoSeguro(valor);
+    }
+
+    function onInlineValoresChange(selectEl) {
+      if (!filaActiva || !filaActiva.draft || !selectEl) return;
+      filaActiva.draft.valoresIds = Array.from(selectEl.selectedOptions).map(op => textoSeguro(op.value)).filter(Boolean);
+      renderTabla();
+    }
+
+    function opcionesValoresSelect(idsSeleccionados) {
+      const seleccion = new Set((Array.isArray(idsSeleccionados) ? idsSeleccionados : []).map(String));
+      const valores = Array.isArray(catalogos.valoresCorporativos) ? catalogos.valoresCorporativos : [];
+      return valores.map(item => {
+        const selected = seleccion.has(String(item.id)) ? " selected" : "";
+        return '<option value="' + escapeHtml(item.id) + '"' + selected + ">" + escapeHtml(item.nombre) + "</option>";
+      }).join("");
+    }
+
+    function renderModulos() {
+      const wrap = document.getElementById("moduleGrid");
+      wrap.innerHTML = "";
+
+      Object.keys(MODULE_META).forEach(key => {
+        const meta = MODULE_META[key];
+        let total = 0;
+        if (key === "competenciasBlandas") {
+          total = (Array.isArray(catalogos.competencias) ? catalogos.competencias : []).filter(item => item.tipoCompetencia === "Blanda").length;
+        } else if (key === "competenciasTecnicas") {
+          total = (Array.isArray(catalogos.competencias) ? catalogos.competencias : []).filter(item => item.tipoCompetencia === "Tecnica").length;
+        } else {
+          total = Array.isArray(catalogos[key]) ? catalogos[key].length : 0;
+        }
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn-module" + (key === moduloActivo ? " active" : "");
+        button.innerHTML = "<div>" + meta.label + "</div><small>" + total + " items</small>";
+        button.addEventListener("click", () => {
+          moduloActivo = key;
+          filaActiva = null;
+          renderTodo();
+        });
+        wrap.appendChild(button);
+      });
+    }
+
+    function estadoBadge(activo) {
+      if (activo) return '<span class="badge-state badge-activo">Activo</span>';
+      return '<span class="badge-state badge-inactivo">Inactivo</span>';
+    }
+
+    function renderValoresEnTabla(ids) {
+      const nombres = obtenerNombresValores(ids);
+      if (nombres.length === 0) return "-";
+      return nombres.map(nombre => '<span class="chip-value me-1 mb-1 d-inline-block">' + escapeHtml(nombre) + "</span>").join("");
+    }
+
+    function renderFilaEditable(draft) {
+      if (moduloActivo === "competenciasBlandas") {
+        return (
+          "<tr>" +
+          '<td><input class="form-control form-control-sm inline-input" value="' + escapeHtml(draft.competencia || "") + '" oninput="onInlineChange(\'competencia\', this.value)"></td>' +
+          '<td><textarea class="form-control form-control-sm inline-textarea" oninput="onInlineChange(\'descripcion\', this.value)">' + escapeHtml(draft.descripcion || "") + "</textarea></td>" +
+          '<td><select class="form-select form-select-sm inline-select" multiple size="4" onchange="onInlineValoresChange(this)">' + opcionesValoresSelect(draft.valoresIds || []) + "</select></td>" +
+          '<td><textarea class="form-control form-control-sm inline-textarea" oninput="onInlineChange(\'comportamiento\', this.value)">' + escapeHtml(draft.comportamiento || "") + "</textarea></td>" +
+          "<td>" + estadoBadge(draft.activo !== false) + "</td>" +
+          '<td><div class="table-actions"><button type="button" class="btn btn-sm btn-success" onclick="guardarFilaInline()">Guardar</button><button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelarFilaInline()">Cancelar</button></div></td>' +
+          "</tr>"
+        );
+      }
+
+      if (moduloActivo === "competenciasTecnicas") {
+        return (
+          "<tr>" +
+          '<td><input class="form-control form-control-sm inline-input" value="' + escapeHtml(draft.competencia || "") + '" oninput="onInlineChange(\'competencia\', this.value)"></td>' +
+          '<td><textarea class="form-control form-control-sm inline-textarea" oninput="onInlineChange(\'descripcion\', this.value)">' + escapeHtml(draft.descripcion || "") + "</textarea></td>" +
+          "<td>" + estadoBadge(draft.activo !== false) + "</td>" +
+          '<td><div class="table-actions"><button type="button" class="btn btn-sm btn-success" onclick="guardarFilaInline()">Guardar</button><button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelarFilaInline()">Cancelar</button></div></td>' +
+          "</tr>"
+        );
+      }
+
+      return (
+        "<tr>" +
+        '<td><input class="form-control form-control-sm inline-input" value="' + escapeHtml(draft.nombre || "") + '" oninput="onInlineChange(\'nombre\', this.value)"></td>' +
+        "<td>" + estadoBadge(draft.activo !== false) + "</td>" +
+        '<td><div class="table-actions"><button type="button" class="btn btn-sm btn-success" onclick="guardarFilaInline()">Guardar</button><button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelarFilaInline()">Cancelar</button></div></td>' +
+        "</tr>"
+      );
+    }
+
+    function accionesFila(item) {
+      const textoToggle = item.activo ? "Inactivar" : "Activar";
+      const claseToggle = item.activo ? "btn-outline-warning" : "btn-outline-success";
+      return (
+        '<div class="table-actions">' +
+        '<button type="button" class="btn btn-sm btn-outline-primary" onclick="editarFila(\'' + item.id + '\')">Editar</button>' +
+        '<button type="button" class="btn btn-sm ' + claseToggle + '" onclick="toggleItem(\'' + item.id + '\')">' + textoToggle + "</button>" +
+        "</div>"
+      );
+    }
+
+    function renderFilaLectura(item) {
+      if (moduloActivo === "competenciasBlandas") {
+        return (
+          "<tr>" +
+          "<td><strong>" + escapeHtml(item.competencia) + "</strong></td>" +
+          "<td>" + escapeHtml(resumen(item.descripcion, 110)) + "</td>" +
+          "<td>" + renderValoresEnTabla(item.valoresIds) + "</td>" +
+          "<td>" + escapeHtml(resumen(item.comportamiento, 130)) + "</td>" +
+          "<td>" + estadoBadge(item.activo) + "</td>" +
+          "<td>" + accionesFila(item) + "</td>" +
+          "</tr>"
+        );
+      }
+      if (moduloActivo === "competenciasTecnicas") {
+        return (
+          "<tr>" +
+          "<td><strong>" + escapeHtml(item.competencia) + "</strong></td>" +
+          "<td>" + escapeHtml(resumen(item.descripcion, 170)) + "</td>" +
+          "<td>" + estadoBadge(item.activo) + "</td>" +
+          "<td>" + accionesFila(item) + "</td>" +
+          "</tr>"
+        );
+      }
+      return (
+        "<tr>" +
+        "<td>" + escapeHtml(item.nombre) + "</td>" +
+        "<td>" + estadoBadge(item.activo) + "</td>" +
+        "<td>" + accionesFila(item) + "</td>" +
+        "</tr>"
+      );
+    }
+
+    function renderTabla() {
+      const meta = MODULE_META[moduloActivo];
+      const head = document.getElementById("tablaHead");
+      const body = document.getElementById("tablaBody");
+      const txtBuscar = normalizar(document.getElementById("txtBuscar").value);
+      const filtroEstado = document.getElementById("selEstadoFiltro").value;
+
+      head.innerHTML = meta.columns.map(col => "<th>" + col.label + "</th>").join("");
+
+      const base = getItemsActuales();
+      const filtrados = base.filter(item => {
+        const coincideEstado =
+          filtroEstado === "todos" ||
+          (filtroEstado === "activos" && item.activo === true) ||
+          (filtroEstado === "inactivos" && item.activo === false);
+        if (!coincideEstado) return false;
+        if (!txtBuscar) return true;
+        if (moduloActivo === "competenciasBlandas") {
+          const valoresTexto = obtenerNombresValores(item.valoresIds).join(" ");
+          return [item.competencia, item.descripcion, item.comportamiento, valoresTexto].map(normalizar).join(" ").includes(txtBuscar);
+        }
+        if (moduloActivo === "competenciasTecnicas") {
+          return [item.competencia, item.descripcion].map(normalizar).join(" ").includes(txtBuscar);
+        }
+        return normalizar(item.nombre).includes(txtBuscar);
+      });
+
+      const filas = [];
+      if (filaActiva && filaActiva.modo === "add") filas.push(renderFilaEditable(filaActiva.draft));
+      if (filaActiva && filaActiva.modo === "edit" && !filtrados.some(item => item.id === filaActiva.id)) filas.push(renderFilaEditable(filaActiva.draft));
+      if (filtrados.length === 0 && filas.length === 0) filas.push('<tr><td colspan="' + meta.columns.length + '" class="empty-row">' + meta.empty + "</td></tr>");
+
+      filtrados.forEach(item => {
+        if (filaActiva && filaActiva.modo === "edit" && filaActiva.id === item.id) {
+          filas.push(renderFilaEditable(filaActiva.draft));
+          return;
+        }
+        filas.push(renderFilaLectura(item));
+      });
+
+      body.innerHTML = filas.join("");
+    }
+
+    function renderContadores() {
+      const lista = getItemsActuales();
+      const activos = lista.filter(item => item.activo).length;
+      const inactivos = lista.length - activos;
+      document.getElementById("chipTotal").textContent = "Total: " + lista.length;
+      document.getElementById("chipActivos").textContent = "Activos: " + activos;
+      document.getElementById("chipInactivos").textContent = "Inactivos: " + inactivos;
+    }
+
+    function itemExisteDuplicado(payload) {
+      const idActual = filaActiva && filaActiva.modo === "edit" ? filaActiva.id : "";
+      return getItemsActuales().some(item => {
+        if (idActual && item.id === idActual) return false;
+        if (moduloActivo === "competenciasBlandas") return normalizar(item.competencia) === normalizar(payload.competencia);
+        if (moduloActivo === "competenciasTecnicas") return normalizar(item.competencia) === normalizar(payload.competencia) && normalizar(item.descripcion) === normalizar(payload.descripcion);
+        return normalizar(item.nombre) === normalizar(payload.nombre);
+      });
+    }
+
+    function construirPayloadDesdeDraft() {
+      const draft = filaActiva?.draft || {};
+      if (moduloActivo === "competenciasBlandas") {
+        const competencia = textoSeguro(draft.competencia);
+        const descripcion = textoSeguro(draft.descripcion);
+        const comportamiento = textoSeguro(draft.comportamiento);
+        const valoresIds = Array.isArray(draft.valoresIds) ? draft.valoresIds.map(textoSeguro).filter(Boolean) : [];
+        if (!competencia || !descripcion || !comportamiento) {
+          alert("Completa competencia, descripcion y comportamiento.");
+          return null;
+        }
+        return { tipoCompetencia: "Blanda", familia: "Blanda", competencia, descripcion, valoresIds, comportamiento, activo: draft.activo !== false };
+      }
+      if (moduloActivo === "competenciasTecnicas") {
+        const competencia = textoSeguro(draft.competencia);
+        const descripcion = textoSeguro(draft.descripcion);
+        if (!competencia || !descripcion) {
+          alert("Completa competencia tecnica y descripcion.");
+          return null;
+        }
+        return { tipoCompetencia: "Tecnica", familia: "Tecnica", competencia, descripcion, valoresIds: [], comportamiento: "", activo: draft.activo !== false };
+      }
+      const nombre = textoSeguro(draft.nombre);
+      if (!nombre) {
+        alert("Completa el nombre del item.");
+        return null;
+      }
+      return { nombre, activo: draft.activo !== false };
+    }
+
+    function guardarFilaInline() {
+      if (!filaActiva) return;
+      const payload = construirPayloadDesdeDraft();
+      if (!payload) return;
+      if (itemExisteDuplicado(payload)) {
+        alert("Ese item ya existe en el catalogo.");
+        return;
+      }
+
+      const coleccion = getColeccionDestino();
+      if (filaActiva.modo === "edit") {
+        const idx = coleccion.findIndex(item => item.id === filaActiva.id);
+        if (idx === -1) return;
+        coleccion[idx] = { ...coleccion[idx], ...payload };
+      } else {
+        const prefijo = moduloActivo === "competenciasBlandas" || moduloActivo === "competenciasTecnicas" ? "competencias" : moduloActivo;
+        coleccion.push({ id: generarId(prefijo), ...payload });
+      }
+
+      guardarCatalogos();
+      filaActiva = null;
+      renderTodo();
+    }
+
+    function toggleItem(id) {
+      const coleccion = getColeccionDestino();
+      const item = coleccion.find(x => x.id === id);
+      if (!item) return;
+      item.activo = !item.activo;
+      guardarCatalogos();
+      renderTodo();
+    }
+
+    function renderTodo() {
+      renderModulos();
+      renderContadores();
+      actualizarTextoBotonAgregar();
+      renderTabla();
+    }
+
+    document.getElementById("txtBuscar").addEventListener("input", renderTabla);
+    document.getElementById("selEstadoFiltro").addEventListener("change", renderTabla);
+    document.getElementById("btnAgregarInicio").addEventListener("click", iniciarNuevoRegistro);
+
+    window.toggleItem = toggleItem;
+    window.iniciarNuevoRegistro = iniciarNuevoRegistro;
+    window.editarFila = editarFila;
+    window.cancelarFilaInline = cancelarFilaInline;
+    window.guardarFilaInline = guardarFilaInline;
+    window.onInlineChange = onInlineChange;
+    window.onInlineValoresChange = onInlineValoresChange;
+
+    renderTodo();
+  </script>
+</body>
+</html>

@@ -6,6 +6,11 @@
 
   const MENU_TREE = [
     {
+      key: "catalogos-maestros",
+      label: "Catalogos maestros",
+      path: "modules/catalogos/catalogos-maestros.html"
+    },
+    {
       key: "puestos-trabajo",
       label: "Puestos de trabajo",
       items: [
