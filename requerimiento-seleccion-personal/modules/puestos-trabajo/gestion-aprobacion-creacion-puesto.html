@@ -769,9 +769,9 @@
 
       agregarTabla(
         "Tabla Competencias",
-        ["Tipo", "Competencia", "Subcategoria"],
+        ["Tipo", "Competencia", "Descripcion"],
         Array.isArray(ficha.competenciasDetalle)
-          ? ficha.competenciasDetalle.map(item => [item.tipo, item.competencia, item.subcategoria])
+          ? ficha.competenciasDetalle.map(item => [item.tipo, item.competencia, item.descripcion || item.subcategoria || ""])
           : [],
         [1.2, 1.9, 1.9]
       );

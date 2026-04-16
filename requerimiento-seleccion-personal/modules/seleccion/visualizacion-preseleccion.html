@@ -352,17 +352,33 @@ function crearPdfSolicitud(sol) {
     ["Estado", sol.estado],
     ["Ultima actualizacion", sol.ultimaActualizacion]
   ]);
-  agregarSeccion("Detalle de la Solicitud", [
+
+  // Construir filas dinámicamente según el motivo
+  const filasDetalleSolicitud = [
     ["Motivo", sol.motivo],
-    ["Cargo solicitado", sol.cargoSolicitado],
-    ["Reemplaza a", sol.reemplazaA],
+    ["Cargo solicitado", sol.cargoSolicitado]
+  ];
+  
+  // Agregar campos específicos según el motivo
+  if (sol.motivo && sol.motivo.toLowerCase().includes("reemplazo")) {
+    if (sol.detalleReemplazo) {
+      filasDetalleSolicitud.push(["Detalle del motivo", sol.detalleReemplazo]);
+    }
+    if (sol.reemplazaA) {
+      filasDetalleSolicitud.push(["Reemplaza a", sol.reemplazaA]);
+    }
+  }
+  
+  filasDetalleSolicitud.push(
     ["Fecha estimada de ingreso", sol.fechaIngreso],
     ["Cantidad de vacantes", sol.cantidad],
     ["Tipo de contratacion", sol.tipoContratacion],
     ["Horario", sol.horario],
     ["Horario completo", sol.horarioCompleto],
     ["Tipo de cargo", sol.tipoCargo]
-  ]);
+  );
+
+  agregarSeccion("Detalle de la Solicitud", filasDetalleSolicitud);
   agregarSeccion("Perfil Requerido", [
     ["Edad estimada", sol.edad],
     ["Sexo sugerido", sol.sexo],

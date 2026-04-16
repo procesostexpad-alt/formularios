@@ -6,14 +6,10 @@
 
   const MENU_TREE = [
     {
-      key: "catalogos-maestros",
-      label: "Catalogos maestros",
-      path: "modules/catalogos/catalogos-maestros.html"
-    },
-    {
       key: "puestos-trabajo",
       label: "Puestos de trabajo",
       items: [
+        { label: "Catalogos maestros", path: "modules/puestos-trabajo/catalogos-maestros.html" },
         { label: "Manual de funciones", path: "modules/puestos-trabajo/manual-funciones.html" },
         { label: "Solicitud creacion cargo", path: "modules/puestos-trabajo/solicitud-creacion-puesto.html" },
         { label: "Gestion aprobacion creacion cargo", path: "modules/puestos-trabajo/gestion-aprobacion-creacion-puesto.html" }

@@ -146,6 +146,7 @@ function cargarSolicitudesSolicitante() {
             <td><span class="badge ${badgeClass}">${textoEstado}</span></td>
 
             <td>
+              <button class="btn btn-outline-danger btn-sm" onclick="verSolicitudPdf(${index})">PDF</button>
               <button class="btn btn-primary btn-sm btn-accion-candidatos"
                       onclick="verAprobacionIngreso(${index})">
                   Aprobación de Ingreso
@@ -186,7 +187,519 @@ window.onload = cargarSolicitudesSolicitante;
 
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.25/dist/jspdf.plugin.autotable.min.js"></script>
+<script>
+
+const ZONA_HORARIA = "America/Bogota";
+
+let pdfActualUrl = "";
+let pdfActualNombre = "solicitud.pdf";
+
+function obtenerFechaHoraLocal() {
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: ZONA_HORARIA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).format(new Date());
+}
+
+function textoPdf(valor) {
+  if (valor === null || valor === undefined) return "-";
+  const limpio = String(valor).replace(/\s+/g, " ").trim();
+  return limpio ? limpio : "-";
+}
+
+function obtenerConstructorJsPdf() {
+  if (window.jspdf && window.jspdf.jsPDF) {
+    return window.jspdf.jsPDF;
+  }
+  alert("No se pudo cargar la libreria de PDF. Recarga la pagina para intentarlo de nuevo.");
+  return null;
+}
+
+function nombreArchivoPdf(solicitud) {
+  const base = textoPdf(solicitud.numero).replace(/[^a-zA-Z0-9_-]/g, "_");
+  return "solicitud_" + (base || "sin_numero") + ".pdf";
+}
+
+function cerrarPdfModal() {
+  const modal = document.getElementById("pdfModal");
+  const frame = document.getElementById("pdfPreviewFrame");
+  if (frame) frame.removeAttribute("src");
+  if (pdfActualUrl) {
+    URL.revokeObjectURL(pdfActualUrl);
+    pdfActualUrl = "";
+  }
+  if (modal) {
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+  }
+  document.body.style.overflow = "";
+}
+
+function abrirPdfActual() {
+  if (!pdfActualUrl) return;
+  window.open(pdfActualUrl, "_blank");
+}
+
+function descargarPdfActual() {
+  if (!pdfActualUrl) return;
+  const link = document.createElement("a");
+  link.href = pdfActualUrl;
+  link.download = pdfActualNombre || "solicitud.pdf";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function abrirPdfEnModal(doc, nombreArchivo) {
+  const modal = document.getElementById("pdfModal");
+  const frame = document.getElementById("pdfPreviewFrame");
+  if (!modal || !frame) return;
+
+  if (pdfActualUrl) URL.revokeObjectURL(pdfActualUrl);
+  pdfActualUrl = URL.createObjectURL(doc.output("blob"));
+  pdfActualNombre = nombreArchivo || "solicitud.pdf";
+  frame.src = pdfActualUrl + "#toolbar=1&navpanes=1&scrollbar=1&view=FitH";
+  modal.style.display = "block";
+  modal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function crearPdfSolicitud(sol) {
+  const JsPdf = obtenerConstructorJsPdf();
+  if (!JsPdf) return null;
+
+  const doc = new JsPdf({ unit: "mm", format: "a4", orientation: "portrait" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 12;
+  const labelW = 58;
+  const valueW = pageW - margin - margin - labelW;
+  let y = 14;
+
+  const manual = sol?.manualCargoDetalle && typeof sol.manualCargoDetalle === "object"
+    ? sol.manualCargoDetalle
+    : {};
+  const ficha = manual?.ficha && typeof manual.ficha === "object" ? manual.ficha : {};
+
+  const area = textoPdf(sol.area) !== "-" ? sol.area : manual.area;
+  const departamento = textoPdf(sol.departamento) !== "-" ? sol.departamento : manual.departamento;
+  const cargoSolicitado = textoPdf(sol.cargoSolicitado) !== "-" ? sol.cargoSolicitado : manual.nombreCargo;
+  const codigoCargo = textoPdf(sol.codigoCargoManual) !== "-" ? sol.codigoCargoManual : manual.codigoCargo;
+  const tipoCargo = textoPdf(sol.tipoCargo) !== "-" ? sol.tipoCargo : manual.tipoCargo;
+  const horario = textoPdf(sol.horario) !== "-" ? sol.horario : manual.horario;
+  const horarioCompleto = textoPdf(sol.horarioCompleto) !== "-" ? sol.horarioCompleto : manual.horarioCompleto;
+  const edad = textoPdf(sol.edad) !== "-" ? sol.edad : manual.edadSugerida;
+  const sexo = textoPdf(sol.sexo) !== "-" ? sol.sexo : manual.sexoSugerido;
+
+  function asegurarEspacio(altoNecesario) {
+    if (y + altoNecesario > pageH - 12) {
+      doc.addPage();
+      y = 14;
+    }
+  }
+
+  function agregarTitulo() {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Resumen Solicitud de Requerimiento de Personal", margin, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(70, 70, 70);
+    doc.text("Generado: " + obtenerFechaHoraLocal(), margin, y);
+    doc.setTextColor(20, 20, 20);
+    y += 5;
+  }
+
+  function agregarSeccion(titulo, filas) {
+    asegurarEspacio(10);
+    doc.setDrawColor(212, 221, 218);
+    doc.setFillColor(243, 248, 246);
+    doc.rect(margin, y, pageW - (margin * 2), 7, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(titulo, margin + 2, y + 4.7);
+    y += 8;
+
+    filas.forEach(fila => {
+      const etiqueta = textoPdf(fila[0]);
+      const valor = textoPdf(fila[1]);
+      const etiquetaLineas = doc.splitTextToSize(etiqueta, labelW - 4);
+      const valorLineas = doc.splitTextToSize(valor, valueW - 4);
+      const lineas = Math.max(etiquetaLineas.length, valorLineas.length);
+      const altoFila = Math.max(6, (lineas * 3.7) + 2);
+      asegurarEspacio(altoFila);
+
+      doc.setDrawColor(216, 224, 221);
+      doc.setFillColor(250, 252, 251);
+      doc.rect(margin, y, labelW, altoFila, "FD");
+      doc.rect(margin + labelW, y, valueW, altoFila, "S");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(etiquetaLineas, margin + 2, y + 4);
+
+      doc.setFont("helvetica", "normal");
+      doc.text(valorLineas, margin + labelW + 2, y + 4);
+
+      y += altoFila;
+    });
+
+    y += 4;
+  }
+
+  function agregarSeccionVertical(titulo, bloques) {
+    asegurarEspacio(10);
+    doc.setDrawColor(212, 221, 218);
+    doc.setFillColor(243, 248, 246);
+    doc.rect(margin, y, pageW - (margin * 2), 7, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(titulo, margin + 2, y + 4.7);
+    y += 8;
+
+    const boxW = pageW - (margin * 2);
+    (Array.isArray(bloques) ? bloques : []).forEach((bloque) => {
+      const subtitulo = textoPdf(Array.isArray(bloque) ? bloque[0] : "");
+      const valor = textoPdf(Array.isArray(bloque) ? bloque[1] : "");
+      const subtituloLineas = doc.splitTextToSize(subtitulo, boxW - 4);
+      const valorLineas = doc.splitTextToSize(valor, boxW - 4);
+      const altoSubtitulo = Math.max(4.5, subtituloLineas.length * 3.6);
+      const altoValor = Math.max(5.2, valorLineas.length * 3.7);
+      const altoBloque = altoSubtitulo + altoValor + 4.5;
+
+      asegurarEspacio(altoBloque);
+      doc.setDrawColor(216, 224, 221);
+      doc.setFillColor(250, 252, 251);
+      doc.rect(margin, y, boxW, altoBloque, "FD");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(subtituloLineas, margin + 2, y + 3.8);
+
+      const yLinea = y + altoSubtitulo + 0.5;
+      doc.setDrawColor(227, 233, 230);
+      doc.line(margin + 1.8, yLinea, margin + boxW - 1.8, yLinea);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.8);
+      doc.text(valorLineas, margin + 2, yLinea + 3.8);
+
+      y += altoBloque + 2.2;
+    });
+
+    y += 2;
+  }
+
+  function normalizarFilasTabla(filas, columnas) {
+    const totalColumnas = Array.isArray(columnas) ? columnas.length : 0;
+    if (!totalColumnas) return [];
+
+    const normalizar = valor => String(valor || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+
+    const esFilaCabecera = (fila) => fila.every((celda, index) => {
+      const actual = normalizar(celda);
+      const esperado = normalizar(columnas[index]);
+      return actual && esperado && actual === esperado;
+    });
+
+    if (Array.isArray(filas) && filas.length > 0) {
+      const filasNormalizadas = filas.map(fila => {
+        const base = Array.isArray(fila) ? fila.slice(0, totalColumnas) : [];
+        while (base.length < totalColumnas) base.push("-");
+        return base;
+      });
+
+      const filasSinCabeceraDuplicada = filasNormalizadas.filter(fila => !esFilaCabecera(fila));
+      if (filasSinCabeceraDuplicada.length > 0) return filasSinCabeceraDuplicada;
+    }
+
+    const filaVacia = Array.from({ length: totalColumnas }, (_, index) => (index === 0 ? "Sin registros" : "-"));
+    return [filaVacia];
+  }
+
+  function agregarTabla(titulo, columnas, filas, pesos) {
+    const totalCols = Array.isArray(columnas) ? columnas.length : 0;
+    if (!totalCols) return;
+
+    const areaW = pageW - (margin * 2);
+    const pesosBase = (Array.isArray(pesos) && pesos.length === totalCols)
+      ? pesos
+      : Array.from({ length: totalCols }, () => 1);
+    const sumaPesos = pesosBase.reduce((acc, item) => acc + Number(item || 0), 0) || totalCols;
+    const colW = pesosBase.map(p => areaW * (Number(p || 0) / sumaPesos));
+    const filasTabla = normalizarFilasTabla(filas, columnas);
+    const alturaLinea = 3.7;
+    const padX = 1.6;
+    const padTop = 3.6;
+
+    function dibujarTituloTabla(textoTitulo) {
+      asegurarEspacio(10);
+      doc.setDrawColor(212, 221, 218);
+      doc.setFillColor(243, 248, 246);
+      doc.rect(margin, y, areaW, 7, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(textoPdf(textoTitulo), margin + 2, y + 4.7);
+      y += 8;
+    }
+
+    function construirLineasFila(celdas) {
+      return celdas.map((celda, index) => doc.splitTextToSize(textoPdf(celda), colW[index] - (padX * 2)));
+    }
+
+    function calcularAltoFila(lineasCeldas) {
+      const maxLineas = lineasCeldas.reduce((acc, lineas) => Math.max(acc, lineas.length), 1);
+      return Math.max(6.2, (maxLineas * alturaLinea) + 2.1);
+    }
+
+    function dibujarFila(celdas, esHeader) {
+      const lineasCeldas = construirLineasFila(celdas);
+      const altoFila = calcularAltoFila(lineasCeldas);
+
+      if (y + altoFila > pageH - 12) {
+        doc.addPage();
+        y = 14;
+        if (!esHeader) dibujarFila(columnas, true);
+      }
+
+      let x = margin;
+      for (let i = 0; i < totalCols; i += 1) {
+        doc.setDrawColor(216, 224, 221);
+        if (esHeader) {
+          doc.setFillColor(236, 243, 240);
+          doc.rect(x, y, colW[i], altoFila, "FD");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.7);
+        } else {
+          doc.rect(x, y, colW[i], altoFila, "S");
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8.6);
+        }
+        doc.text(lineasCeldas[i], x + padX, y + padTop);
+        x += colW[i];
+      }
+
+      y += altoFila;
+    }
+
+    const altoHeaderEstimado = calcularAltoFila(construirLineasFila(columnas));
+    const altoPrimeraFila = filasTabla.length > 0
+      ? calcularAltoFila(construirLineasFila(filasTabla[0]))
+      : 6.2;
+    asegurarEspacio(8 + altoHeaderEstimado + altoPrimeraFila);
+
+    dibujarTituloTabla(titulo);
+    dibujarFila(columnas, true);
+    filasTabla.forEach(fila => dibujarFila(fila, false));
+    y += 4;
+  }
+
+  function filasPerfil() {
+    if (Array.isArray(ficha.perfilDetalle) && ficha.perfilDetalle.length > 0) {
+      return ficha.perfilDetalle.map(item => [item.formacionAcademica, item.tipo, item.titulo]);
+    }
+    return [];
+  }
+
+  function filasCompetencias() {
+    if (Array.isArray(ficha.competenciasDetalle) && ficha.competenciasDetalle.length > 0) {
+      return ficha.competenciasDetalle.map(item => [
+        item.tipo,
+        item.competencia,
+        item.descripcion || item.subcategoria || ""
+      ]);
+    }
+    if (Array.isArray(sol.competenciasTabla) && sol.competenciasTabla.length > 0) {
+      return sol.competenciasTabla.map(item => {
+        const partes = String(item.categoria || "").split("/").map(v => v.trim()).filter(Boolean);
+        const tipoComp = partes[0] || "General";
+        const competencia = partes.slice(1).join(" / ") || item.competencia || "-";
+        return [tipoComp, competencia, item.descripcion || item.subcategoria || item.comp || ""];
+      });
+    }
+    return [];
+  }
+
+  function filasCapacitaciones() {
+    if (Array.isArray(ficha.capacitacionesDetalle) && ficha.capacitacionesDetalle.length > 0) {
+      return ficha.capacitacionesDetalle.map(item => [item.tipo, item.detalle]);
+    }
+    return [];
+  }
+
+  function filasEquiposAccesos() {
+    if (Array.isArray(ficha.equiposAccesosDetalle) && ficha.equiposAccesosDetalle.length > 0) {
+      return ficha.equiposAccesosDetalle.map(item => [item.tipo, item.recurso, item.observacion]);
+    }
+    return [];
+  }
+
+  function filasEpps() {
+    if (Array.isArray(ficha.eppsUniformesDetalle) && ficha.eppsUniformesDetalle.length > 0) {
+      return ficha.eppsUniformesDetalle.map(item => [item.tipo, item.elemento, item.cantidad, item.observacion]);
+    }
+    return [];
+  }
+
+  function filasKpis() {
+    if (Array.isArray(ficha.indicadoresKpisDetalle) && ficha.indicadoresKpisDetalle.length > 0) {
+      return ficha.indicadoresKpisDetalle.map(item => [item.indicador, item.formula]);
+    }
+    return [];
+  }
+
+  agregarTitulo();
+
+  agregarSeccion("Datos Generales", [
+    ["Numero de solicitud", sol.numero],
+    ["Fecha de solicitud", sol.fechaSolicitud],
+    ["Solicitante", sol.solicitante],
+    ["Area", area],
+    ["Departamento", departamento],
+    ["Estado", sol.estado],
+    ["Ultima actualizacion", sol.ultimaActualizacion]
+  ]);
+
+  // Construir filas dinámicamente según el motivo
+  const filasDetalleSolicitud = [
+    ["Motivo", sol.motivo],
+    ["Cargo solicitado", cargoSolicitado],
+    ["Codigo cargo", codigoCargo]
+  ];
+  
+  // Agregar campos específicos según el motivo
+  if (sol.motivo && sol.motivo.toLowerCase().includes("reemplazo")) {
+    if (sol.detalleReemplazo) {
+      filasDetalleSolicitud.push(["Detalle del motivo", sol.detalleReemplazo]);
+    }
+    if (sol.reemplazaA) {
+      filasDetalleSolicitud.push(["Reemplaza a", sol.reemplazaA]);
+    }
+  }
+  
+  filasDetalleSolicitud.push(
+    ["Fecha estimada de ingreso", sol.fechaIngreso],
+    ["Cantidad de vacantes", sol.cantidad],
+    ["Tipo de contratacion", sol.tipoContratacion]
+  );
+
+  agregarSeccion("Detalle de la Solicitud", filasDetalleSolicitud);
+
+  agregarSeccion("Datos del Cargo", [
+    ["Tipo cargo", tipoCargo],
+    ["Horario", horario],
+    ["Horario (inicio - fin)", horarioCompleto],
+    ["Edad sugerida", edad],
+    ["Sexo sugerido", sexo],
+    ["Banda salarial", manual.bandaSalarial],
+    ["Quien reporta", manual.quienReporta],
+    ["Quien supervisa", manual.quienSupervisa]
+  ]);
+
+  agregarSeccionVertical("Definicion del Manual", [
+    ["Proposito de cargo", ficha.objetivo],
+    ["Funciones y responsabilidades clave", ficha.funciones],
+    ["Experiencia requerida", ficha.experienciaRequerida || sol.experienciaMinima]
+  ]);
+
+  agregarTabla(
+    "Tabla Perfil de Cargo",
+    ["Formacion academica", "Tipo", "Titulo"],
+    filasPerfil(),
+    [2.2, 1.2, 2.6]
+  );
+
+  agregarTabla(
+    "Tabla Competencias",
+    ["Tipo", "Competencia", "Descripcion"],
+    filasCompetencias(),
+    [1.2, 1.9, 1.9]
+  );
+
+  agregarTabla(
+    "Tabla Capacitaciones",
+    ["Tipo", "Capacitacion"],
+    filasCapacitaciones(),
+    [1.5, 4.5]
+  );
+
+  agregarTabla(
+    "Tabla Equipos y Accesos",
+    ["Tipo", "Recurso", "Observacion"],
+    filasEquiposAccesos(),
+    [1.1, 1.8, 3.1]
+  );
+
+  agregarTabla(
+    "Tabla EPPs y Uniformes",
+    ["Tipo", "Elemento", "Cantidad", "Observacion"],
+    filasEpps(),
+    [1.1, 1.7, 0.9, 2.3]
+  );
+
+  agregarTabla(
+    "Tabla Indicadores KPIs",
+    ["Indicador", "Formula"],
+    filasKpis(),
+    [2.2, 3.8]
+  );
+
+  return doc;
+}
+
+function verSolicitudPdf(index) {
+  const lista = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+  const sol = lista[index];
+  if (!sol) {
+    alert("No se encontro la solicitud seleccionada.");
+    return;
+  }
+  const doc = crearPdfSolicitud(sol);
+  if (!doc) return;
+  abrirPdfEnModal(doc, nombreArchivoPdf(sol));
+}
+
+window.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    const modal = document.getElementById("pdfModal");
+    if (modal && modal.style.display === "block") {
+      cerrarPdfModal();
+    }
+  }
+});
+
+</script>
+
   <script src="../../assets/js/ui-shell.js"></script>
+
+<div id="pdfModal" class="pdf-modal" aria-hidden="true" style="position: fixed; inset: 0; z-index: 3000; display: none;">
+  <div class="pdf-modal-backdrop" onclick="cerrarPdfModal()" style="position: absolute; inset: 0; background: rgba(15, 24, 24, 0.65);"></div>
+  <section class="pdf-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pdfModalTitle" style="position: relative; z-index: 1; width: min(1200px, 96vw); height: min(92vh, 860px); margin: 3vh auto; border-radius: 14px; overflow: hidden; border: 1px solid #c9d5d1; background: #fff; box-shadow: 0 28px 52px rgba(10, 26, 25, 0.38); display: flex; flex-direction: column;">
+    <header class="pdf-modal-head" style="padding: 10px 12px; border-bottom: 1px solid #d7e1de; background: #f2f7f5; display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+      <p id="pdfModalTitle" style="margin: 0; font-size: 0.9rem; color: #4e5f63;">Vista previa PDF de solicitud</p>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="descargarPdfActual()">Descargar</button>
+        <button type="button" class="btn btn-outline-dark btn-sm" onclick="abrirPdfActual()">Abrir en pestaña</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="cerrarPdfModal()">Cerrar</button>
+      </div>
+    </header>
+    <iframe id="pdfPreviewFrame" class="pdf-modal-frame" title="Vista previa PDF" style="border: 0; width: 100%; height: 100%; flex: 1; background: #2b2f35;"></iframe>
+  </section>
+</div>
+
 </body>
 </html>
 

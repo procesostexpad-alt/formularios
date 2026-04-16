@@ -466,7 +466,7 @@
         <div class="col-md-12">
           <h3 class="section-subtitle">Competencias</h3>
           <div class="toolbar-inline">
-            <small class="text-muted">Selecciona tipo, competencia y subcategoria.</small>
+            <small class="text-muted">Selecciona tipo y competencia completa (con descripcion) desde catalogo.</small>
             <button type="button" class="btn btn-outline-primary btn-sm btn-add-row" onclick="mostrarEditorCompetencia()">+ Agregar competencia</button>
           </div>
           <div class="table-responsive">
@@ -475,7 +475,7 @@
                 <tr>
                   <th>Tipo competencia</th>
                   <th>Competencia</th>
-                  <th>Subcategoria</th>
+                  <th>Descripcion</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -583,6 +583,8 @@
 
   <script>
     const STORAGE_KEY = "manualFuncionesCargos";
+    const STORAGE_CATALOGOS_KEY = "catalogosMaestrosTH_v2";
+    const STORAGE_CATALOGOS_KEY_LEGACY = "catalogosMaestrosTH_v1";
     const CAMPOS_FICHA = ["objetivo", "funciones", "perfil", "competencias", "indicadoresKpis"];
 
     const COMPETENCIAS_DATA = {
@@ -902,7 +904,8 @@
     let perfilEditorData = { formacionAcademica: "", tipo: "", titulo: "" };
     let competenciaEditorActivo = false;
     let competenciaEditorIndex = -1;
-    let competenciaEditorData = { tipo: "", competencia: "", subcategoria: "" };
+    let competenciaEditorData = { tipo: "", competencia: "", descripcion: "", subcategoria: "" };
+    let CATALOGO_COMPETENCIAS_POR_TIPO = { Blanda: [], Tecnica: [] };
     let capacitacionEditorActivo = false;
     let capacitacionEditorIndex = -1;
     let capacitacionEditorData = { tipo: "", detalle: "" };
@@ -945,6 +948,41 @@
 
     function textoSeguro(valor) {
       return String(valor || "").trim();
+    }
+
+    function leerJsonStorage(clave) {
+      try {
+        return JSON.parse(localStorage.getItem(clave) || "null");
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function normalizarTipoCompetenciaCatalogo(valor) {
+      const normalizado = normalizarTexto(valor);
+      return normalizado.includes("tecn") ? "Tecnica" : "Blanda";
+    }
+
+    function cargarCatalogoCompetenciasDesdeCatalogos() {
+      CATALOGO_COMPETENCIAS_POR_TIPO = { Blanda: [], Tecnica: [] };
+      const catalogos = leerJsonStorage(STORAGE_CATALOGOS_KEY) || leerJsonStorage(STORAGE_CATALOGOS_KEY_LEGACY);
+      if (!catalogos || !Array.isArray(catalogos.competencias)) return;
+
+      catalogos.competencias.forEach(item => {
+        if (item?.activo === false) return;
+
+        const tipo = normalizarTipoCompetenciaCatalogo(item?.tipoCompetencia || item?.tipo || item?.familia);
+        const competencia = textoSeguro(item?.competencia || item?.subcategoria || item?.nombre);
+        const descripcion = textoSeguro(item?.descripcion);
+        if (!competencia || !descripcion || !Array.isArray(CATALOGO_COMPETENCIAS_POR_TIPO[tipo])) return;
+
+        const existe = CATALOGO_COMPETENCIAS_POR_TIPO[tipo].some(
+          reg => normalizarTexto(reg?.competencia) === normalizarTexto(competencia)
+        );
+        if (!existe) {
+          CATALOGO_COMPETENCIAS_POR_TIPO[tipo].push({ competencia, descripcion });
+        }
+      });
     }
 
     function soloLetras(valor) {
@@ -1132,11 +1170,41 @@
     }
 
     function normalizarFilaCompetencia(item) {
+      const tipo = normalizarTipoCompetenciaFila(item?.tipo) || "Blanda";
+      const competenciaRaw = textoSeguro(item?.competencia);
+      const catalogada = buscarCompetenciaCatalogada(tipo, competenciaRaw);
+      const competencia = textoSeguro(catalogada?.competencia || competenciaRaw);
+      const descripcion = textoSeguro(catalogada?.descripcion || item?.descripcion || item?.subcategoria);
       return {
-        tipo: textoSeguro(item?.tipo),
-        competencia: textoSeguro(item?.competencia),
-        subcategoria: textoSeguro(item?.subcategoria)
+        tipo,
+        competencia,
+        descripcion,
+        subcategoria: descripcion
       };
+    }
+
+    function normalizarTipoCompetenciaFila(valor) {
+      const tipoNorm = normalizarTexto(valor);
+      if (!tipoNorm) return "";
+      if (tipoNorm.includes("tecn")) return "Tecnica";
+      if (tipoNorm.includes("bland")) return "Blanda";
+      return "";
+    }
+
+    function opcionesCompetenciaCatalogoPorTipo(tipo) {
+      const tipoNormalizado = normalizarTipoCompetenciaFila(tipo);
+      if (!tipoNormalizado) return [];
+      return Array.isArray(CATALOGO_COMPETENCIAS_POR_TIPO[tipoNormalizado])
+        ? CATALOGO_COMPETENCIAS_POR_TIPO[tipoNormalizado]
+        : [];
+    }
+
+    function buscarCompetenciaCatalogada(tipo, competencia) {
+      const tipoNormalizado = normalizarTipoCompetenciaFila(tipo);
+      const competenciaNormalizada = normalizarTexto(competencia);
+      if (!tipoNormalizado || !competenciaNormalizada) return null;
+      return opcionesCompetenciaCatalogoPorTipo(tipoNormalizado)
+        .find(item => normalizarTexto(item?.competencia) === competenciaNormalizada) || null;
     }
 
     function normalizarFilaCapacitacion(item) {
@@ -1201,7 +1269,8 @@
 
       return lineas.map(item => ({
         tipo: "Blanda",
-        competencia: "General",
+        competencia: item,
+        descripcion: item,
         subcategoria: item
       }));
     }
@@ -1254,8 +1323,8 @@
 
     function serializarCompetencias(lista) {
       return (Array.isArray(lista) ? lista : [])
-        .filter(item => item.tipo && item.competencia && item.subcategoria)
-        .map(item => `${item.tipo}/${item.competencia}: ${item.subcategoria}`)
+        .filter(item => item.tipo && item.competencia && textoSeguro(item.descripcion || item.subcategoria))
+        .map(item => `${item.tipo}/${item.competencia}: ${textoSeguro(item.descripcion || item.subcategoria)}`)
         .join(" | ");
     }
 
@@ -1303,7 +1372,7 @@
         && lista.every(item =>
           textoSeguro(item?.tipo)
           && textoSeguro(item?.competencia)
-          && textoSeguro(item?.subcategoria)
+          && textoSeguro(item?.descripcion || item?.subcategoria)
         );
     }
 
@@ -1355,7 +1424,7 @@
         : [];
 
       let competenciasDetalle = Array.isArray(fichaRaw?.competenciasDetalle)
-        ? fichaRaw.competenciasDetalle.map(normalizarFilaCompetencia).filter(item => item.tipo && item.competencia && item.subcategoria)
+        ? fichaRaw.competenciasDetalle.map(normalizarFilaCompetencia).filter(item => item.tipo && item.competencia && textoSeguro(item.descripcion || item.subcategoria))
         : [];
 
       let capacitacionesDetalle = Array.isArray(fichaRaw?.capacitacionesDetalle)
@@ -1546,7 +1615,7 @@
     function resetEditorCompetencia() {
       competenciaEditorActivo = false;
       competenciaEditorIndex = -1;
-      competenciaEditorData = { tipo: "", competencia: "", subcategoria: "" };
+      competenciaEditorData = { tipo: "", competencia: "", descripcion: "", subcategoria: "" };
     }
 
     function resetEditorCapacitacion() {
@@ -1707,20 +1776,10 @@
       refrescarEstadoVisual();
     }
 
-    function categoriasPorTipoCompetencia(tipo) {
-      return Object.keys(COMPETENCIAS_DATA).filter(categoria => COMPETENCIA_TIPO[categoria] === tipo);
-    }
-
     function renderEditorCompetenciaRow() {
-      const categorias = categoriasPorTipoCompetencia(competenciaEditorData.tipo);
-      const subcategorias = COMPETENCIAS_DATA[competenciaEditorData.competencia] || [];
-
-      const opcionesCategorias = categorias.map(categoria =>
-        `<option value="${escapeHtml(categoria)}"${attrSelected(competenciaEditorData.competencia, categoria)}>${escapeHtml(categoria)}</option>`
-      ).join("");
-
-      const opcionesSubcategorias = subcategorias.map(sub =>
-        `<option value="${escapeHtml(sub)}"${attrSelected(competenciaEditorData.subcategoria, sub)}>${escapeHtml(sub)}</option>`
+      const tipoSeleccionado = normalizarTipoCompetenciaFila(competenciaEditorData.tipo);
+      const opcionesCompetencia = opcionesCompetenciaCatalogoPorTipo(tipoSeleccionado).map(item =>
+        `<option value="${escapeHtml(item.competencia)}"${attrSelected(competenciaEditorData.competencia, item.competencia)}>${escapeHtml(item.competencia)}</option>`
       ).join("");
 
       return `
@@ -1728,21 +1787,18 @@
           <td>
             <select id="competenciaTipo" class="form-select form-select-sm" onchange="onCompetenciaTipoEditorChange(this.value)">
               <option value="">Seleccionar</option>
-              <option value="Blanda"${attrSelected(competenciaEditorData.tipo, "Blanda")}>Blanda</option>
-              <option value="Tecnica"${attrSelected(competenciaEditorData.tipo, "Tecnica")}>Tecnica</option>
+              <option value="Blanda"${attrSelected(tipoSeleccionado, "Blanda")}>Blanda</option>
+              <option value="Tecnica"${attrSelected(tipoSeleccionado, "Tecnica")}>Tecnica</option>
             </select>
           </td>
           <td>
-            <select id="competenciaCategoriaCargo" class="form-select form-select-sm" onchange="onCompetenciaCategoriaEditorChange(this.value)">
+            <select id="competenciaNombreCargo" class="form-select form-select-sm" onchange="onCompetenciaNombreEditorChange(this.value)">
               <option value="">Seleccione tipo</option>
-              ${opcionesCategorias}
+              ${opcionesCompetencia}
             </select>
           </td>
           <td>
-            <select id="competenciaSubcategoriaCargo" class="form-select form-select-sm" onchange="onCompetenciaSubcategoriaEditorChange(this.value)">
-              <option value="">Seleccione competencia</option>
-              ${opcionesSubcategorias}
-            </select>
+            <input id="competenciaDescripcionCargo" type="text" class="form-control form-control-sm" value="${escapeHtml(competenciaEditorData.descripcion)}" readonly>
           </td>
           <td>
             <div class="editor-actions">
@@ -1773,7 +1829,7 @@
           <tr>
             <td>${escapeHtml(item.tipo)}</td>
             <td>${escapeHtml(item.competencia)}</td>
-            <td>${escapeHtml(item.subcategoria)}</td>
+            <td>${escapeHtml(item.descripcion || item.subcategoria)}</td>
             <td>
               <div class="editor-actions">
                 <button type="button" class="btn btn-outline-primary btn-sm btn-row-action" onclick="editarFilaCompetencia(${index})">Editar</button>
@@ -1792,7 +1848,7 @@
     function mostrarEditorCompetencia() {
       competenciaEditorActivo = true;
       competenciaEditorIndex = -1;
-      competenciaEditorData = { tipo: "", competencia: "", subcategoria: "" };
+      competenciaEditorData = { tipo: "", competencia: "", descripcion: "", subcategoria: "" };
       renderTablaCompetencias();
       const input = document.getElementById("competenciaTipo");
       if (input) input.focus();
@@ -1803,10 +1859,12 @@
       if (!item) return;
       competenciaEditorActivo = true;
       competenciaEditorIndex = index;
+      const fila = normalizarFilaCompetencia(item);
       competenciaEditorData = {
-        tipo: item.tipo || "",
-        competencia: item.competencia || "",
-        subcategoria: item.subcategoria || ""
+        tipo: fila.tipo,
+        competencia: fila.competencia,
+        descripcion: fila.descripcion || "",
+        subcategoria: fila.subcategoria || ""
       };
       renderTablaCompetencias();
       const input = document.getElementById("competenciaTipo");
@@ -1819,24 +1877,24 @@
     }
 
     function onCompetenciaTipoEditorChange(valor) {
-      competenciaEditorData.tipo = textoSeguro(valor);
+      competenciaEditorData.tipo = normalizarTipoCompetenciaFila(valor);
       competenciaEditorData.competencia = "";
+      competenciaEditorData.descripcion = "";
       competenciaEditorData.subcategoria = "";
       renderTablaCompetencias();
-      const input = document.getElementById("competenciaCategoriaCargo");
+      const input = document.getElementById("competenciaNombreCargo");
       if (input) input.focus();
     }
 
-    function onCompetenciaCategoriaEditorChange(valor) {
-      competenciaEditorData.competencia = textoSeguro(valor);
-      competenciaEditorData.subcategoria = "";
+    function onCompetenciaNombreEditorChange(valor) {
+      const tipo = normalizarTipoCompetenciaFila(document.getElementById("competenciaTipo")?.value || competenciaEditorData.tipo);
+      const competencia = textoSeguro(valor);
+      const catalogada = buscarCompetenciaCatalogada(tipo, competencia);
+      competenciaEditorData.tipo = tipo;
+      competenciaEditorData.competencia = textoSeguro(catalogada?.competencia || competencia);
+      competenciaEditorData.descripcion = textoSeguro(catalogada?.descripcion);
+      competenciaEditorData.subcategoria = competenciaEditorData.descripcion;
       renderTablaCompetencias();
-      const input = document.getElementById("competenciaSubcategoriaCargo");
-      if (input) input.focus();
-    }
-
-    function onCompetenciaSubcategoriaEditorChange(valor) {
-      competenciaEditorData.subcategoria = textoSeguro(valor);
     }
 
     function cargarCompetenciasPorTipoCargo() {
@@ -1844,31 +1902,37 @@
     }
 
     function cargarSubcategoriasCargo() {
-      onCompetenciaCategoriaEditorChange(document.getElementById("competenciaCategoriaCargo")?.value || "");
+      onCompetenciaNombreEditorChange(document.getElementById("competenciaNombreCargo")?.value || "");
     }
 
     function guardarFilaCompetencia() {
-      const tipo = textoSeguro(document.getElementById("competenciaTipo")?.value);
-      const competencia = textoSeguro(document.getElementById("competenciaCategoriaCargo")?.value);
-      const subcategoria = textoSeguro(document.getElementById("competenciaSubcategoriaCargo")?.value);
+      const tipo = normalizarTipoCompetenciaFila(document.getElementById("competenciaTipo")?.value);
+      const competencia = textoSeguro(document.getElementById("competenciaNombreCargo")?.value);
+      const catalogada = buscarCompetenciaCatalogada(tipo, competencia);
+      const descripcion = textoSeguro(catalogada?.descripcion || document.getElementById("competenciaDescripcionCargo")?.value);
 
-      if (!tipo || !competencia || !subcategoria) {
-        alert("Completa tipo, competencia y subcategoria para guardar.");
+      if (!tipo || !competencia || !descripcion) {
+        alert("Completa tipo y selecciona una competencia completa del catalogo.");
         return;
       }
 
       const yaExiste = competenciasCargoLista.some((item, index) =>
         index !== competenciaEditorIndex &&
-        item.tipo === tipo &&
-        item.competencia === competencia &&
-        item.subcategoria === subcategoria
+        normalizarTexto(item.tipo) === normalizarTexto(tipo) &&
+        normalizarTexto(item.competencia) === normalizarTexto(competencia) &&
+        normalizarTexto(item.descripcion || item.subcategoria) === normalizarTexto(descripcion)
       );
       if (yaExiste) {
         alert("Esa competencia ya fue agregada.");
         return;
       }
 
-      const payload = { tipo, competencia, subcategoria };
+      const payload = {
+        tipo,
+        competencia: textoSeguro(catalogada?.competencia || competencia),
+        descripcion,
+        subcategoria: descripcion
+      };
       if (competenciaEditorIndex >= 0) {
         competenciasCargoLista[competenciaEditorIndex] = payload;
       } else {
@@ -2577,7 +2641,7 @@
       }
 
       competenciasCargoLista = Array.isArray(ficha.competenciasDetalle)
-        ? ficha.competenciasDetalle.map(normalizarFilaCompetencia).filter(item => item.tipo && item.competencia && item.subcategoria)
+        ? ficha.competenciasDetalle.map(normalizarFilaCompetencia).filter(item => item.tipo && item.competencia && textoSeguro(item.descripcion || item.subcategoria))
         : [];
       if (competenciasCargoLista.length === 0 && textoSeguro(ficha.competencias)) {
         competenciasCargoLista = competenciasDetalleDesdeTexto(ficha.competencias);
@@ -2796,6 +2860,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      cargarCatalogoCompetenciasDesdeCatalogos();
       renderSelectorAreas("");
       renderSelectorDepartamentos("", "");
       renderSelectMultiple("quienReportaCargo", QUIEN_REPORTA_OPCIONES, []);

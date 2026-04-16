@@ -27,17 +27,42 @@
       localStorage.setItem("solicitudes", JSON.stringify(lista));
     }
 
+    function normalizarEstadoBase(valor) {
+      const estado = String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "")
+        .replace(/[-_]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+
+      if (!estado) return "";
+      if (estado === "ingresado" || estado.startsWith("ingresado para aproba")) return "Ingresado";
+      if (estado.startsWith("aprobad")) return "Aprobado";
+      if (estado.startsWith("rechazad")) return "Rechazado";
+      if (estado.startsWith("anulad")) return "Anulado";
+      return String(valor || "").trim();
+    }
+
+    function esEstadoIngresadoSolicitud(sol) {
+      return normalizarEstadoBase(sol?.estado) === "Ingresado" ||
+        normalizarEstadoBase(sol?.estadoGeneral) === "Ingresado";
+    }
+
     function normalizarLista(lista) {
       let huboCambios = false;
 
       lista.forEach(sol => {
-        if (sol.estado === "Ingresado para aprobar") {
-          sol.estado = "Ingresado";
+        const estadoCanonico = normalizarEstadoBase(sol?.estado);
+        if (estadoCanonico && sol.estado !== estadoCanonico) {
+          sol.estado = estadoCanonico;
           huboCambios = true;
         }
 
-        if (sol.estadoGeneral === "Ingresado para aprobar") {
-          sol.estadoGeneral = "Ingresado";
+        const estadoGeneralCanonico = normalizarEstadoBase(sol?.estadoGeneral);
+        if (estadoGeneralCanonico && sol.estadoGeneral !== estadoGeneralCanonico) {
+          sol.estadoGeneral = estadoGeneralCanonico;
           huboCambios = true;
         }
 
@@ -494,7 +519,7 @@
 
       if (!solicitud) return;
 
-      if (solicitud.estado !== "Ingresado") {
+      if (!esEstadoIngresadoSolicitud(solicitud)) {
         alert("Solo se puede editar una solicitud en estado Ingresado.");
         return;
       }
@@ -656,14 +681,24 @@
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
       const margin = 12;
-      const labelW = 52;
+      const labelW = 58;
       const valueW = pageW - margin - margin - labelW;
       let y = 14;
 
-      const accesos = Array.isArray(sol.accesosPC) && sol.accesosPC.length > 0 ? sol.accesosPC.join(", ") : "-";
-      const competencias = Array.isArray(sol.competenciasTabla) && sol.competenciasTabla.length > 0
-        ? sol.competenciasTabla.map(item => textoPdf(item.categoria || "General") + ": " + textoPdf(item.comp || "-")).join(" | ")
-        : textoPdf(sol.competencias);
+      const manual = sol?.manualCargoDetalle && typeof sol.manualCargoDetalle === "object"
+        ? sol.manualCargoDetalle
+        : {};
+      const ficha = manual?.ficha && typeof manual.ficha === "object" ? manual.ficha : {};
+
+      const area = textoPdf(sol.area) !== "-" ? sol.area : manual.area;
+      const departamento = textoPdf(sol.departamento) !== "-" ? sol.departamento : manual.departamento;
+      const cargoSolicitado = textoPdf(sol.cargoSolicitado) !== "-" ? sol.cargoSolicitado : manual.nombreCargo;
+      const codigoCargo = textoPdf(sol.codigoCargoManual) !== "-" ? sol.codigoCargoManual : manual.codigoCargo;
+      const tipoCargo = textoPdf(sol.tipoCargo) !== "-" ? sol.tipoCargo : manual.tipoCargo;
+      const horario = textoPdf(sol.horario) !== "-" ? sol.horario : manual.horario;
+      const horarioCompleto = textoPdf(sol.horarioCompleto) !== "-" ? sol.horarioCompleto : manual.horarioCompleto;
+      const edad = textoPdf(sol.edad) !== "-" ? sol.edad : manual.edadSugerida;
+      const sexo = textoPdf(sol.sexo) !== "-" ? sol.sexo : manual.sexoSugerido;
 
       function asegurarEspacio(altoNecesario) {
         if (y + altoNecesario > pageH - 12) {
@@ -675,7 +710,7 @@
       function agregarTitulo() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
-        doc.text("Resumen de Solicitud", margin, y);
+        doc.text("Resumen Solicitud de Requerimiento de Personal", margin, y);
         y += 6;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
@@ -722,50 +757,306 @@
         y += 4;
       }
 
+      function agregarSeccionVertical(titulo, bloques) {
+        asegurarEspacio(10);
+        doc.setDrawColor(212, 221, 218);
+        doc.setFillColor(243, 248, 246);
+        doc.rect(margin, y, pageW - (margin * 2), 7, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(titulo, margin + 2, y + 4.7);
+        y += 8;
+
+        const boxW = pageW - (margin * 2);
+        (Array.isArray(bloques) ? bloques : []).forEach((bloque) => {
+          const subtitulo = textoPdf(Array.isArray(bloque) ? bloque[0] : "");
+          const valor = textoPdf(Array.isArray(bloque) ? bloque[1] : "");
+          const subtituloLineas = doc.splitTextToSize(subtitulo, boxW - 4);
+          const valorLineas = doc.splitTextToSize(valor, boxW - 4);
+          const altoSubtitulo = Math.max(4.5, subtituloLineas.length * 3.6);
+          const altoValor = Math.max(5.2, valorLineas.length * 3.7);
+          const altoBloque = altoSubtitulo + altoValor + 4.5;
+
+          asegurarEspacio(altoBloque);
+          doc.setDrawColor(216, 224, 221);
+          doc.setFillColor(250, 252, 251);
+          doc.rect(margin, y, boxW, altoBloque, "FD");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.text(subtituloLineas, margin + 2, y + 3.8);
+
+          const yLinea = y + altoSubtitulo + 0.5;
+          doc.setDrawColor(227, 233, 230);
+          doc.line(margin + 1.8, yLinea, margin + boxW - 1.8, yLinea);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8.8);
+          doc.text(valorLineas, margin + 2, yLinea + 3.8);
+
+          y += altoBloque + 2.2;
+        });
+
+        y += 2;
+      }
+
+      function normalizarFilasTabla(filas, columnas) {
+        const totalColumnas = Array.isArray(columnas) ? columnas.length : 0;
+        if (!totalColumnas) return [];
+
+        const normalizar = valor => String(valor || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .trim();
+
+        const esFilaCabecera = (fila) => fila.every((celda, index) => {
+          const actual = normalizar(celda);
+          const esperado = normalizar(columnas[index]);
+          return actual && esperado && actual === esperado;
+        });
+
+        if (Array.isArray(filas) && filas.length > 0) {
+          const filasNormalizadas = filas.map(fila => {
+            const base = Array.isArray(fila) ? fila.slice(0, totalColumnas) : [];
+            while (base.length < totalColumnas) base.push("-");
+            return base;
+          });
+
+          const filasSinCabeceraDuplicada = filasNormalizadas.filter(fila => !esFilaCabecera(fila));
+          if (filasSinCabeceraDuplicada.length > 0) return filasSinCabeceraDuplicada;
+        }
+
+        const filaVacia = Array.from({ length: totalColumnas }, (_, index) => (index === 0 ? "Sin registros" : "-"));
+        return [filaVacia];
+      }
+
+      function agregarTabla(titulo, columnas, filas, pesos) {
+        const totalCols = Array.isArray(columnas) ? columnas.length : 0;
+        if (!totalCols) return;
+
+        const areaW = pageW - (margin * 2);
+        const pesosBase = (Array.isArray(pesos) && pesos.length === totalCols)
+          ? pesos
+          : Array.from({ length: totalCols }, () => 1);
+        const sumaPesos = pesosBase.reduce((acc, item) => acc + Number(item || 0), 0) || totalCols;
+        const colW = pesosBase.map(p => areaW * (Number(p || 0) / sumaPesos));
+        const filasTabla = normalizarFilasTabla(filas, columnas);
+        const alturaLinea = 3.7;
+        const padX = 1.6;
+        const padTop = 3.6;
+
+        function dibujarTituloTabla(textoTitulo) {
+          asegurarEspacio(10);
+          doc.setDrawColor(212, 221, 218);
+          doc.setFillColor(243, 248, 246);
+          doc.rect(margin, y, areaW, 7, "FD");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text(textoPdf(textoTitulo), margin + 2, y + 4.7);
+          y += 8;
+        }
+
+        function construirLineasFila(celdas) {
+          return celdas.map((celda, index) => doc.splitTextToSize(textoPdf(celda), colW[index] - (padX * 2)));
+        }
+
+        function calcularAltoFila(lineasCeldas) {
+          const maxLineas = lineasCeldas.reduce((acc, lineas) => Math.max(acc, lineas.length), 1);
+          return Math.max(6.2, (maxLineas * alturaLinea) + 2.1);
+        }
+
+        function dibujarFila(celdas, esHeader) {
+          const lineasCeldas = construirLineasFila(celdas);
+          const altoFila = calcularAltoFila(lineasCeldas);
+
+          if (y + altoFila > pageH - 12) {
+            doc.addPage();
+            y = 14;
+            if (!esHeader) dibujarFila(columnas, true);
+          }
+
+          let x = margin;
+          for (let i = 0; i < totalCols; i += 1) {
+            doc.setDrawColor(216, 224, 221);
+            if (esHeader) {
+              doc.setFillColor(236, 243, 240);
+              doc.rect(x, y, colW[i], altoFila, "FD");
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(8.7);
+            } else {
+              doc.rect(x, y, colW[i], altoFila, "S");
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(8.6);
+            }
+            doc.text(lineasCeldas[i], x + padX, y + padTop);
+            x += colW[i];
+          }
+
+          y += altoFila;
+        }
+
+        const altoHeaderEstimado = calcularAltoFila(construirLineasFila(columnas));
+        const altoPrimeraFila = filasTabla.length > 0
+          ? calcularAltoFila(construirLineasFila(filasTabla[0]))
+          : 6.2;
+        asegurarEspacio(8 + altoHeaderEstimado + altoPrimeraFila);
+
+        dibujarTituloTabla(titulo);
+        dibujarFila(columnas, true);
+        filasTabla.forEach(fila => dibujarFila(fila, false));
+        y += 4;
+      }
+
+      function filasPerfil() {
+        if (Array.isArray(ficha.perfilDetalle) && ficha.perfilDetalle.length > 0) {
+          return ficha.perfilDetalle.map(item => [item.formacionAcademica, item.tipo, item.titulo]);
+        }
+        return [];
+      }
+
+      function filasCompetencias() {
+        if (Array.isArray(ficha.competenciasDetalle) && ficha.competenciasDetalle.length > 0) {
+          return ficha.competenciasDetalle.map(item => [
+            item.tipo,
+            item.competencia,
+            item.descripcion || item.subcategoria || ""
+          ]);
+        }
+        if (Array.isArray(sol.competenciasTabla) && sol.competenciasTabla.length > 0) {
+          return sol.competenciasTabla.map(item => {
+            const partes = String(item.categoria || "").split("/").map(v => v.trim()).filter(Boolean);
+            const tipoComp = partes[0] || "General";
+            const competencia = partes.slice(1).join(" / ") || item.competencia || "-";
+            return [tipoComp, competencia, item.descripcion || item.subcategoria || item.comp || ""];
+          });
+        }
+        return [];
+      }
+
+      function filasCapacitaciones() {
+        if (Array.isArray(ficha.capacitacionesDetalle) && ficha.capacitacionesDetalle.length > 0) {
+          return ficha.capacitacionesDetalle.map(item => [item.tipo, item.detalle]);
+        }
+        return [];
+      }
+
+      function filasEquiposAccesos() {
+        if (Array.isArray(ficha.equiposAccesosDetalle) && ficha.equiposAccesosDetalle.length > 0) {
+          return ficha.equiposAccesosDetalle.map(item => [item.tipo, item.recurso, item.observacion]);
+        }
+        return [];
+      }
+
+      function filasEpps() {
+        if (Array.isArray(ficha.eppsUniformesDetalle) && ficha.eppsUniformesDetalle.length > 0) {
+          return ficha.eppsUniformesDetalle.map(item => [item.tipo, item.elemento, item.cantidad, item.observacion]);
+        }
+        return [];
+      }
+
+      function filasKpis() {
+        if (Array.isArray(ficha.indicadoresKpisDetalle) && ficha.indicadoresKpisDetalle.length > 0) {
+          return ficha.indicadoresKpisDetalle.map(item => [item.indicador, item.formula]);
+        }
+        return [];
+      }
+
       agregarTitulo();
 
       agregarSeccion("Datos Generales", [
         ["Numero de solicitud", sol.numero],
         ["Fecha de solicitud", sol.fechaSolicitud],
         ["Solicitante", sol.solicitante],
-        ["Area", sol.area],
-        ["Departamento", sol.departamento],
+        ["Area", area],
+        ["Departamento", departamento],
         ["Estado", sol.estado],
         ["Ultima actualizacion", sol.ultimaActualizacion]
       ]);
 
-      agregarSeccion("Detalle de la Solicitud", [
+      // Construir filas dinámicamente según el motivo
+      const filasDetalleSolicitud = [
         ["Motivo", sol.motivo],
-        ["Cargo solicitado", sol.cargoSolicitado],
-        ["Reemplaza a", sol.reemplazaA],
+        ["Cargo solicitado", cargoSolicitado],
+        ["Codigo cargo", codigoCargo]
+      ];
+      
+      // Agregar campos específicos según el motivo
+      if (sol.motivo && sol.motivo.toLowerCase().includes("reemplazo")) {
+        if (sol.detalleReemplazo) {
+          filasDetalleSolicitud.push(["Detalle del motivo", sol.detalleReemplazo]);
+        }
+        if (sol.reemplazaA) {
+          filasDetalleSolicitud.push(["Reemplaza a", sol.reemplazaA]);
+        }
+      }
+      
+      filasDetalleSolicitud.push(
         ["Fecha estimada de ingreso", sol.fechaIngreso],
         ["Cantidad de vacantes", sol.cantidad],
-        ["Tipo de contratacion", sol.tipoContratacion],
-        ["Horario", sol.horario],
-        ["Horario completo", sol.horarioCompleto],
-        ["Tipo de cargo", sol.tipoCargo]
+        ["Tipo de contratacion", sol.tipoContratacion]
+      );
+
+      agregarSeccion("Detalle de la Solicitud", filasDetalleSolicitud);
+
+      agregarSeccion("Datos del Cargo", [
+        ["Tipo cargo", tipoCargo],
+        ["Horario", horario],
+        ["Horario (inicio - fin)", horarioCompleto],
+        ["Edad sugerida", edad],
+        ["Sexo sugerido", sexo],
+        ["Banda salarial", manual.bandaSalarial],
+        ["Quien reporta", manual.quienReporta],
+        ["Quien supervisa", manual.quienSupervisa]
       ]);
 
-      agregarSeccion("Perfil Requerido", [
-        ["Edad estimada", sol.edad],
-        ["Sexo sugerido", sol.sexo],
-        ["Nivel academico", sol.nivelAcademico],
-        ["Profesion", sol.profesion],
-        ["Experiencia minima", sol.experienciaMinima],
-        ["Conocimientos tecnicos", sol.conocimientosTecnicos],
-        ["Requerimientos adicionales", sol.requerimientosAdicionales],
-        ["Funciones del perfil", sol.funcionesPerfil],
-        ["Competencias", competencias]
+      agregarSeccionVertical("Definicion del Manual", [
+        ["Proposito de cargo", ficha.objetivo],
+        ["Funciones y responsabilidades clave", ficha.funciones],
+        ["Experiencia requerida", ficha.experienciaRequerida || sol.experienciaMinima]
       ]);
 
-      agregarSeccion("Requerimientos Adicionales", [
-        ["Requiere accesos", sol.requiereAccesos],
-        ["Accesos requeridos", accesos],
-        ["Requiere computador", sol.requiereComp],
-        ["Requiere telefono", sol.requiereTel],
-        ["Requiere celular", sol.requiereCel],
-        ["Solicitud adicional", sol.adicional]
-      ]);
+      agregarTabla(
+        "Tabla Perfil de Cargo",
+        ["Formacion academica", "Tipo", "Titulo"],
+        filasPerfil(),
+        [2.2, 1.2, 2.6]
+      );
+
+      agregarTabla(
+        "Tabla Competencias",
+        ["Tipo", "Competencia", "Descripcion"],
+        filasCompetencias(),
+        [1.2, 1.9, 1.9]
+      );
+
+      agregarTabla(
+        "Tabla Capacitaciones",
+        ["Tipo", "Capacitacion"],
+        filasCapacitaciones(),
+        [1.5, 4.5]
+      );
+
+      agregarTabla(
+        "Tabla Equipos y Accesos",
+        ["Tipo", "Recurso", "Observacion"],
+        filasEquiposAccesos(),
+        [1.1, 1.8, 3.1]
+      );
+
+      agregarTabla(
+        "Tabla EPPs y Uniformes",
+        ["Tipo", "Elemento", "Cantidad", "Observacion"],
+        filasEpps(),
+        [1.1, 1.7, 0.9, 2.3]
+      );
+
+      agregarTabla(
+        "Tabla Indicadores KPIs",
+        ["Indicador", "Formula"],
+        filasKpis(),
+        [2.2, 3.8]
+      );
 
       return doc;
     }
@@ -890,16 +1181,6 @@
       cargarTabla();
     }
 
-    function limpiarSolicitudesParaEmpezar() {
-      const claveReset = "__reset_solicitudes_requerimiento_realizado__";
-      if (localStorage.getItem(claveReset) === "1") return;
-
-      localStorage.setItem("solicitudes", "[]");
-      localStorage.setItem("solicitudes_eliminadas", "[]");
-      localStorage.removeItem("numeroSolicitud");
-      localStorage.setItem(claveReset, "1");
-    }
-
     function cumpleFiltroTexto(solicitud, texto, estadoProceso) {
       if (!texto) return true;
 
@@ -942,9 +1223,10 @@
 
       filtrada.forEach(sol => {
         const indiceReal = lista.findIndex(x => x.traceId === sol.traceId && x.numero == sol.numero);
-        const puedeEditar = sol.estado === "Ingresado";
+        const puedeEditar = esEstadoIngresadoSolicitud(sol);
         const attrEditar = puedeEditar ? "" : " disabled title=\"Solo editable en estado Ingresado\"";
-        const esRechazada = String(sol.estado || "").trim().toLowerCase() === "rechazado";
+        const esRechazada = normalizarEstadoBase(sol?.estado) === "Rechazado" ||
+          normalizarEstadoBase(sol?.estadoGeneral) === "Rechazado";
         const attrMotivo = esRechazada ? "" : " disabled title=\"Disponible solo para solicitudes rechazadas\"";
         const estadoProceso = obtenerEstadoProcesoSolicitud(sol);
 
@@ -970,6 +1252,5 @@
       });
     }
 
-    limpiarSolicitudesParaEmpezar();
     cargarTabla();
 

@@ -67,15 +67,14 @@
           <label>Motivo de contratacion</label>
           <select id="motivo" class="form-select" onchange="motivoChange()">
             <option value="">Seleccionar</option>
-            <option value="Creacion de cargo">Creacion de cargo</option>
-            <option value="Reemplazo por renuncia">Reemplazo por renuncia</option>
-            <option value="Reemplazo por reposo medico prolongado">Reemplazo por reposo medico prolongado</option>
-            <option value="Incremento de maquinaria">Incremento de maquinaria</option>
-            <option value="Incremento de demanda">Incremento de demanda</option>
-            <option value="Licencia de paternidad">Licencia de paternidad</option>
-            <option value="Licencia de maternidad">Licencia de maternidad</option>
-            <option value="Otros (especifique)">Otros (especifique)</option>
+            <option value="Creacion de cargo">Creación de cargo</option>
+            <option value="Aumento de personal">Aumento de personal</option>
+            <option value="Reemplazo de personal">Reemplazo de personal</option>
           </select>
+        </div>
+        <div id="detalleReemplazoBox" class="col-md-6 hidden">
+          <label>Detalle del motivo de reemplazo</label>
+          <input id="detalleReemplazos" class="form-control" placeholder="Especifique el motivo del reemplazo" onchange="limpiarError('detalleReemplazos')">
         </div>
         <div id="reemplazoBox" class="col-md-6 hidden">
           <label>Reemplaza a</label>
@@ -113,7 +112,7 @@
         <div class="col-md-12"><label>Experiencia requerida</label><textarea id="pExperiencia" class="form-control campo-bloqueado" rows="3" readonly></textarea></div>
 
         <div class="col-md-12"><h3 class="section-subtitle">Perfil de cargo</h3><div class="table-responsive"><table class="table table-bordered table-manual"><thead><tr><th>Formacion academica</th><th>Tipo</th><th>Titulo</th></tr></thead><tbody id="tPerfil"></tbody></table></div></div>
-        <div class="col-md-12"><h3 class="section-subtitle">Competencias</h3><div class="table-responsive"><table class="table table-bordered table-manual"><thead><tr><th>Tipo competencia</th><th>Competencia</th><th>Subcategoria</th></tr></thead><tbody id="tComp"></tbody></table></div></div>
+        <div class="col-md-12"><h3 class="section-subtitle">Competencias</h3><div class="table-responsive"><table class="table table-bordered table-manual"><thead><tr><th>Tipo competencia</th><th>Competencia</th><th>Descripcion</th></tr></thead><tbody id="tComp"></tbody></table></div></div>
         <div class="col-md-12"><h3 class="section-subtitle">Capacitaciones</h3><div class="table-responsive"><table class="table table-bordered table-manual"><thead><tr><th>Tipo</th><th>Capacitacion</th></tr></thead><tbody id="tCap"></tbody></table></div></div>
         <div class="col-md-12"><h3 class="section-subtitle">Equipos y Accesos</h3><div class="table-responsive"><table class="table table-bordered table-manual"><thead><tr><th>Tipo</th><th>Recurso</th><th>Observacion</th></tr></thead><tbody id="tRec"></tbody></table></div></div>
         <div class="col-md-12"><h3 class="section-subtitle">EPPs y Uniformes</h3><div class="table-responsive"><table class="table table-bordered table-manual"><thead><tr><th>Tipo</th><th>Elemento</th><th>Cantidad</th><th>Observacion</th></tr></thead><tbody id="tEpp"></tbody></table></div></div>
@@ -149,7 +148,14 @@
       const f = c.ficha || {};
       const toA = (arr, map, ok) => Array.isArray(arr) ? arr.map(map).filter(ok) : [];
       const perfil = toA(f.perfilDetalle, x => ({ formacionAcademica: t(x?.formacionAcademica), tipo: t(x?.tipo), titulo: t(x?.titulo) }), x => x.formacionAcademica && x.tipo && x.titulo);
-      const comp = toA(f.competenciasDetalle, x => ({ tipo: t(x?.tipo), competencia: t(x?.competencia), subcategoria: t(x?.subcategoria) }), x => x.tipo && x.competencia && x.subcategoria);
+      const comp = toA(
+        f.competenciasDetalle,
+        x => {
+          const descripcion = t(x?.descripcion || x?.subcategoria);
+          return { tipo: t(x?.tipo), competencia: t(x?.competencia), descripcion, subcategoria: descripcion };
+        },
+        x => x.tipo && x.competencia && x.descripcion
+      );
       const cap = toA(f.capacitacionesDetalle, x => ({ tipo: t(x?.tipo), detalle: t(x?.detalle) }), x => x.tipo && x.detalle);
       const rec = toA(f.equiposAccesosDetalle, x => ({ tipo: t(x?.tipo), recurso: t(x?.recurso), observacion: t(x?.observacion) }), x => x.tipo && x.recurso && x.observacion);
       const epp = toA(f.eppsUniformesDetalle, x => ({ tipo: t(x?.tipo), elemento: t(x?.elemento), cantidad: Number.parseInt(String(x?.cantidad ?? "").trim(), 10) || 0, observacion: t(x?.observacion) }), x => x.tipo && x.elemento && x.cantidad > 0 && x.observacion);
@@ -202,10 +208,16 @@
     function req(id) { if (!visible(id)) return true; limpiarError(id); if (!t(byId(id)?.value)) { marcarError(id); return false; } return true; }
 
     function motivoChange() {
-      ["insertarMotivoInput", "reemplazoSelect"].forEach(id => { byId(id).value = ""; limpiarError(id); });
-      const m = n(byId("motivo").value);
-      hide("insertarMotivoBox", !m.includes("otros"));
-      hide("reemplazoBox", !(m.includes("reemplazo por renuncia") || m.includes("reposo medico prolongado")));
+      ["insertarMotivoInput", "reemplazoSelect", "detalleReemplazos"].forEach(id => { byId(id).value = ""; limpiarError(id); });
+      const motivo = n(byId("motivo").value);
+      
+      // Mostrar campos solo cuando es "Reemplazo de personal"
+      const esReemplazo = motivo.includes("reemplazo");
+      hide("detalleReemplazoBox", !esReemplazo);
+      hide("reemplazoBox", !esReemplazo);
+      
+      // Ocultar campos no usados
+      hide("insertarMotivoBox", true);
     }
 
     function renderRows(id, rows, cols, emptyMsg) {
@@ -222,7 +234,7 @@
       setV("pObjetivo", c.ficha.objetivo); setV("pFunciones", c.ficha.funciones); setV("pExperiencia", c.ficha.experienciaRequerida);
 
       renderRows("tPerfil", c.ficha.perfilDetalle.map(i => `<tr><td>${esc(i.formacionAcademica)}</td><td>${esc(i.tipo)}</td><td>${esc(i.titulo)}</td></tr>`), 3, "Sin registros de perfil.");
-      renderRows("tComp", c.ficha.competenciasDetalle.map(i => `<tr><td>${esc(i.tipo)}</td><td>${esc(i.competencia)}</td><td>${esc(i.subcategoria)}</td></tr>`), 3, "Sin registros de competencias.");
+      renderRows("tComp", c.ficha.competenciasDetalle.map(i => `<tr><td>${esc(i.tipo)}</td><td>${esc(i.competencia)}</td><td>${esc(i.descripcion || i.subcategoria)}</td></tr>`), 3, "Sin registros de competencias.");
       renderRows("tCap", c.ficha.capacitacionesDetalle.map(i => `<tr><td>${esc(i.tipo)}</td><td>${esc(i.detalle)}</td></tr>`), 2, "Sin registros de capacitaciones.");
       renderRows("tRec", c.ficha.equiposAccesosDetalle.map(i => `<tr><td>${esc(i.tipo)}</td><td>${esc(i.recurso)}</td><td>${esc(i.observacion)}</td></tr>`), 3, "Sin registros de equipos y accesos.");
       renderRows("tEpp", c.ficha.eppsUniformesDetalle.map(i => `<tr><td>${esc(i.tipo)}</td><td>${esc(i.elemento)}</td><td>${esc(i.cantidad)}</td><td>${esc(i.observacion)}</td></tr>`), 4, "Sin registros de EPPs y uniformes.");
@@ -253,8 +265,9 @@
       let ok = true;
       ["motivo", "cantidad", "fechaIngreso", "tipoContratacion", "cargoManual"].forEach(id => { if (!req(id)) ok = false; });
       const m = n(byId("motivo").value);
-      if (m.includes("otros") && !req("insertarMotivoInput")) ok = false;
-      if ((m.includes("reemplazo por renuncia") || m.includes("reposo medico prolongado")) && !req("reemplazoSelect")) ok = false;
+      // Validar campos requeridos cuando es "Reemplazo de personal"
+      if (m.includes("reemplazo") && !req("detalleReemplazos")) ok = false;
+      if (m.includes("reemplazo") && !req("reemplazoSelect")) ok = false;
       const c = cargoSel();
       if (!c || !fichaCompleta(c)) { marcarError("cargoManual"); ok = false; }
       return ok;
@@ -269,12 +282,14 @@
 
       const c = cargoSel(), f = c.ficha, reqs = derivarRequerimientos(c);
       const perfilTxt = f.perfilDetalle.map(x => `${x.formacionAcademica} (${x.tipo}): ${x.titulo}`).join(" | ");
-      const compTabla = f.competenciasDetalle.map(x => ({ categoria: [x.tipo, x.competencia].filter(Boolean).join(" / ") || "General", comp: x.subcategoria })).filter(x => x.comp);
+      const compTabla = f.competenciasDetalle
+        .map(x => ({ categoria: [x.tipo, x.competencia].filter(Boolean).join(" / ") || "General", comp: x.descripcion || x.subcategoria }))
+        .filter(x => x.comp);
       return {
         ...prev,
         numero: t(byId("numSol").innerText), traceId: prev.traceId || trace(byId("numSol").innerText), ultimaActualizacion: dateTime(),
         fechaSolicitud: t(byId("fechaSol").innerText), solicitante: USUARIO, area: c.area, departamento: c.departamento,
-        motivo: byId("motivo").value, insertarMotivo: t(byId("insertarMotivoInput").value), nuevoCargo: "", cargoSolicitado: c.nombreCargo, codigoCargoManual: c.codigoCargo, reemplazaA: byId("reemplazoSelect").value,
+        motivo: byId("motivo").value, insertarMotivo: t(byId("insertarMotivoInput").value), detalleReemplazo: byId("detalleReemplazos").value, nuevoCargo: "", cargoSolicitado: c.nombreCargo, codigoCargoManual: c.codigoCargo, reemplazaA: byId("reemplazoSelect").value,
         fechaIngreso: byId("fechaIngreso").value, cantidad: byId("cantidad").value, tipoContratacion: byId("tipoContratacion").value,
         horario: c.horario, horarioCompleto: c.horarioCompleto, tipoCargo: c.tipoCargo,
         requiereAccesos: reqs.requiereAccesos, accesosPC: reqs.accesosPC, accesosTel: reqs.accesosTel, accesosCel: reqs.accesosCel, requiereComp: reqs.requiereComp, requiereTel: reqs.requiereTel, requiereCel: reqs.requiereCel,
@@ -300,7 +315,7 @@
     function cargarEdicion(i) {
       const sol = leerSol()[i]; if (!sol) return;
       byId("numSol").innerText = sol.numero || ""; byId("fechaSol").innerText = sol.fechaSolicitud || dateISO();
-      byId("motivo").value = sol.motivo || ""; motivoChange(); byId("insertarMotivoInput").value = sol.insertarMotivo || ""; byId("reemplazoSelect").value = sol.reemplazaA || "";
+      byId("motivo").value = sol.motivo || ""; motivoChange(); byId("insertarMotivoInput").value = sol.insertarMotivo || ""; byId("detalleReemplazos").value = sol.detalleReemplazo || ""; byId("reemplazoSelect").value = sol.reemplazaA || "";
       byId("fechaIngreso").value = sol.fechaIngreso || ""; byId("cantidad").value = sol.cantidad || ""; byId("tipoContratacion").value = sol.tipoContratacion || "";
 
       let cod = t(sol.codigoCargoManual).toUpperCase();
